@@ -8,11 +8,17 @@ generator client {
     output   = "../src/generated/prisma"
 }
 
+// enum
+
 enum Role {
     student
     teacher
     vicePrincipal
     principal
+}
+
+enum StudentRole {
+    student
 }
 
 enum Grade {
@@ -26,18 +32,40 @@ enum Major {
     softwareEngineering
 }
 
-model User {
-    id            String    @id @default(cuid())
+enum Semester {
+    first
+    second
+}
+
+enum Type {
+    schoolwork
+    homework
+    quiz
+    exam
+    project
+    group
+}
+
+// student model
+
+model Student {
+    id            String      @id @default(cuid())
     name          String
-    grade         Grade
-    major         Major
-    email         String    @unique
+    email         String      @unique
     password      String?
     emailVerified DateTime?
     isVerified    Boolean
     image         String?
     sessions      Session[]
-    role          Role      @default(student)
+    role          StudentRole @default(student)
+
+    grade           Grade
+    major           Major
+    teacherId       String
+    homeroomTeacher Teacher @relation(fields: [teacherId], references: [id])
+
+    studentSubjects String[]
+    subjectMarks    SubjectMark[]
 
     otp             String?
     otpExpiresAt    DateTime?
@@ -49,11 +77,65 @@ model User {
     updatedAt DateTime @updatedAt
 }
 
+model SubjectMark {
+    id           Int      @id @default(autoincrement())
+    subjectName  String
+    studentId    String
+    student      Student  @relation(fields: [studentId], references: [id])
+    academicYear String
+    semester     Semester
+    marks        Mark[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([subjectName, studentId])
+}
+
+model Description {
+    id          Int      @id @default(autoincrement())
+    givenAt     DateTime @default(now())
+    dueAt       DateTime
+    submittedAt DateTime
+
+    marks Mark[]
+}
+
+model Mark {
+    id            Int         @id @default(autoincrement())
+    subjectMarkId Int
+    subjectMark   SubjectMark @relation(fields: [subjectMarkId], references: [id])
+
+    type          Type
+    number        Int
+    descriptionId Int
+    description   Description @relation(fields: [descriptionId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+// teacher model
+
+model Teacher {
+    id                 String    @id @default(cuid())
+    name               String
+    email              String
+    password           String
+    students           Student[]
+    teachingSubjects   String[]
+    homeroomClassGrade Grade
+    homeroomclassMajor Major
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
 model Session {
     sessionToken String   @unique
     userId       String
     expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user         Student  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
