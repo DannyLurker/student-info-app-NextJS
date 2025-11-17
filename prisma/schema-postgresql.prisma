@@ -152,34 +152,39 @@ model ProblemPoint {
 // teacher model
 
 model Teacher {
-    id               String           @id @default(cuid())
-    name             String           @unique
-    email            String           @unique
-    password         String
-    image            String?
-    sessions         TeacherSession[]
-    role             StaffRole
-    students         Student[]
-    teachingSubjects Subject[]        @relation("SubjectTeachers")
-    homeroomClass    HomeroomClass?
+    id       String @id @default(cuid())
+    name     String @unique
+    email    String @unique
+    password String
 
-    teachingGrades TeachingGrade[]
+    role StaffRole
 
+    homeroomClass HomeroomClass?
+
+    teachingAssignments TeachingAssignment[]
+
+    teachingClass   TeachingClass[]
+    teachingClassId Int?
+
+    sessions        TeacherSession[]
+    image           String?
+    students        Student[]
+    problemPoints   ProblemPoint[]
     otp             String?
     otpExpiresAt    DateTime?
-    otpRequestCount Int       @default(0)
+    otpRequestCount Int              @default(0)
     otpResetAt      DateTime?
-    otpAttemptCount Int       @default(0)
+    otpAttemptCount Int              @default(0)
 
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
-    problemPoints ProblemPoint[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
-model TeachingGrade {
-    id    Int   @id @default(autoincrement())
-    grade Grade
-    major Major
+model TeachingClass {
+    id          Int   @id @default(autoincrement())
+    grade       Grade
+    major       Major
+    classNumber Int
 
     teachers Teacher[]
 }
@@ -191,6 +196,22 @@ model HomeroomClass {
     classNumber Int?
     teacherId   String  @unique
     teacher     Teacher @relation(fields: [teacherId], references: [id])
+}
+
+model TeachingAssignment {
+    id Int @id @default(autoincrement())
+
+    teacher   Teacher @relation(fields: [teacherId], references: [id])
+    teacherId String
+
+    subject   Subject @relation(fields: [subjectId], references: [id])
+    subjectId Int
+
+    grade       Grade
+    major       Major
+    classNumber Int
+
+    @@unique([teacherId, subjectId, grade, major, classNumber])
 }
 
 // General
@@ -216,10 +237,12 @@ model TeacherSession {
 }
 
 model Subject {
-    id          Int       @id @default(autoincrement())
-    subjectName String    @unique
-    students    Student[] @relation("SubjectStudents")
-    teachers    Teacher[] @relation("SubjectTeachers")
+    id          Int    @id @default(autoincrement())
+    subjectName String @unique
+
+    students Student[] @relation("SubjectStudents")
+
+    teachingAssignments TeachingAssignment[]
 }
 
 model VerificationToken {

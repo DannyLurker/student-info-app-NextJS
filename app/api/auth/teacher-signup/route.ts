@@ -1,11 +1,14 @@
 import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/prisma/prisma";
 import hashing from "@/lib/utils/hashing";
-import { zodTeacherSignUp } from "@/lib/utils/zodSchema";
+import {
+  zodTeacherSignUp,
+  zodTeacherSignUpSchema,
+} from "@/lib/utils/zodSchema";
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    const data: zodTeacherSignUpSchema = await req.json();
 
     zodTeacherSignUp.parse(data);
 
@@ -23,12 +26,24 @@ export async function POST(req: Request) {
 
     const hashedPassword = await hashing(data.password);
 
+    if (!data.homeroomClass?.grade || !data.homeroomClass.major) {
+      throw badRequest("All field must be filled");
+    }
+
     const user = await prisma.teacher.create({
       data: {
         role: "teacher",
         name: data.username,
         email: data.email,
         password: hashedPassword,
+
+        homeroomClass: {
+          create: {
+            grade: data.homeroomClass.grade,
+            major: data.homeroomClass.major,
+            classNumber: data.homeroomClass.classNumber ?? null,
+          },
+        },
       },
       select: {
         id: true,
@@ -37,6 +52,15 @@ export async function POST(req: Request) {
         createdAt: true,
       },
     });
+
+    let teachingClasses;
+
+    if (
+      !Array.isArray(data.teachingClasses) ||
+      data.teachingClasses?.length != 0
+    ) {
+      console.log("BELUM SELESAI");
+    }
 
     return Response.json(
       {
