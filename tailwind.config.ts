@@ -9,6 +9,11 @@ module.exports = {
   plugins: [require("tailwindcss-animate")],
   theme: {
     extend: {
+      backgroundImage: {
+        bannerImg: "url('/banner-SMK-Advent.jpg')",
+        blackOverlay:
+          "linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
