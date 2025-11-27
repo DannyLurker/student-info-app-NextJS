@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         grade: data.grade,
         major: data.major ?? null,
-        classNumber: data.classNumber ?? null,
+        classNumber: data.classNumber === "0" ? null : data.classNumber,
         isVerified: true,
         teacherId: existingTeacher.id,
       },

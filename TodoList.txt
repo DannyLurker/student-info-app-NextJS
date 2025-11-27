@@ -1,12 +1,17 @@
+BE
 1. Teacher signup belum kelar
     -> Masih harus urus mapel
     -> Model teaching class dan teaching assginment
+    -> Belum kelar, masih ada error di bagian classNumber soalnya diubah kestring
 2. Student SignUp
     ->  subjectMarks    SubjectMark[]
         attendances     StudentAttendance[]
         problemPoints   ProblemPoint[]
 
         Bagian ini agak bingung sih, apakah perlu langsung di buat juga model nya atau gimana -> kalau butuh, cuman masih belum dapat usecase
+
+FE
+1. tambahin notif login berhasil, gaperlu redirect
 
 NOTES: 
 1. Pahami relasi antar table, terutama yang pakai connect, dll

@@ -11,18 +11,20 @@ import {
 } from "@/components/ui/select";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import axios from "axios";
+import { Upload, UserPlus, FileSpreadsheet, GraduationCap } from "lucide-react";
 
 const grades = ["tenth", "eleventh", "twelfth"];
 const majors = ["softwareEngineering", "accounting"];
-const classNumbers = [1, 2, 3, 4];
-const teachers = ["Pak Budi", "Bu Sari", "Pak Joko"];
+const classNumbers = [1, 2];
+//Ubah jadi fetch API
+const teachers = ["WhoIsHer", "Danny"];
 
 const CreateStudentAccount = () => {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<string>("");
 
   const [data, setData] = useState({
     username: "",
@@ -46,7 +48,7 @@ const CreateStudentAccount = () => {
     setError("");
 
     try {
-      await axios.post("/api/auth/CreateStudentAccount", data);
+      await axios.post("/api/auth/create-student-account", data);
       router.push("/sign-in");
     } catch (err: any) {
       setError(err.response?.data?.message || "Terjadi kesalahan, coba lagi");
@@ -55,201 +57,324 @@ const CreateStudentAccount = () => {
     }
   };
 
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-xl border border-gray-200 space-y-6">
-      <h1 className="text-2xl font-bold text-center text-[#1E3A8A]">
-        Create Student Account
-      </h1>
+  const gradeLabels: Record<string, string> = {
+    tenth: "Grade 10",
+    eleventh: "Grade 11",
+    twelfth: "Grade 12",
+  };
 
-      <div className="space-y-4">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] tracking-wide">
-            Upload Excel
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Import data siswa langsung dari file Excel
-          </p>
+  const majorLabels: Record<string, string> = {
+    softwareEngineering: "Software Engineering",
+    accounting: "Accounting",
+  };
+
+  return (
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-8 text-white">
+          <div className="flex items-center justify-center mb-4">
+            <GraduationCap className="w-12 h-12 mr-3" />
+            <h1 className="text-3xl font-bold">Student Registration</h1>
+          </div>
         </div>
 
-        <div className="border border-dashed border-gray-300 rounded-xl p-6 bg-gray-50">
-          <label
-            htmlFor="excel-file"
-            className="flex flex-col items-center cursor-pointer"
-          >
-            <div className="w-12 h-12 rounded-full bg-[#1E3A8A]/10 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="#1E3A8A"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 16.5V3m0 0L8.25 6.75M12 3l3.75 3.75M4.5 15.75v3A2.25 2.25 0 006.75 21h10.5a2.25 2.25 0 002.25-2.25v-3"
-                />
-              </svg>
+        <div className="p-8">
+          {/* Excel Upload Section */}
+          <div className="mb-8">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 text-white mb-4 shadow-lg">
+                <FileSpreadsheet className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Quick Import
+              </h2>
+              <p className="text-gray-600">
+                Upload Excel file for bulk student registration
+              </p>
             </div>
 
-            <span className="mt-3 text-sm font-medium text-[#1E3A8A]">
-              Klik untuk unggah file Excel
-            </span>
-            <span className="text-xs text-gray-500 mt-1">
-              Format yang didukung: .xlsx, .xls
-            </span>
-          </label>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+              <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 bg-gradient-to-br from-gray-50 to-white hover:border-green-400 transition-all duration-300">
+                <label
+                  htmlFor="excel-file"
+                  className="flex flex-col items-center cursor-pointer"
+                >
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Upload className="w-8 h-8 text-green-600" />
+                  </div>
 
-          <input
-            id="excel-file"
-            type="file"
-            accept=".xlsx, .xls"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              console.log("Uploaded:", file.name);
-            }}
-          />
+                  <span className="text-lg font-semibold text-gray-800 mb-2">
+                    {uploadedFile || "Click to upload Excel file"}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    Supported formats: .xlsx, .xls (Max 5MB)
+                  </span>
+                </label>
+
+                <input
+                  id="excel-file"
+                  type="file"
+                  accept=".xlsx, .xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadedFile(file.name);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-10">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t-2 border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-6 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                Or Register Manually
+              </span>
+            </div>
+          </div>
+
+          {/* Manual Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="font-medium">{error}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white mb-4 shadow-lg">
+                <UserPlus className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Personal Information
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Username
+                </label>
+                <Input
+                  name="username"
+                  placeholder="Enter your username"
+                  type="text"
+                  minLength={3}
+                  required
+                  disabled={loading}
+                  onChange={handleChange}
+                  className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Email Address
+                </label>
+                <Input
+                  name="email"
+                  placeholder="your.email@example.com"
+                  type="email"
+                  required
+                  disabled={loading}
+                  onChange={handleChange}
+                  className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Grade
+                </label>
+                <Select
+                  onValueChange={(v: any) => setData({ ...data, grade: v })}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <SelectValue placeholder="Select your grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grades.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {gradeLabels[g]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Major
+                </label>
+                <Select
+                  onValueChange={(v: any) => setData({ ...data, major: v })}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <SelectValue placeholder="Select your major" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {majors.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {majorLabels[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Class Number
+                </label>
+                <Select
+                  onValueChange={(v: any) =>
+                    setData({ ...data, classNumber: v })
+                  }
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <SelectValue placeholder="Select class number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">None</SelectItem>
+
+                    {classNumbers.map((num) => (
+                      <SelectItem key={num} value={String(num)}>
+                        Class {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Homeroom Teacher
+                </label>
+                <Select
+                  onValueChange={(v: any) =>
+                    setData({ ...data, teacherName: v })
+                  }
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <SelectValue placeholder="Select your teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teachers.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Password
+                </label>
+                <Input
+                  name="password"
+                  placeholder="Minimum 8 characters"
+                  type="password"
+                  minLength={8}
+                  required
+                  disabled={loading}
+                  onChange={handleChange}
+                  className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Confirm Password
+                </label>
+                <Input
+                  name="confirmPassword"
+                  placeholder="Re-enter your password"
+                  type="password"
+                  minLength={8}
+                  required
+                  disabled={loading}
+                  onChange={handleChange}
+                  className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-6">
+              <Button
+                className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin h-5 w-5 mr-3"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Creating Account...
+                  </div>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Create Account
+                  </span>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
-
-      <div className="border-[1px] border-black"></div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-            {error}
-          </div>
-        )}
-
-        <h1 className="text-2xl font-bold text-center text-[#1E3A8A]">
-          Create Manually
-        </h1>
-
-        <Input
-          name="username"
-          placeholder="Username"
-          type="text"
-          minLength={3}
-          required
-          disabled={loading}
-          onChange={handleChange}
-          className="focus-visible:ring-[#3B82F6]"
-        />
-
-        <Input
-          name="email"
-          placeholder="Email"
-          type="email"
-          required
-          disabled={loading}
-          onChange={handleChange}
-          className="focus-visible:ring-[#3B82F6]"
-        />
-
-        {/* Grade */}
-        <Select
-          onValueChange={(v: any) => setData({ ...data, grade: v })}
-          disabled={loading}
-        >
-          <SelectTrigger className="focus:ring-[#3B82F6]">
-            <SelectValue placeholder="Select Grade" />
-          </SelectTrigger>
-          <SelectContent>
-            {grades.map((g) => (
-              <SelectItem key={g} value={g}>
-                {g}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Major */}
-        <Select
-          onValueChange={(v: any) => setData({ ...data, major: v })}
-          disabled={loading}
-        >
-          <SelectTrigger className="focus:ring-[#3B82F6]">
-            <SelectValue placeholder="Select Major" />
-          </SelectTrigger>
-          <SelectContent>
-            {majors.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m.startsWith("softwareEngineering")
-                  ? "Software Engineering"
-                  : "Accounting"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Class Number */}
-        <Select
-          onValueChange={(v: any) => setData({ ...data, classNumber: v })}
-          disabled={loading}
-        >
-          <SelectTrigger className="focus:ring-[#3B82F6]">
-            <SelectValue placeholder="Class Number" />
-          </SelectTrigger>
-          <SelectContent>
-            {classNumbers.map((num) => (
-              <SelectItem key={num} value={String(num)}>
-                {num}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Teacher */}
-        <Select
-          onValueChange={(v: any) => setData({ ...data, teacherName: v })}
-          disabled={loading}
-        >
-          <SelectTrigger className="focus:ring-[#3B82F6]">
-            <SelectValue placeholder="Your Teacher" />
-          </SelectTrigger>
-          <SelectContent>
-            {teachers.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input
-          name="password"
-          placeholder="Password"
-          type="password"
-          minLength={8}
-          required
-          disabled={loading}
-          onChange={handleChange}
-          className="focus-visible:ring-[#3B82F6]"
-        />
-
-        <Input
-          name="confirmPassword"
-          placeholder="Confirm Password"
-          type="password"
-          minLength={8}
-          required
-          disabled={loading}
-          onChange={handleChange}
-          className="focus-visible:ring-[#3B82F6]"
-        />
-
-        {/* BUTTON */}
-        <Button
-          className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] text-black font-semibold"
-          type="submit"
-          disabled={loading}
-        >
-          {loading ? "Loading..." : "Create Account"}
-        </Button>
-      </form>
     </div>
   );
 };
