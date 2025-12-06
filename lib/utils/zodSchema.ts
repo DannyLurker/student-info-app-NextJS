@@ -3,13 +3,12 @@ import { z } from "zod";
 const GradeEnum = z.enum(["tenth", "eleventh", "twelfth"]);
 const MajorEnum = z.enum(["accounting", "softwareEngineering"]);
 
-const classTeachingAssignment = z.object({
-  teacherId: z.string(),
-  subjectId: z.number(),
+// Schema for frontend data (what we send from CreateTeacherAccount)
+const TeachingAssignmentInput = z.object({
+  subjectName: z.string(),
   grade: GradeEnum,
   major: MajorEnum,
   classNumber: z.string().optional(),
-  subjectName: z.string(),
 });
 
 const ClassInfoSchema = z.object({
@@ -18,13 +17,15 @@ const ClassInfoSchema = z.object({
   classNumber: z.string().optional(),
 });
 
-// Main
+// Main schemas
 
 const zodStudentSignUp = z.object({
-  username: z.string().min(3),
-  email: z.string().email(),
-  password: z.string().min(8),
-  confirmPassword: z.string().min(8),
+  username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
+  email: z.string().email({ message: "Please input a correct format" }),
+  password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
+  confirmPassword: z
+    .string()
+    .min(8, { message: "Must be 8 characters at minimum" }),
 
   grade: GradeEnum,
   major: MajorEnum,
@@ -34,14 +35,16 @@ const zodStudentSignUp = z.object({
 });
 
 const zodTeacherSignUp = z.object({
-  username: z.string().min(3),
-  email: z.string().email(),
-  password: z.string().min(8),
-  confirmPassword: z.string().min(8),
+  username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
+  email: z.string().email({ message: "Please input a correct format" }),
+  password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
+  confirmPassword: z
+    .string()
+    .min(8, { message: "Must be 8 characters at minimum" }),
 
   homeroomClass: ClassInfoSchema.optional(),
 
-  teachingAssignment: z.array(classTeachingAssignment).optional(),
+  teachingAssignment: z.array(TeachingAssignmentInput).optional(),
 
   teachingClasses: z.array(ClassInfoSchema).optional(),
 });

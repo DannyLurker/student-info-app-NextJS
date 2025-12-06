@@ -5,19 +5,16 @@ import {
   zodTeacherSignUp,
   zodTeacherSignUpSchema,
 } from "@/lib/utils/zodSchema";
-import Subject from "@/lib/types/subjectType";
 
 export async function POST(req: Request) {
   try {
-    const data: zodTeacherSignUpSchema = await req.json();
-
-    zodTeacherSignUp.parse(data);
+    const data = zodTeacherSignUp.parse(await req.json());
 
     if (data.password !== data.confirmPassword) {
       throw badRequest("Password and confirm password must be the same");
     }
 
-    const existingTeacher = await prisma.student.findUnique({
+    const existingTeacher = await prisma.teacher.findUnique({
       where: { email: data.email },
     });
 
@@ -27,10 +24,7 @@ export async function POST(req: Request) {
 
     const hashedPassword = await hashing(data.password);
 
-    if (!data.homeroomClass?.grade || !data.homeroomClass.major) {
-      throw badRequest("All field must be filled");
-    }
-
+    // Create teacher first
     const teacher = await prisma.teacher.create({
       data: {
         role: "teacher",
@@ -46,50 +40,32 @@ export async function POST(req: Request) {
       },
     });
 
-    const existingHomeroomClass = await prisma.homeroomClass.findUnique({
-      where: {
-        grade_major_classNumber: {
-          grade: data.homeroomClass.grade,
-          major: data.homeroomClass.major,
-          classNumber: data.homeroomClass.classNumber as string,
-        },
-      },
-    });
-
-    if (existingHomeroomClass) {
-      throw badRequest("There has already a homeroom teacher in this class");
-    }
-
-    if (data.homeroomClass.grade != null && data.homeroomClass.major != null) {
-      const homeroomClassObject = await prisma.homeroomClass.upsert({
+    // Handle Homeroom Class
+    if (data.homeroomClass?.grade && data.homeroomClass.major) {
+      const existingHomeroomClass = await prisma.homeroomClass.findFirst({
         where: {
-          grade_major_classNumber: {
-            grade: data.homeroomClass.grade,
-            major: data.homeroomClass.major,
-            classNumber: ((data.homeroomClass.classNumber as string) === "none"
-              ? null
-              : (data.homeroomClass.classNumber as string)) as any,
-          },
-        },
-        update: {},
-        create: {
           grade: data.homeroomClass.grade,
           major: data.homeroomClass.major,
-          classNumber: data.homeroomClass.classNumber ?? null,
+          classNumber: data.homeroomClass.classNumber,
+        },
+      });
+
+      if (existingHomeroomClass) {
+        throw badRequest("There is already a homeroom teacher in this class");
+      }
+
+      await prisma.homeroomClass.create({
+        data: {
+          grade: data.homeroomClass.grade,
+          major: data.homeroomClass.major,
+          classNumber: data.homeroomClass.classNumber,
+
           teacherId: teacher.id,
         },
       });
-
-      await prisma.teacher.update({
-        where: { id: teacher.id },
-        data: {
-          homeroomClass: {
-            connect: { id: homeroomClassObject.id },
-          },
-        },
-      });
     }
 
+    // Handle Teaching Classes
     if (
       Array.isArray(data.teachingClasses) &&
       data.teachingClasses.length > 0
@@ -101,17 +77,14 @@ export async function POST(req: Request) {
               grade_major_classNumber: {
                 grade: teachingClass.grade,
                 major: teachingClass.major,
-                classNumber:
-                  (teachingClass.classNumber as string) === "none"
-                    ? null
-                    : (teachingClass.classNumber as string as any),
+                classNumber: teachingClass.classNumber as string,
               },
             },
             update: {},
             create: {
               grade: teachingClass.grade,
               major: teachingClass.major,
-              classNumber: teachingClass.classNumber ?? null,
+              classNumber: teachingClass.classNumber,
             },
           });
         })
@@ -129,54 +102,44 @@ export async function POST(req: Request) {
       });
     }
 
-    let subjects: Subject[];
-
-    const subjectsName =
-      data.teachingAssignment?.map((t) => t.subjectName) ?? [];
-
-    if (subjectsName.length != 0) {
-      subjects = await Promise.all(
-        subjectsName.map(async (subjectName) => {
-          return await prisma.subject.upsert({
-            where: {
-              subjectName,
-            },
-            update: {},
-            create: { subjectName: subjectName },
-          });
-        })
-      );
-    }
-
+    // Handle Teaching Assignments
     if (
       Array.isArray(data.teachingAssignment) &&
       data.teachingAssignment.length > 0
     ) {
+      // First, get or create all subjects
+      const subjects = await Promise.all(
+        data.teachingAssignment.map(async (assignment) => {
+          return await prisma.subject.upsert({
+            where: {
+              subjectName: assignment.subjectName,
+            },
+            update: {},
+            create: { subjectName: assignment.subjectName },
+          });
+        })
+      );
+
+      // Create teaching assignments with correct data
       const teachingAssignments = await Promise.all(
-        data.teachingAssignment.map(async (teachingAssignment, i) => {
+        data.teachingAssignment.map(async (assignment, i) => {
           return await prisma.teachingAssignment.upsert({
             where: {
               teacherId_subjectId_grade_major_classNumber: {
                 teacherId: teacher.id,
-                subjectId: subjects[i].id as number,
-                grade: teachingAssignment.grade,
-                major: teachingAssignment.major,
-                classNumber:
-                  (teachingAssignment.classNumber as string) === "none"
-                    ? null
-                    : (teachingAssignment.classNumber as string as any),
+                subjectId: subjects[i].id,
+                grade: assignment.grade,
+                major: assignment.major,
+                classNumber: assignment.classNumber as string,
               },
             },
             update: {},
             create: {
               teacherId: teacher.id,
-              subjectId: 1,
-              grade: "tenth",
-              major: "accounting",
-              classNumber:
-                (teachingAssignment.classNumber as string) === "none"
-                  ? null
-                  : (teachingAssignment.classNumber as string as any),
+              subjectId: subjects[i].id,
+              grade: assignment.grade,
+              major: assignment.major,
+              classNumber: assignment.classNumber,
             },
           });
         })
@@ -186,8 +149,8 @@ export async function POST(req: Request) {
         where: { id: teacher.id },
         data: {
           teachingAssignments: {
-            connect: teachingAssignments.map((teachingAssignment) => ({
-              id: teachingAssignment.id,
+            connect: teachingAssignments.map((assignment) => ({
+              id: assignment.id,
             })),
           },
         },
@@ -202,6 +165,7 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error creating teacher:", error);
     return handleError(error);
   }
 }
