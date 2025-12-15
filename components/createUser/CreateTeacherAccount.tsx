@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { subjects, subjectCategories } from "@/lib/utils/subjects";
+import { Spinner } from "../ui/spinner";
 
 const grades = ["tenth", "eleventh", "twelfth"];
 const majors = ["softwareEngineering", "accounting"];
@@ -183,7 +184,10 @@ const CreateTeacherAccount = () => {
           validAssignments.length > 0 ? validAssignments : undefined,
       };
 
-      const res = await axios.post("/api/auth/create-teacher-account", payload);
+      const res = await axios.post(
+        "/api/auth/create-teacher-accounts",
+        payload
+      );
       if (res.status === 201) {
         toast.success("Teacher account created successfully!");
 
@@ -196,6 +200,61 @@ const CreateTeacherAccount = () => {
       toast.error("Something went wrong. Read the message above.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFile(file.name);
+    setUploadLoading(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(
+        "/api/auth/bulk-insert-teacher-account",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        const { results } = res.data;
+
+        if (results.failed > 0) {
+          // Show detailed errors
+          let errorMsg = `${results.success} students created successfully. ${results.failed} failed:\n`;
+          results.errors.slice(0, 5).forEach((err: any) => {
+            errorMsg += `Row ${err.row} (${err.email}): ${err.error}\n`;
+          });
+          if (results.errors.length > 5) {
+            errorMsg += `...and ${results.errors.length - 5} more errors`;
+          }
+
+          toast.warning(errorMsg);
+        } else {
+          toast.success(`Successfully created ${results.success} students!`);
+        }
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Failed to upload file";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -248,6 +307,18 @@ const CreateTeacherAccount = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
+      {loading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <Spinner />
+        </div>
+      )}
+
+      {uploadLoading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <Spinner />
+        </div>
+      )}
+
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
@@ -304,12 +375,8 @@ const CreateTeacherAccount = () => {
                     type="file"
                     accept=".xlsx, .xls"
                     className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setUploadedFile(file.name);
-                      }
-                    }}
+                    onChange={handleFileUpload}
+                    disabled={uploadLoading}
                   />
                 </div>
               </div>

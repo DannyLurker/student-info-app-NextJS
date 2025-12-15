@@ -70,7 +70,7 @@ model Student {
 
     grade           Grade
     major           Major
-    classNumber     String?
+    classNumber     String
     teacherId       String
     homeroomTeacher Teacher @relation(fields: [teacherId], references: [id])
 
@@ -178,10 +178,10 @@ model Teacher {
 }
 
 model TeachingClass {
-    id          Int     @id @default(autoincrement())
+    id          Int    @id @default(autoincrement())
     grade       Grade
     major       Major
-    classNumber String?
+    classNumber String
 
     teachers Teacher[]
 
@@ -192,7 +192,7 @@ model HomeroomClass {
     id          Int     @id @default(autoincrement())
     grade       Grade
     major       Major
-    classNumber String?
+    classNumber String
     teacherId   String  @unique
     teacher     Teacher @relation(fields: [teacherId], references: [id])
 
@@ -210,7 +210,7 @@ model TeachingAssignment {
 
     grade       Grade
     major       Major
-    classNumber String?
+    classNumber String
 
     @@unique([teacherId, subjectId, grade, major, classNumber])
 }

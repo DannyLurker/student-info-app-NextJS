@@ -4,8 +4,8 @@ Type: Backend
 # Start, 13-20/12/25 #
 Goal: Make a full authentication feature
         1. Bulk insert route (3)
-            1.1: Bulk insert student
-            1.2: Bulk insert teacher
+            1.1: Bulk insert student | NOTES: Pahami codenya
+            1.2: Bulk insert teacher | NOTES: Pahami codenya
         2. Forget Password route
         3. Reset Password route
         4. Make teaching assignment validation ✔

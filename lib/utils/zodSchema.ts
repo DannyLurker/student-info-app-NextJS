@@ -8,13 +8,13 @@ const TeachingAssignmentInput = z.object({
   subjectName: z.string(),
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string().optional(),
+  classNumber: z.string({ message: "Must be filled" }),
 });
 
 const ClassInfoSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string().optional(),
+  classNumber: z.string({ message: "Must be filled" }),
 });
 
 // Main schemas
@@ -29,7 +29,7 @@ const zodStudentSignUp = z.object({
 
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string().optional(),
+  classNumber: z.string({ message: "Must be filled" }),
 });
 
 const zodTeacherSignUp = z.object({

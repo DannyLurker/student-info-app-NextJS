@@ -9,10 +9,11 @@ import {
   SelectContent,
   SelectValue,
 } from "@/components/ui/select";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import axios from "axios";
 import { Upload, UserPlus, FileSpreadsheet, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import { Spinner } from "../ui/spinner";
 
 const grades = ["tenth", "eleventh", "twelfth"];
 const majors = ["softwareEngineering", "accounting"];
@@ -32,6 +33,65 @@ const CreateStudentAccount = () => {
     major: "",
     classNumber: "",
   });
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFile(file.name);
+    setUploadLoading(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(
+        "/api/auth/bulk-insert-student-accounts",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (res.status === 200) {
+        const { results } = res.data;
+
+        if (results.failed > 0) {
+          // Show detailed errors
+          let errorMsg = `${results.success} students created successfully. ${results.failed} failed:\n`;
+          results.errors.slice(0, 5).forEach((err: any) => {
+            errorMsg += `Row ${err.row} (${err.email}): ${err.error}\n`;
+          });
+
+          setError(errorMsg);
+
+          if (results.errors.length > 5) {
+            errorMsg += `...and ${results.errors.length - 5} more errors`;
+            setError(errorMsg);
+          }
+
+          toast.warning(errorMsg);
+        } else {
+          toast.success(`Successfully created ${results.success} students!`);
+        }
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Failed to upload file";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setUploadLoading(false);
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+      setUploadedFile("");
+    }
+  };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
@@ -50,10 +110,12 @@ const CreateStudentAccount = () => {
 
         setTimeout(() => {
           window.location.reload();
-        }, 3000);
+        }, 2000);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Terjadi kesalahan, coba lagi");
+      setError(
+        err.response?.data?.message || "Something went wrong. Try again."
+      );
       toast.error("Something went wrong. Read the message above.");
     } finally {
       setLoading(false);
@@ -73,6 +135,18 @@ const CreateStudentAccount = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
+      {loading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <Spinner />
+        </div>
+      )}
+
+      {uploadLoading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <Spinner />
+        </div>
+      )}
+
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
         {/* Header Section */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-8 text-white">
@@ -81,6 +155,25 @@ const CreateStudentAccount = () => {
             <h1 className="text-3xl font-bold">Student Registration</h1>
           </div>
         </div>
+
+        {error && (
+          <div className="m-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+            <div className="flex items-center">
+              <svg
+                className="w-5 h-5 mr-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="font-medium">{error}</span>
+            </div>
+          </div>
+        )}
 
         <div className="p-8">
           {/* Excel Upload Section */}
@@ -117,16 +210,13 @@ const CreateStudentAccount = () => {
                 </label>
 
                 <input
+                  ref={fileRef}
                   id="excel-file"
                   type="file"
                   accept=".xlsx, .xls"
                   className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setUploadedFile(file.name);
-                    }
-                  }}
+                  onChange={handleFileUpload}
+                  disabled={uploadLoading}
                 />
               </div>
             </div>
@@ -146,25 +236,6 @@ const CreateStudentAccount = () => {
 
           {/* Manual Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
-                <div className="flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-3"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-medium">{error}</span>
-                </div>
-              </div>
-            )}
-
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white mb-4 shadow-lg">
                 <UserPlus className="w-8 h-8" />

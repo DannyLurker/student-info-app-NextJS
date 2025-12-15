@@ -24,10 +24,6 @@ export async function POST(req: Request) {
 
       const hashedPassword = await hashing(data.password);
 
-      // Convert classNumber properly
-      const classNumberValue =
-        data.classNumber === "none" ? null : data.classNumber;
-
       const homeroomClass = await tx.homeroomClass.findFirst({
         where: {
           grade: data.grade,
@@ -50,7 +46,7 @@ export async function POST(req: Request) {
           password: hashedPassword,
           grade: data.grade,
           major: data.major,
-          classNumber: classNumberValue,
+          classNumber: data.classNumber,
           isVerified: true,
           teacherId: homeroomClass?.teacherId as string,
         },
