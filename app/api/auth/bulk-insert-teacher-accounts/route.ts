@@ -11,7 +11,7 @@ interface TeacherRow {
   password: string;
   homeroomGrade?: string;
   homeroomMajor?: string;
-  homeroomClassNumber?: string;
+  homeroomClassNumber: string;
   teachingSubjects?: string; // Comma-separated: "math:tenth:accounting:1,english:eleventh:softwareEngineering:2"
   teachingClasses?: string; // Comma-separated: "tenth:accounting:1,eleventh:softwareEngineering:2"
 }
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
               where: {
                 grade: row.homeroomGrade as any,
                 major: row.homeroomMajor as any,
-                classNumber: row.homeroomClassNumber || null,
+                classNumber: row.homeroomClassNumber,
               },
             });
 
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
               data: {
                 grade: row.homeroomGrade as any,
                 major: row.homeroomMajor as any,
-                classNumber: row.homeroomClassNumber || null,
+                classNumber: row.homeroomClassNumber as string,
                 teacherId: teacher.id,
               },
             });
@@ -117,15 +117,15 @@ export async function POST(req: Request) {
                 return await tx.teachingClass.upsert({
                   where: {
                     grade_major_classNumber: {
-                      grade: grade as any,
-                      major: major as any,
+                      grade: grade as Grade,
+                      major: major as Major,
                       classNumber: classNumber,
                     },
                   },
                   update: {},
                   create: {
-                    grade: grade as any,
-                    major: major as any,
+                    grade: grade as Grade,
+                    major: major as Major,
                     classNumber: classNumber,
                   },
                 });

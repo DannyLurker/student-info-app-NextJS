@@ -11,7 +11,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { ChangeEvent, ErrorInfo, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState, useRef } from "react";
 import axios from "axios";
 import {
   Upload,
@@ -80,6 +80,7 @@ interface TeachingClass {
 }
 
 const CreateTeacherAccount = () => {
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string>("");
@@ -218,7 +219,7 @@ const CreateTeacherAccount = () => {
       formData.append("file", file);
 
       const res = await axios.post(
-        "/api/auth/bulk-insert-teacher-account",
+        "/api/auth/bulk-insert-teacher-accounts",
         formData,
         {
           headers: {
@@ -232,7 +233,7 @@ const CreateTeacherAccount = () => {
 
         if (results.failed > 0) {
           // Show detailed errors
-          let errorMsg = `${results.success} students created successfully. ${results.failed} failed:\n`;
+          let errorMsg = `${results.success} Teacher(s) created successfully. ${results.failed} failed:\n`;
           results.errors.slice(0, 5).forEach((err: any) => {
             errorMsg += `Row ${err.row} (${err.email}): ${err.error}\n`;
           });
@@ -240,14 +241,12 @@ const CreateTeacherAccount = () => {
             errorMsg += `...and ${results.errors.length - 5} more errors`;
           }
 
+          setError(errorMsg);
+
           toast.warning(errorMsg);
         } else {
-          toast.success(`Successfully created ${results.success} students!`);
+          toast.success(`Successfully created ${results.success} Teacher(s)!`);
         }
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Failed to upload file";
@@ -255,6 +254,10 @@ const CreateTeacherAccount = () => {
       toast.error(errorMsg);
     } finally {
       setUploadLoading(false);
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+      setUploadedFile("");
     }
   };
 
@@ -338,6 +341,25 @@ const CreateTeacherAccount = () => {
             </div>
           </div>
 
+          {error && (
+            <div className="m-8 bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+
           <div className="p-8">
             {/* Excel Upload Section */}
             <div className="mb-8">
@@ -371,6 +393,7 @@ const CreateTeacherAccount = () => {
                     </span>
                   </label>
                   <input
+                    ref={fileRef}
                     id="excel-file"
                     type="file"
                     accept=".xlsx, .xls"
@@ -396,25 +419,6 @@ const CreateTeacherAccount = () => {
 
             {/* Manual Form */}
             <form onSubmit={handleSubmit} className="space-y-8">
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
-                  <div className="flex items-center">
-                    <svg
-                      className="w-5 h-5 mr-3"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="font-medium">{error}</span>
-                  </div>
-                </div>
-              )}
-
               {/* Personal Information */}
               <div>
                 <div className="text-center mb-6">

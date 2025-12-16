@@ -63,21 +63,20 @@ const CreateStudentAccount = () => {
 
         if (results.failed > 0) {
           // Show detailed errors
-          let errorMsg = `${results.success} students created successfully. ${results.failed} failed:\n`;
+          let errorMsg = `${results.success} student(s) created successfully. ${results.failed} failed:\n`;
           results.errors.slice(0, 5).forEach((err: any) => {
             errorMsg += `Row ${err.row} (${err.email}): ${err.error}\n`;
           });
 
-          setError(errorMsg);
-
           if (results.errors.length > 5) {
             errorMsg += `...and ${results.errors.length - 5} more errors`;
-            setError(errorMsg);
           }
+
+          setError(errorMsg);
 
           toast.warning(errorMsg);
         } else {
-          toast.success(`Successfully created ${results.success} students!`);
+          toast.success(`Successfully created ${results.success} student(s)!`);
         }
       }
     } catch (err: any) {
@@ -157,7 +156,7 @@ const CreateStudentAccount = () => {
         </div>
 
         {error && (
-          <div className="m-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+          <div className="m-8 bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
             <div className="flex items-center">
               <svg
                 className="w-5 h-5 mr-3"
