@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 import { subjects, subjectCategories } from "@/lib/utils/subjects";
 import { Spinner } from "../../ui/spinner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Eraser } from "lucide-react";
 
 const grades = ["tenth", "eleventh", "twelfth"];
 const majors = ["softwareEngineering", "accounting"];
@@ -101,6 +101,14 @@ const CreateTeacherAccount = () => {
     major: "",
     classNumber: "",
   });
+
+  const clearHomeroomClass = () => {
+    setHomeroomClass({
+      grade: "",
+      major: "",
+      classNumber: "",
+    });
+  };
 
   // Teaching Classes - multiple
   const [teachingClasses, setTeachingClasses] = useState<TeachingClass[]>([]);
@@ -577,14 +585,25 @@ const CreateTeacherAccount = () => {
               </div>
 
               {/* Homeroom Class */}
-              <div className="border-t-2 border-gray-200 pt-8">
-                <div className="text-center mb-6">
+              <div className="relative border-t-2 border-gray-200 pt-8">
+                <div className="text-center mb-16">
                   <h3 className="text-xl font-bold text-gray-800">
                     Homeroom Class (Optional)
                   </h3>
                   <p className="text-gray-600 text-sm mt-1">
                     Select if you are a homeroom teacher
                   </p>
+                  <div className="absolute right-0 mb-3 mt-3">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={clearHomeroomClass}
+                    >
+                      <Eraser className="w-4 h-4" />
+                      Clear
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
@@ -596,6 +615,7 @@ const CreateTeacherAccount = () => {
                       onValueChange={(v) =>
                         setHomeroomClass({ ...homeroomClass, grade: v })
                       }
+                      value={homeroomClass.grade}
                       disabled={loading}
                     >
                       <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
@@ -619,6 +639,7 @@ const CreateTeacherAccount = () => {
                       onValueChange={(v) =>
                         setHomeroomClass({ ...homeroomClass, major: v })
                       }
+                      value={homeroomClass.major}
                       disabled={loading}
                     >
                       <SelectTrigger className="h-12 border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
@@ -700,6 +721,7 @@ const CreateTeacherAccount = () => {
                           disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
+                          Delete
                         </Button>
                       </div>
 
@@ -817,6 +839,7 @@ const CreateTeacherAccount = () => {
                           disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
+                          Delete
                         </Button>
                       </div>
 

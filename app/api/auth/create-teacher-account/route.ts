@@ -91,37 +91,63 @@ export async function POST(req: Request) {
           return subjectsData[tc.grade].major[tc.major];
         });
 
-        for (const [
-          i,
-          teachingAssignment,
-        ] of data.teachingAssignment.entries()) {
+        for (const teachingAssignment of data.teachingAssignment) {
           // Validation for checking the correlation between the class who get teach and teacher teaching assignment subject
           if (!subjectAvailable.includes(teachingAssignment.subjectName)) {
+            console.log(teachingAssignment.grade);
             throw badRequest(
-              `Miss match! This teacher teach ${
-                data.teachingClasses[i].grade === "twelfth"
-                  ? "12"
-                  : data.teachingClasses[i].grade === "eleventh"
-                  ? "11"
-                  : "10"
-              }-${
-                data.teachingClasses[i].major === "accounting"
-                  ? "Accounting"
-                  : "Software Engineering"
-              } and it doesn't have ${
+              `Miss match! This teacher teaches ${data.teachingClasses.map(
+                (tc) =>
+                  ` ${
+                    tc.grade == "tenth"
+                      ? "10"
+                      : tc.grade == "eleventh"
+                      ? "11"
+                      : "12"
+                  }-${
+                    tc.major == "accounting"
+                      ? "Accounting"
+                      : "Software Engineering"
+                  } ${tc.classNumber == "none" ? "" : tc.classNumber}`
+              )} and it doesn't have ${
                 teachingAssignment.subjectName
               }, please check your Teaching Classes or Teaching Assignment`
             );
           }
         }
 
-        data.teachingClasses.some((tc, i) => {
-          tc.grade === data.teachingAssignment![i].grade ||
-            tc.major === data.teachingAssignment![i].major ||
-            tc.classNumber === data.teachingAssignment![i].classNumber;
+        // Validation for checking are teaching assignments having the same value with teaching classes
+        // ta = teachingAssignment(s)
+        // tc = teachingClass(es)
+        let isTaAndTcMatch: boolean = false;
+        data.teachingClasses.forEach((tc, i) => {
+          let result: boolean = false;
+          data.teachingAssignment?.every((ta) => {
+            if (
+              tc.classNumber === ta.classNumber &&
+              tc.grade === ta.grade &&
+              tc.major === ta.major
+            ) {
+              result = true;
+              return true;
+            } else {
+              result = false;
+              return false;
+            }
+          });
+
+          if (i === 0) {
+            isTaAndTcMatch = result;
+          } else {
+            isTaAndTcMatch = isTaAndTcMatch && result;
+          }
         });
 
-        console.log(data.teachingClasses);
+        if (!isTaAndTcMatch) {
+          throw badRequest(
+            "Miss match! Please check your teaching classes and teaching assignments. You're teaching in the wrong class(es)!"
+          );
+        }
 
         // Handle teaching classes
         const teachingClasses = await Promise.all(
