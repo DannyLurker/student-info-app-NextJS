@@ -236,9 +236,9 @@ const CreateTeacherAccount = () => {
       const res = await axios.post("/api/auth/create-teacher-account", payload);
       if (res.status === 201) {
         toast.success("Teacher account created successfully!");
-        // setTimeout(() => {
-        //   window.location.reload();
-        // }, 3000);
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "An error occurred, try again");
