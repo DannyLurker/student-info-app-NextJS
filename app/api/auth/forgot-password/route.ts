@@ -1,10 +1,10 @@
-import { handleError, tooManyRequest } from "@/lib/errors";
+import { handleError, notFound, tooManyRequest } from "@/lib/errors";
 import { zodForgotPassword } from "@/lib/utils/zodSchema";
 import { prisma } from "@/prisma/prisma";
 import redis from "@/lib/redis";
-import { notFound } from "next/navigation";
-import { loadTemplate, Replacements } from "@/lib/email/loadTemplate";
-import { sendEmail } from "@/lib/email/nodeMailer";
+import { sendEmail } from "@/lib/emails/nodeMailer";
+import { render } from "@react-email/render";
+import ResetPasswordOtpEmail from "@/lib/emails/ResetPasswordOtpEmail";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +15,11 @@ export async function POST(req: Request) {
 
     user = await prisma.student.findUnique({
       where: { email: data.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
     });
 
     if (!user) {
@@ -24,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     if (!user) {
-      throw notFound();
+      throw notFound("User not found");
     }
 
     const RATE_LIMIT = 3;
@@ -52,19 +57,19 @@ export async function POST(req: Request) {
 
     await redis.set(otpKey, otp, { EX: OTP_TTL });
 
-    const replacements: Replacements = {
-      schoolName: "SMK ADVENT",
-      username: user.name,
-      userEmail: user.email,
-      otpCode: otp,
-      currentYear: new Date().getFullYear(),
-    };
-
-    const htmlTemplate = loadTemplate("emailTemplate", replacements);
+    const html = render(
+      ResetPasswordOtpEmail({
+        schoolName: "My School",
+        userName: user.name,
+        userEmail: user.email,
+        otpCode: otp,
+        currentYear: new Date().getFullYear(),
+      })
+    );
 
     await sendEmail({
       email: user.email,
-      html: htmlTemplate,
+      html: await html,
       subject: "Reset Your Password - OTP Verification",
     });
 
@@ -75,7 +80,7 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (e) {
-    handleError(e);
     console.error(e);
+    return handleError(e);
   }
 }
