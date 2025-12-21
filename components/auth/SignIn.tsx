@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { LogIn, Mail, Lock, GraduationCap } from "lucide-react";
+import { LogIn, Mail, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -33,7 +33,7 @@ const SignIn = () => {
     } else {
       toast.success("Succesfully signed in, redirecting...");
       setTimeout(() => {
-        router.push("/teacher-dashboard");
+        router.push("/");
         router.refresh(); // Refresh to update session
       }, 2000);
     }

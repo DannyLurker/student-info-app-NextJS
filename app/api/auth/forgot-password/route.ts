@@ -38,7 +38,6 @@ export async function POST(req: Request) {
     const OTP_TTL = 15 * 60;
 
     const rateKey = `rate:otp:${user.id}`;
-    const otpKey = `otp:${user.id}`;
 
     const otpRequestCount = await redis.incr(rateKey);
 
@@ -55,11 +54,15 @@ export async function POST(req: Request) {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await redis.set(otpKey, otp, { EX: OTP_TTL });
+    await redis.set(
+      `otp:${otp}`,
+      user.id,
+      { EX: OTP_TTL } // 15 menit
+    );
 
     const html = render(
       ResetPasswordOtpEmail({
-        schoolName: "My School",
+        schoolName: "SMK ADVENT",
         userName: user.name,
         userEmail: user.email,
         otpCode: otp,
@@ -74,9 +77,7 @@ export async function POST(req: Request) {
     });
 
     return Response.json(
-      {
-        message: "A new OTP is send to your email",
-      },
+      { message: "If the email exists, an OTP has been sent." },
       { status: 201 }
     );
   } catch (e) {

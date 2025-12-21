@@ -8,6 +8,10 @@ const page = async () => {
 
   if (!session) redirect("/sign-in");
 
+  if (session.user.role === "student") {
+    redirect("/student-dashboard");
+  }
+
   if (session.user.role === "teacher") {
     redirect("/teacher-dashboard");
   }
