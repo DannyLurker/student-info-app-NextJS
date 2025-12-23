@@ -53,7 +53,7 @@ enum problemPointCategory {
 }
 
 enum AttendanceType {
-    absent
+    alpha
     sick
     permission
 }
@@ -131,7 +131,7 @@ model StudentAttendance {
     studentId String
     student   Student @relation(fields: [studentId], references: [id])
 
-    date        DateTime
+    date        DateTime       @default(now())
     type        AttendanceType
     description String?
 }

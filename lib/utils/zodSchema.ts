@@ -1,8 +1,10 @@
+import { deepStrictEqual } from "assert";
 import { string, z } from "zod";
 
 const GradeEnum = z.enum(["tenth", "eleventh", "twelfth"]);
 const MajorEnum = z.enum(["accounting", "softwareEngineering"]);
 const StudentRoleEnum = z.enum(["student", "classSecretary"]);
+const AttendanceTypesEnum = z.enum(["alpha", "sick", "permission"]);
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const TeachingAssignmentInput = z.object({
@@ -19,6 +21,7 @@ const ClassInfoSchema = z.object({
 });
 
 // Main schemas
+// AUTH
 const zodStudentSignUp = z.object({
   username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
   email: z.string().email({ message: "Please input a correct format" }),
@@ -67,13 +70,26 @@ type TeacherSignUpInput = z.infer<typeof zodTeacherSignUp>;
 type EmailSchema = z.infer<typeof zodForgotPassword>;
 type ResetPasswordSchema = z.infer<typeof zodResetPassword>;
 
+// ATTENDANCE
+const zodStudentAttandance = z.object({
+  secretaryId: z.string({ message: "Must be filled" }),
+  studentId: z.string({ message: "Must be filled" }),
+  date: z.string({ message: "Must be filled" }),
+  attendanceType: AttendanceTypesEnum,
+  description: z.string().max(300).optional(),
+});
+
+type StudentAttendanceSchema = z.infer<typeof zodStudentAttandance>;
+
 export {
   zodStudentSignUp,
   zodTeacherSignUp,
   zodForgotPassword,
   zodResetPassword,
+  zodStudentAttandance,
   type StudentSignUpInput,
   type TeacherSignUpInput,
   type EmailSchema,
   type ResetPasswordSchema,
+  type StudentAttendanceSchema,
 };

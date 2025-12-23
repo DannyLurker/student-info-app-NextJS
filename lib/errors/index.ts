@@ -9,5 +9,6 @@ export const badRequest = (msg: string | "Bad request") =>
   new AppError(msg, 400);
 export const unauthorized = (msg: string | "Unauthorized") =>
   new AppError(msg, 401);
+export const forbidden = (msg: string | "Forbidden") => new AppError(msg, 403);
 export const tooManyRequest = (msg: string | "Too many requests") =>
   new AppError(msg, 429);

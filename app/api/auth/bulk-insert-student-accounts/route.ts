@@ -94,7 +94,7 @@ export async function POST(req: Request) {
               major: row.major,
               classNumber: row.classNumber as string,
               isVerified: true,
-              teacherId: homeroomClass.teacherId,
+              homeroomTeacherId: homeroomClass.teacherId,
             },
             select: {
               id: true,
