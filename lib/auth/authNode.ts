@@ -29,6 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         user = await prisma.student.findUnique({
           where: { email },
           select: {
+            id: true,
             email: true,
             name: true,
             role: true,
@@ -41,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user = await prisma.teacher.findUnique({
             where: { email },
             select: {
+              id: true,
               email: true,
               name: true,
               role: true,
@@ -61,6 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         return {
+          id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
@@ -76,6 +79,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Callback JWT - menambahkan role ke token
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
 
         if (user.role === "student" || user.role === "classSecretary") {
@@ -85,9 +89,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return token;
     },
-    // Callback Session - menambahkan role ke session
+    // Callback Session - menambahkan property ke session
     async session({ session, token }) {
       if (token) {
+        session.user.id = token.id as string;
         session.user.role = token.role as string;
       }
       if (

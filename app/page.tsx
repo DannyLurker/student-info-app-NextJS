@@ -12,6 +12,10 @@ const page = async () => {
     redirect("/student-dashboard");
   }
 
+  if (session.user.role === "classSecretary") {
+    redirect("/student-dashboard");
+  }
+
   if (session.user.role === "teacher") {
     redirect("/teacher-dashboard");
   }

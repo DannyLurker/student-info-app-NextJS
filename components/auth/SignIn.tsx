@@ -9,6 +9,7 @@ import Link from "next/link";
 import { LogIn, Mail, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { Spinner } from "../ui/spinner";
 
 const SignIn = () => {
   const router = useRouter();
@@ -30,6 +31,7 @@ const SignIn = () => {
     if (result?.error) {
       console.error("Sign in failed:", result.error);
       setLoading(false);
+      toast.error("Sign in failed. Email or password is incorrect.");
     } else {
       toast.success("Succesfully signed in, redirecting...");
       setTimeout(() => {
@@ -136,8 +138,17 @@ const SignIn = () => {
                 type="submit"
                 disabled={loading}
               >
-                <LogIn className="w-5 h-5 mr-2" />
-                Sign In
+                {loading ? (
+                  <div className="flex items-center">
+                    <Spinner />
+                    <span className="ml-2">Loading...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <LogIn className="w-5 h-5 mr-2" />
+                    Sign In
+                  </div>
+                )}
               </Button>
             </form>
           </div>

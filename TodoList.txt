@@ -1,26 +1,37 @@
 TODO List
 ====================================
 Type: Backend
-# Start, 13-20/12/25 #
+# Start, 13-20/12/25 # ✔
 Goal: Make a full authentication feature
         1. Bulk insert route ✔
-            1.1: Bulk insert student | NOTES: Pahami codenya 
-            1.2: Bulk insert teacher | NOTES: Pahami codenya dan juga kayaknya butuh validasi tambahan kayak di create-teacher-account dengan cara manual
+            1.1: Bulk insert student ✔ | NOTES: Pahami codenya 
+            1.2: Bulk insert teacher ✔ | NOTES: Pahami codenya dan juga kayaknya butuh validasi tambahan kayak di create-teacher-account dengan cara manual
         2. Forgot Password route ✔
         3. Reset Password route ✔
         4. Make teaching assignment validation ✔
         5. If something went wrong, cut off the proses immediately ✔
 # End, 13-20/12/25 #
 
+# Start, 22-25/12/25 #
+Goal: Make a full attendance feature
+        1. Make a attendance route
+            1.1: Make a attendance route for student ✔ | NOTES: review the code I modified
+        
+# Start, 22-25/12/25 #
 ====================================
 Type: Frontend
-# Start, 13-20/12/25 #
+# Start, 13-20/12/25 # ✔
 Goal: Make a full authentication feature
         1. implement toast for every event ✔ NOTES: Just make sure every action have a toast message
         2. Create Teacher Account Page ✔ NOTES: Review the code you modified.
         3. Create forgot password Page ✔
         4. Create Reset Password page ✔
         5. Create Category list in teaching assignment, let's say General: Math, PE, etc | Software Engineering: DB, Web, etc | Accounting: PAL, Accounting Principal ✔ 
-
 # End, 13-20/12/25 #
+
+# Start, 22-25/12/25 #
+Goal: Make a full attendance feature
+        1. Make a attendance UI
+            1.1: Make a attendance UI for student ✔ | NOTES: Review the code I modified
+# Start, 22-25/12/25 #
 =====================================
