@@ -233,7 +233,10 @@ const CreateTeacherAccount = () => {
             : undefined,
       };
 
-      const res = await axios.post("/api/auth/create-teacher-account", payload);
+      const res = await axios.post(
+        "/api/auth/insert-account/single/student-account",
+        payload
+      );
       if (res.status === 201) {
         toast.success("Teacher account created successfully!");
         setTimeout(() => {
@@ -263,7 +266,7 @@ const CreateTeacherAccount = () => {
       formData.append("file", file);
 
       const res = await axios.post(
-        "/api/auth/bulk-insert-teacher-accounts",
+        "/api/auth/insert-account/bulk/teacher-accounts",
         formData,
         {
           headers: {
@@ -866,8 +869,8 @@ const CreateTeacherAccount = () => {
                                       {categoryName === "general"
                                         ? "General Subjects"
                                         : categoryName === "accounting"
-                                        ? "Accounting Subjects"
-                                        : "Software Engineering Subjects"}
+                                          ? "Accounting Subjects"
+                                          : "Software Engineering Subjects"}
                                     </SelectLabel>
                                     {subjectKeysArray.map(
                                       (subjectKey: string) => (

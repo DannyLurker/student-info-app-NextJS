@@ -53,7 +53,7 @@ const CreateStudentAccount = () => {
       formData.append("file", file);
 
       const res = await axios.post(
-        "/api/auth/bulk-insert-student-accounts",
+        "/api/auth/insert-account/bulk/student-accounts",
         formData,
         {
           headers: {
@@ -107,7 +107,10 @@ const CreateStudentAccount = () => {
     setError("");
 
     try {
-      const res = await axios.post("/api/auth/create-student-account", data);
+      const res = await axios.post(
+        "/api/auth/insert-account/single/student-account",
+        data
+      );
       if (res.status === 201) {
         toast.success("Student account created successfully.");
 

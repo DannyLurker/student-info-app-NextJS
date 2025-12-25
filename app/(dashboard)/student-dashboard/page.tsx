@@ -22,7 +22,7 @@ const page = async () => {
 
   return (
     <div>
-      <StudentDashboard />
+      <StudentDashboard session={session.user} />
     </div>
   );
 };

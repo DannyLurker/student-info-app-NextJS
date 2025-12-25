@@ -15,8 +15,9 @@ Goal: Make a full authentication feature
 # Start, 22-25/12/25 #
 Goal: Make a full attendance feature
         1. Make a attendance route
-            1.1: Make a attendance route for student ✔ | NOTES: review the code I modified
-        
+            1.1: Make a attendance route for student ✔ | NOTES: review the code I modified 
+                Updated (25/12/25): aku udah ubah beberapa hal seperti di studentdashboard yang awalnya server component dan fetch db jadinya aku ubah menjadi client component dan buat api baru (api/student-attendance/get-student-attendance-data), tapi attendance manager belum aku pahami samsek, sama kayak untuk present nanti mau ubah jadi nanti bakal di hitung dulu alpha, sick, permission dulu, baru nanti total student di kurang total alpha, sick, permission lalu hasil akhir dijadikan present
+            1.2: Give every route an documentation    
 # Start, 22-25/12/25 #
 ====================================
 Type: Frontend
