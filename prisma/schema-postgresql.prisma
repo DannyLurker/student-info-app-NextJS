@@ -88,6 +88,8 @@ model Student {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([email])
 }
 
 model SubjectMark {
@@ -101,6 +103,9 @@ model SubjectMark {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@unique([studentId, subjectName, academicYear, semester])
+    @@index([studentId])
 }
 
 model Mark {
@@ -115,6 +120,8 @@ model Mark {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([subjectMarkId])
 }
 
 model MarkDescription {
@@ -124,6 +131,8 @@ model MarkDescription {
     submittedAt DateTime
 
     marks Mark[]
+
+    @@index([id])
 }
 
 model StudentAttendance {
@@ -134,6 +143,9 @@ model StudentAttendance {
     date        DateTime       @default(now())
     type        AttendanceType
     description String?
+
+    @@unique([studentId, date])
+    @@index([studentId])
 }
 
 model ProblemPoint {
@@ -147,6 +159,8 @@ model ProblemPoint {
     recordedBy  String
     teacher     Teacher              @relation(fields: [recordedBy], references: [id])
     date        DateTime
+
+    @@index([studentId])
 }
 
 // teacher model
@@ -176,6 +190,8 @@ model Teacher {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([email])
 }
 
 model TeachingClass {
@@ -214,6 +230,7 @@ model TeachingAssignment {
     classNumber String @default("none")
 
     @@unique([teacherId, subjectId, grade, major, classNumber])
+    @@index([teacherId])
 }
 
 // General
