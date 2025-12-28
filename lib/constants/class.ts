@@ -1,2 +1,5 @@
-export type Grade = "TENTH" | "ELEVENTH" | "TWELFTH";
-export type Major = "ACCOUNTING" | "SOFTWARE_ENGINEERING";
+export const GRADES = ["TENTH", "ELEVENTH", "TWELFTH"] as const;
+export type Grade = (typeof GRADES)[number];
+
+export const MAJORS = ["ACCOUNTING", "SOFTWARE_ENGINEERING"] as const;
+export type Major = (typeof MAJORS)[number];

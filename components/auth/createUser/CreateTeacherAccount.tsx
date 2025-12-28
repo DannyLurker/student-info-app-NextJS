@@ -27,8 +27,8 @@ import { subjects, subjectCategories } from "@/lib/utils/subjects";
 import { Spinner } from "../../ui/spinner";
 import { Eye, EyeOff, Eraser } from "lucide-react";
 
-const grades = ["tenth", "eleventh", "twelfth"];
-const majors = ["softwareEngineering", "accounting"];
+const grades = ["TENTH", "ELEVENTH", "TWELFTH"];
+const majors = ["SOFTWARE_ENGINEERING", "ACCOUNTING"];
 const classNumbers = ["none", "1", "2"];
 
 // Get all unique subjects from the subjects config
@@ -51,8 +51,8 @@ const groupSubjects = (subjectKeys: string[]): GroupedSubjects => {
     software_engineering: [],
   };
 
-  const sweKeys = new Set(subjectCategories.software_engineering);
-  const accountingKeys = new Set(subjectCategories.accounting);
+  const sweKeys = new Set(subjectCategories.SOFTWARE_ENGINEERING);
+  const accountingKeys = new Set(subjectCategories.ACCOUNTING);
 
   subjectKeys.forEach((key) => {
     if (sweKeys.has(key)) {
@@ -234,7 +234,7 @@ const CreateTeacherAccount = () => {
       };
 
       const res = await axios.post(
-        "/api/auth/insert-account/single/student-account",
+        "/api/auth/insert-account/single/teacher-account",
         payload
       );
       if (res.status === 201) {
@@ -309,14 +309,14 @@ const CreateTeacherAccount = () => {
   };
 
   const gradeLabels: Record<string, string> = {
-    tenth: "Grade 10",
-    eleventh: "Grade 11",
-    twelfth: "Grade 12",
+    TENTH: "Grade 10",
+    ELEVENTH: "Grade 11",
+    TWELFTH: "Grade 12",
   };
 
   const majorLabels: Record<string, string> = {
-    softwareEngineering: "Software Engineering",
-    accounting: "Accounting",
+    SOFTWARE_ENGINEERING: "Software Engineering",
+    ACCOUNTING: "Accounting",
   };
 
   const subjectLabels: Record<string, string> = {

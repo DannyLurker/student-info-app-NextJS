@@ -16,10 +16,10 @@ import { toast } from "sonner";
 import { Spinner } from "../../ui/spinner";
 import { Eye, EyeOff } from "lucide-react";
 
-const grades = ["tenth", "eleventh", "twelfth"];
-const majors = ["softwareEngineering", "accounting"];
-const classNumbers = [1, 2];
-const studentRoles = ["student", "classSecretary"];
+const grades = ["TENTH", "ELEVENTH", "TWELFTH"];
+const majors = ["SOFTWARE_ENGINEERING", "ACCOUNTING"];
+const classNumbers = ["none", "1", "2"];
+const studentRoles = ["STUDENT", "CLASS_SECRETARY"];
 
 const CreateStudentAccount = () => {
   const [error, setError] = useState("");
@@ -129,19 +129,19 @@ const CreateStudentAccount = () => {
   };
 
   const roleLabels: Record<string, string> = {
-    student: "Student",
-    classSecretary: "Class Secretary",
+    STUDENT: "Student",
+    CLASS_SECRETARY: "Class Secretary",
   };
 
   const gradeLabels: Record<string, string> = {
-    tenth: "Grade 10",
-    eleventh: "Grade 11",
-    twelfth: "Grade 12",
+    TENTH: "Grade 10",
+    ELEVENTH: "Grade 11",
+    TWELFTH: "Grade 12",
   };
 
   const majorLabels: Record<string, string> = {
-    softwareEngineering: "Software Engineering",
-    accounting: "Accounting",
+    SOFTWARE_ENGINEERING: "Software Engineering",
+    ACCOUNTING: "Accounting",
   };
 
   return (
@@ -356,11 +356,9 @@ const CreateStudentAccount = () => {
                     <SelectValue placeholder="Select class number" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-
                     {classNumbers.map((num) => (
-                      <SelectItem key={num} value={String(num)}>
-                        Class {num}
+                      <SelectItem key={num} value={num}>
+                        {num === "none" ? "None" : `Class ${num}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -383,7 +381,7 @@ const CreateStudentAccount = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {studentRoles.map((role) => (
-                      <SelectItem key={role} value={String(role)}>
+                      <SelectItem key={role} value={role}>
                         {roleLabels[role]}
                       </SelectItem>
                     ))}
