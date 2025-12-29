@@ -63,25 +63,7 @@ const CreateStudentAccount = () => {
       );
 
       if (res.status === 200) {
-        const { results } = res.data;
-
-        if (results.failed > 0) {
-          // Show detailed errors
-          let errorMsg = `${results.success} student(s) created successfully. ${results.failed} failed:\n`;
-          results.errors.slice(0, 5).forEach((err: any) => {
-            errorMsg += `Row ${err.row} (${err.email}): ${err.error}\n`;
-          });
-
-          if (results.errors.length > 5) {
-            errorMsg += `...and ${results.errors.length - 5} more errors`;
-          }
-
-          setError(errorMsg);
-
-          toast.warning("Something went wrong. Read the message above.");
-        } else {
-          toast.success(`Successfully created ${results.success} student(s)!`);
-        }
+        toast.success(res.data.message);
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Failed to upload file";

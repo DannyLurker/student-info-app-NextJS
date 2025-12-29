@@ -90,8 +90,8 @@ async function main() {
   });
   console.log("✓ Created Student:", student.email);
 
-  console.log("\n✅ Successfully seeded database!");
-  console.log("\n📋 Test Accounts (Password: Test@12345):");
+  console.log("\n Successfully seeded database!");
+  console.log("\n Test Accounts (Password: Test@12345):");
   console.log("   - Principal: principal@test.com");
   console.log("   - Vice Principal: viceprincipal@test.com");
   console.log("   - Teacher: teacher@test.com");
@@ -104,4 +104,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

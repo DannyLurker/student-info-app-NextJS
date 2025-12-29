@@ -4,19 +4,20 @@ const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const AttendanceTypesEnum = z.enum(["ALPHA", "SICK", "PERMISSION"]);
+const ClassNumberEnum = z.enum(["none", "1", "2"]);
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const TeachingAssignmentInput = z.object({
   subjectName: z.string({ message: "Must be filled" }),
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string({ message: "Must be filled" }),
+  classNumber: ClassNumberEnum,
 });
 
 const ClassInfoSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string({ message: "Must be filled" }),
+  classNumber: ClassNumberEnum,
 });
 
 // Main schemas
@@ -31,7 +32,7 @@ const zodStudentSignUp = z.object({
 
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: z.string({ message: "Must be filled" }),
+  classNumber: ClassNumberEnum,
   role: StudentRoleEnum,
 });
 

@@ -4,7 +4,8 @@ import { prisma } from "@/prisma/prisma";
 import hashing from "@/lib/utils/hashing";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";
-import { GRADES, MAJORS } from "@/lib/constants/class";
+import { ClassNumber, GRADES, MAJORS } from "@/lib/constants/class";
+import { classNumberLabel, gradeLabel, majorLabel } from "@/lib/utils/labels";
 
 interface TeacherRow {
   username: string;
@@ -13,9 +14,22 @@ interface TeacherRow {
   homeroomGrade?: Grade;
   homeroomMajor?: Major;
   homeroomClassNumber: string;
-  teachingSubjects?: string; // Comma-separated: "math:tenth:accounting:1,english:eleventh:softwareEngineering:2"
+  teachingAssignments?: string; // Comma-separated: "math:tenth:accounting:1,english:eleventh:softwareEngineering:2"
   teachingClasses?: string; // Comma-separated: "tenth:accounting:1,eleventh:softwareEngineering:2"
 }
+
+type TeachingClass = {
+  grade: Grade;
+  major: Major;
+  classNumber: ClassNumber;
+};
+
+type TeachingAssignment = {
+  subject: string;
+  grade: Grade;
+  major: Major;
+  classNumber: ClassNumber;
+};
 
 type Grade = keyof typeof subjectsData;
 
@@ -53,13 +67,17 @@ export async function POST(req: Request) {
         // Validate grade and major
         if (row.homeroomGrade) {
           if (!GRADES.includes(row.homeroomGrade as Grade)) {
-            throw badRequest(`Row ${rowNumber}: Invalid grade format.`);
+            throw badRequest(
+              `Row ${rowNumber}: Invalid grade format in homeroom.`
+            );
           }
         }
 
         if (row.homeroomMajor) {
           if (!MAJORS.includes(row.homeroomMajor as Major)) {
-            throw badRequest(`Row ${rowNumber}: Invalid major format.`);
+            throw badRequest(
+              `Row ${rowNumber}: Invalid major format in homeroom.`
+            );
           }
         }
 
@@ -114,14 +132,43 @@ export async function POST(req: Request) {
           });
         }
 
-        // Handle Teaching Classes
-        if (row.teachingClasses && row.teachingSubjects) {
+        if (row.teachingClasses && row.teachingAssignments) {
+          // Parse classes array & teaching assignments
+          const parseClassesArray: TeachingClass[] = [];
+          const parseTeachingAssignments: TeachingAssignment[] = [];
+
+          // Handle Teaching Classes
           const classesArray = row.teachingClasses
             .split(",")
             .map((c) => c.trim());
           const teachingClasses = await Promise.all(
             classesArray.map(async (classStr) => {
               const [grade, major, classNumber] = classStr.split(":");
+
+              if (grade) {
+                if (!GRADES.includes(grade as Grade)) {
+                  throw badRequest(
+                    `Row ${rowNumber}: Invalid grade format in teaching classes.`
+                  );
+                }
+              }
+
+              if (major) {
+                if (!MAJORS.includes(major as Major)) {
+                  throw badRequest(
+                    `Row ${rowNumber}: Invalid major format in teaching classes.`
+                  );
+                }
+              }
+
+              const classObject = {
+                grade: grade as Grade,
+                major: major as Major,
+                classNumber: classNumber as ClassNumber,
+              };
+
+              parseClassesArray.push(classObject);
+
               return await tx.teachingClass.upsert({
                 where: {
                   grade_major_classNumber: {
@@ -148,11 +195,9 @@ export async function POST(req: Request) {
               },
             },
           });
-        }
 
-        // Handle Teaching Assignments
-        if (row.teachingSubjects && row.teachingClasses) {
-          const subjectsArray = row.teachingSubjects
+          // Handle Teaching Assignments
+          const subjectsArray = row.teachingAssignments
             .split(",")
             .map((s) => s.trim());
           const subjects = await Promise.all(
@@ -170,6 +215,22 @@ export async function POST(req: Request) {
             subjectsArray.map(async (subjectStr, idx) => {
               const [subjectName, gradeRaw, majorRaw, classNumber] =
                 subjectStr.split(":");
+
+              if (gradeRaw) {
+                if (!GRADES.includes(gradeRaw as Grade)) {
+                  throw badRequest(
+                    `Row ${rowNumber}: Invalid grade format in teaching assignments.`
+                  );
+                }
+              }
+
+              if (majorRaw) {
+                if (!MAJORS.includes(majorRaw as Major)) {
+                  throw badRequest(
+                    `Row ${rowNumber}: Invalid major format in teaching assignments.`
+                  );
+                }
+              }
 
               if (
                 !gradeRaw ||
@@ -193,6 +254,15 @@ export async function POST(req: Request) {
                 );
               }
 
+              const assignmentObject = {
+                subject: subjectName,
+                grade: grade as Grade,
+                major: major as Major,
+                classNumber: classNumber as ClassNumber,
+              };
+
+              parseTeachingAssignments.push(assignmentObject);
+
               return await tx.teachingAssignment.upsert({
                 where: {
                   teacherId_subjectId_grade_major_classNumber: {
@@ -214,6 +284,37 @@ export async function POST(req: Request) {
               });
             })
           );
+
+          // Check if every teaching assignment matches one of the teaching classes
+          if (
+            parseClassesArray.length > 0 &&
+            parseTeachingAssignments.length > 0
+          ) {
+            for (const ta of parseTeachingAssignments) {
+              const matchingClass = parseClassesArray.find((tc) => {
+                console.log(tc);
+                console.log(ta);
+
+                return (
+                  tc.grade == ta.grade &&
+                  tc.major == ta.major &&
+                  tc.classNumber == ta.classNumber
+                );
+              });
+
+              console.log(matchingClass);
+
+              if (!matchingClass) {
+                const grade = gradeLabel(ta.grade);
+                const major = majorLabel(ta.major);
+                const classNumber = classNumberLabel(ta.classNumber);
+
+                throw badRequest(
+                  `Row ${rowNumber}: Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
+                );
+              }
+            }
+          }
 
           await tx.teacher.update({
             where: { id: teacher.id },

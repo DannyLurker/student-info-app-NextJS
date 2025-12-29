@@ -116,14 +116,7 @@ const SignIn = () => {
               </div>
 
               {/* Remember & Forgot */}
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-[#1E3A8A] border-[#E5E7EB] rounded focus:ring-[#1E3A8A]"
-                  />
-                  <span className="ml-2 text-[#111827]">Remember me</span>
-                </label>
+              <div className="flex justify-end items-center text-sm">
                 <Link
                   href="/forgot-password"
                   className="text-[#1E3A8A] hover:text-[#3B82F6] font-medium"

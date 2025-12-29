@@ -17,10 +17,14 @@ interface DashboardProps {
   session: Session;
 }
 
-type AttendanceStats = { type: "ALPHA" | "SICK" | "PERMISSION"; date: number | Date };
+type AttendanceStats = {
+  type: "ALPHA" | "SICK" | "PERMISSION";
+  date: number | Date;
+};
 
 const StudentDashboard = ({ session }: DashboardProps) => {
-  const role = getRoleDisplayName(session.role)
+  const role = getRoleDisplayName(session.role);
+  const [subjects, setSubjects] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState({
     sick: [],
     permission: [],
@@ -42,39 +46,65 @@ const StudentDashboard = ({ session }: DashboardProps) => {
     attendanceStats.permission.length +
     attendanceStats.alpha.length;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(
-          `api/student-attendance/student-attendance-data?studentId=${session.id}`
+  const fetchAttendanceData = async () => {
+    try {
+      const res = await axios.get(
+        `api/student-attendance/student-attendance-data`,
+        {
+          params: {
+            studentId: session.id,
+          },
+        }
+      );
+      if (res.status === 200) {
+        // Group data by type in one operation
+        const grouped = res.data.data.reduce(
+          (acc: any, stat: AttendanceStats) => {
+            const type = stat.type as keyof typeof acc;
+            if (!acc[type.toString().toLowerCase()])
+              acc[type.toString().toLowerCase()] = [];
+            acc[type.toString().toLowerCase()].push(stat);
+            return acc;
+          },
+          { sick: [], permission: [], alpha: [] }
         );
 
-        console.log(res)
-        if (res.status === 200) {
-          // Group data by type in one operation
-          const grouped = res.data.data.reduce(
-            (acc: any, stat: AttendanceStats) => {
-              const type = stat.type as keyof typeof acc;
-              console.log(type)
-              if (!acc[type.toString().toLowerCase()]) acc[type.toString().toLowerCase()] = [];
-              acc[type.toString().toLowerCase()].push(stat);
-              return acc;
-            },
-            { sick: [], permission: [], alpha: [] }
-          );
-
-          // Single setState call
-          setAttendanceStats(grouped);
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error("Something went wrong. Can't retrieve attendance data");
+        // Single setState call
+        setAttendanceStats(grouped);
       }
-    };
+    } catch (error) {
+      console.error(`Error at fetching attendace data :${error}`);
+      toast.error("Something went wrong. Can't retrieve attendance data");
+    }
+  };
+
+  const fetchStudentSubjectsData = async () => {
+    try {
+      const res = await axios.get("api/student/list-subjects", {
+        params: {
+          studentId: session.id,
+        },
+      });
+
+      console.log(res);
+
+      if (res.status === 200) {
+        setSubjects(res.data.data.studentSubjects);
+      }
+    } catch (error) {
+      console.log(`Error at fetching student subjects: ${error}`);
+      toast.error("something went wrong. Can't retrieve subjects data");
+    }
+  };
+
+  useEffect(() => {
+    function fetchData() {
+      fetchAttendanceData();
+      fetchStudentSubjectsData();
+    }
 
     fetchData();
   }, [session.id]);
-
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -100,7 +130,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
             <span className="text-xl sm:text-2xl">📚</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-[#111827] mb-1">
-            -
+            {subjects.length}
           </h3>
           <p className="text-xs sm:text-sm text-gray-600">Total Subjects</p>
         </div>
@@ -126,9 +156,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
             <span className="text-xl sm:text-2xl">🎓</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-bold mb-1">Student</h3>
-          <p className="text-xs sm:text-sm text-blue-100">
-            {role}
-          </p>
+          <p className="text-xs sm:text-sm text-blue-100">{role}</p>
         </div>
       </div>
 

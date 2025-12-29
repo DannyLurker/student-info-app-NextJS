@@ -3,6 +3,7 @@ import { prisma } from "@/prisma/prisma";
 import hashing from "@/lib/utils/hashing";
 import { zodTeacherSignUp, TeacherSignUpInput } from "@/lib/utils/zodSchema";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
+import { classNumberLabel, gradeLabel, majorLabel } from "@/lib/utils/labels";
 
 export async function POST(req: Request) {
   try {
@@ -53,17 +54,20 @@ export async function POST(req: Request) {
 
         if (existingHomeroomClass) {
           throw badRequest(
-            `There is already a homeroom teacher in ${data.homeroomClass.grade === "TWELFTH"
-              ? "12"
-              : data.homeroomClass.grade === "ELEVENTH"
-                ? "11"
-                : "10"
-            }-${data.homeroomClass.major === "SOFTWARE_ENGINEERING"
-              ? "Software Engineering"
-              : "Accounting"
-            } ${data.homeroomClass.classNumber === "none"
-              ? ""
-              : data.homeroomClass.classNumber
+            `There is already a homeroom teacher in ${
+              data.homeroomClass.grade === "TWELFTH"
+                ? "12"
+                : data.homeroomClass.grade === "ELEVENTH"
+                  ? "11"
+                  : "10"
+            }-${
+              data.homeroomClass.major === "SOFTWARE_ENGINEERING"
+                ? "Software Engineering"
+                : "Accounting"
+            } ${
+              data.homeroomClass.classNumber === "none"
+                ? ""
+                : data.homeroomClass.classNumber
             }`
           );
         }
@@ -94,18 +98,12 @@ export async function POST(req: Request) {
           );
 
           if (!matchingClass) {
-            const gradeLabel =
-              ta.grade === "TENTH"
-                ? "10"
-                : ta.grade === "ELEVENTH"
-                  ? "11"
-                  : "12";
-            const majorLabel =
-              ta.major === "ACCOUNTING" ? "Accounting" : "Software Engineering";
-            const classLabel = ta.classNumber === "none" ? "" : ta.classNumber;
+            const grade = gradeLabel(ta.grade);
+            const major = majorLabel(ta.major);
+            const classNumber = classNumberLabel(ta.classNumber);
 
             throw badRequest(
-              `Teaching Assignment mismatch! You have an assignment for ${gradeLabel}-${majorLabel} ${classLabel}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
+              `Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
             );
           }
         }

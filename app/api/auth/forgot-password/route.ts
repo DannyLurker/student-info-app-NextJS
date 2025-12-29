@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
     const otpRequestCount = await redis.incr(rateKey);
 
-    // Set TTL hanya saat request pertama
+    // Set TTL only for first request
     if (otpRequestCount === 1) {
       await redis.expire(rateKey, RATE_LIMIT_TTL);
     }
