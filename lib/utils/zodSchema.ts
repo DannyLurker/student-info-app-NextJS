@@ -57,6 +57,7 @@ const zodForgotPassword = z.object({
 
 const zodResetPassword = z.object({
   otp: z.string({ message: "Must be filled" }),
+  token: z.string({ message: "Must be filled" }),
   password: z
     .string({ message: "Must be filled" })
     .min(8, { message: "Must be 8 characters at minimum" }),

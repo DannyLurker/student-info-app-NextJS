@@ -13,6 +13,7 @@ type ResetPasswordOtpEmailProps = {
   userName: string;
   userEmail: string;
   otpCode: string;
+  resetToken: string;
   currentYear: number;
   currentTime: Date;
 };
@@ -22,6 +23,7 @@ export default function ResetPasswordOtpEmail({
   userName,
   userEmail,
   otpCode,
+  resetToken,
   currentYear,
   currentTime,
 }: ResetPasswordOtpEmailProps) {
@@ -63,7 +65,7 @@ export default function ResetPasswordOtpEmail({
               </Text>
 
               <Link
-                href={`http://localhost:3000/reset-password?token=${otpCode}`}
+                href={`http://localhost:3000/reset-password?token=${resetToken}`}
                 style={styles.resetButton}
               >
                 Reset Password

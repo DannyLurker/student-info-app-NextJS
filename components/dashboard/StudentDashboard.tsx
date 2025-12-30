@@ -86,8 +86,6 @@ const StudentDashboard = ({ session }: DashboardProps) => {
         },
       });
 
-      console.log(res);
-
       if (res.status === 200) {
         setSubjects(res.data.data.studentSubjects);
       }

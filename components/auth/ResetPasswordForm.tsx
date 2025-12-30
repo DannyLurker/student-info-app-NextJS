@@ -24,6 +24,7 @@ const ResetPasswordContent = () => {
     const formData = new FormData(e.currentTarget);
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+    const otp = formData.get("otp") as string;
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -39,7 +40,8 @@ const ResetPasswordContent = () => {
 
     try {
       await axios.post("/api/auth/reset-password", {
-        otp: token,
+        token: token,
+        otp: otp,
         password,
         confirmPassword,
       });
@@ -111,6 +113,24 @@ const ResetPasswordContent = () => {
           {/* Form */}
           <div className="p-8">
             <form className="space-y-6" onSubmit={handleSubmit}>
+              {/* OTP */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[#111827]">
+                  OTP
+                </label>
+                <div className="relative">
+                  <Input
+                    name="otp"
+                    placeholder="Enter OTP"
+                    type={"text"}
+                    required
+                    minLength={6}
+                    maxLength={6}
+                    className="h-12 border-2 border-[#E5E7EB] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/20 transition-all pl-4 pr-12"
+                  />
+                </div>
+              </div>
+
               {/* New Password */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-[#111827]">

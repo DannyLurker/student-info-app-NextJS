@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(`Error: ${error}`);
+    console.error(`Error in list student: ${error}`);
     return handleError(error);
   }
 }

@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(`Error: ${error}`);
+    console.error(`Error in student attendance data: ${error}`);
     return handleError(error);
   }
 }

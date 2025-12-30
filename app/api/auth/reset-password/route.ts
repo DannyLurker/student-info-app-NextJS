@@ -1,18 +1,28 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
 import redis from "@/lib/redis";
 import hashing from "@/lib/utils/hashing";
+import { hashResetToken } from "@/lib/utils/hashToken";
 import { ResetPasswordSchema, zodResetPassword } from "@/lib/utils/zodSchema";
 import { prisma } from "@/prisma/prisma";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
     const body: ResetPasswordSchema = await req.json();
     const data = zodResetPassword.parse(body);
 
-    const userId = await redis.get(`otp:${data.otp}`);
+    const resetData = await redis.get(`reset:${hashResetToken(data.token)}`);
 
-    if (!userId) {
-      throw badRequest("Invalid or expired OTP");
+    if (!resetData) {
+      throw badRequest("Invalid or expired reset token");
+    }
+
+    const { userId, otpHash } = JSON.parse(resetData);
+
+    const isOtpValid = await bcrypt.compare(data.otp, otpHash);
+
+    if (!isOtpValid) {
+      throw badRequest("Invalid or expired OTP code");
     }
 
     if (data.password !== data.confirmPassword) {
@@ -33,7 +43,13 @@ export async function POST(req: Request) {
       });
     }
 
-    await redis.del(`otp:${data.otp}`);
+    const PASSWORD_RESET_COOLDOWN = 24 * 60 * 60; // 24 jam
+    await redis.set(`cooldown:reset:${userId}`, "1", {
+      EX: PASSWORD_RESET_COOLDOWN,
+    });
+
+    await redis.del(`rate:otp:${userId}`);
+    await redis.del(`reset:${hashResetToken(data.token)}`);
 
     return Response.json(
       {
@@ -42,7 +58,7 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(`Error: ${error}`);
+    console.error(`Error in reset password: ${error}`);
     return handleError(error);
   }
 }

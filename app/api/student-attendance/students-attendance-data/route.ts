@@ -80,7 +80,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error(error);
+    console.error(`Error in students attendance data: ${error}`);
     return handleError(error);
   }
 }

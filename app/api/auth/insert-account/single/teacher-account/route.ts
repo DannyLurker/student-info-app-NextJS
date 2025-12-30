@@ -113,18 +113,12 @@ export async function POST(req: Request) {
           const allowedSubjects = subjectsData[ta.grade].major[ta.major];
 
           if (!allowedSubjects.includes(ta.subjectName)) {
-            const gradeLabel =
-              ta.grade === "TENTH"
-                ? "10"
-                : ta.grade === "ELEVENTH"
-                  ? "11"
-                  : "12";
-            const majorLabel =
-              ta.major === "ACCOUNTING" ? "Accounting" : "Software Engineering";
-            const classLabel = ta.classNumber === "none" ? "" : ta.classNumber;
+            const grade = gradeLabel(ta.grade);
+            const major = majorLabel(ta.major);
+            const classNumber = classNumberLabel(ta.classNumber);
 
             throw badRequest(
-              `Subject mismatch! The subject "${ta.subjectName}" is not available for ${gradeLabel}-${majorLabel} ${classLabel}. Please check the curriculum.`
+              `Subject mismatch! The subject "${ta.subjectName}" is not available for ${grade}-${major} ${classNumber}. Please check the curriculum.`
             );
           }
         }
@@ -218,7 +212,7 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("❌ Error creating teacher:", error);
+    console.error("Error creating teacher:", error);
     return handleError(error);
   }
 }

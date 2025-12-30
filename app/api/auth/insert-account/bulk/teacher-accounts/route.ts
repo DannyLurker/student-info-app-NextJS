@@ -213,19 +213,19 @@ export async function POST(req: Request) {
 
           const teachingAssignments = await Promise.all(
             subjectsArray.map(async (subjectStr, idx) => {
-              const [subjectName, gradeRaw, majorRaw, classNumber] =
+              const [subjectName, grade, major, classNumber] =
                 subjectStr.split(":");
 
-              if (gradeRaw) {
-                if (!GRADES.includes(gradeRaw as Grade)) {
+              if (grade) {
+                if (!GRADES.includes(grade as Grade)) {
                   throw badRequest(
                     `Row ${rowNumber}: Invalid grade format in teaching assignments.`
                   );
                 }
               }
 
-              if (majorRaw) {
-                if (!MAJORS.includes(majorRaw as Major)) {
+              if (major) {
+                if (!MAJORS.includes(major as Major)) {
                   throw badRequest(
                     `Row ${rowNumber}: Invalid major format in teaching assignments.`
                   );
@@ -233,20 +233,18 @@ export async function POST(req: Request) {
               }
 
               if (
-                !gradeRaw ||
-                !majorRaw ||
-                !(gradeRaw in subjectsData) ||
-                !(majorRaw in subjectsData[gradeRaw as Grade].major)
+                !grade ||
+                !major ||
+                !(grade in subjectsData) ||
+                !(major in subjectsData[grade as Grade].major)
               ) {
                 throw new Error(
-                  `Row ${rowNumber}: Invalid grade or major: ${gradeRaw}-${majorRaw}`
+                  `Row ${rowNumber}: Invalid grade or major: ${grade}-${major}`
                 );
               }
 
-              const grade = gradeRaw as Grade;
-              const major = majorRaw as Major;
-
-              const allowedSubjects = subjectsData[grade].major[major];
+              const allowedSubjects =
+                subjectsData[grade as Grade].major[major as Major];
 
               if (!allowedSubjects.includes(subjectName)) {
                 throw new Error(
@@ -268,8 +266,8 @@ export async function POST(req: Request) {
                   teacherId_subjectId_grade_major_classNumber: {
                     teacherId: teacher.id,
                     subjectId: subjects[idx].id,
-                    grade: grade as any,
-                    major: major as any,
+                    grade: grade as Grade,
+                    major: major as Major,
                     classNumber: classNumber,
                   },
                 },
@@ -277,8 +275,8 @@ export async function POST(req: Request) {
                 create: {
                   teacherId: teacher.id,
                   subjectId: subjects[idx].id,
-                  grade: grade as any,
-                  major: major as any,
+                  grade: grade as Grade,
+                  major: major as Major,
                   classNumber: classNumber,
                 },
               });
@@ -292,17 +290,12 @@ export async function POST(req: Request) {
           ) {
             for (const ta of parseTeachingAssignments) {
               const matchingClass = parseClassesArray.find((tc) => {
-                console.log(tc);
-                console.log(ta);
-
                 return (
                   tc.grade == ta.grade &&
                   tc.major == ta.major &&
                   tc.classNumber == ta.classNumber
                 );
               });
-
-              console.log(matchingClass);
 
               if (!matchingClass) {
                 const grade = gradeLabel(ta.grade);
