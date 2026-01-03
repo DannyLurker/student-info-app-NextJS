@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Save, Lock } from "lucide-react";
+import { Calendar, Users, Save, Lock, Search, ArrowUpDown } from "lucide-react";
 import { ROLES, getRoleDashboard } from "@/lib/constants/roles";
 
 interface Student {
@@ -61,6 +61,10 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     Record<string, AttendanceRecord>
   >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "status">("name-asc");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  type SortOption = "name-asc" | "name-desc" | "status";
 
   // Computed properties
   const isFutureDate =
@@ -89,6 +93,35 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       present: students.length - (sick + permission + alpha),
     };
   }, [students, attendanceMap]);
+
+  const sortedAndFilteredStudents = useMemo(() => {
+    let result = [...students];
+
+    // Filter
+    if (searchQuery) {
+      result = result.filter((student) =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "status":
+          const recordA = attendanceMap[a.id]?.type || "PRESENT";
+          const recordB = attendanceMap[b.id]?.type || "PRESENT";
+          return recordA.localeCompare(recordB);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [students, sortBy, searchQuery, attendanceMap]);
 
   useEffect(() => {
     if (session?.role !== ROLES.CLASS_SECRETARY) {
@@ -263,50 +296,67 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       {/* Main Content Card */}
       <div className="mx-4 sm:mx-6 lg:mx-8">
         <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] overflow-hidden">
-          {/* Card Header */}
+          {/* Card Header & Controls */}
           <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h2 className="font-bold text-lg sm:text-xl text-[#111827]">
-                  Class Attendance List
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                  {isValidDate
-                    ? "Select status for each student and add optional notes"
-                    : "Viewing archived attendance record"}
-                </p>
-              </div>
-
-              {/* Date Picker and Save Button grouped */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                <div className="w-40 flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[#E5E7EB] shadow-sm">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
-                    className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer text-[#111827]"
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Search students..."
+                    className="pl-9 bg-white"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
+              </div>
 
-                {isValidDate ? (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white w-40 font-semibold px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    {isSubmitting ? "Saving..." : "Save Changes"}
-                  </Button>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-200">
-                    <Lock className="w-4 h-4" />
-                    <span className="font-medium text-sm">
-                      Future dates are locked
-                    </span>
+              <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => setSortBy(value as SortOption)}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                  <div className="w-full sm:w-40 flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[#E5E7EB] shadow-sm">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer text-[#111827] w-full"
+                    />
                   </div>
-                )}
+
+                  {isValidDate ? (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white w-full sm:w-40 font-semibold px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-200">
+                      <Lock className="w-4 h-4" />
+                      <span className="font-medium text-sm">
+                        Future dates locked
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -328,7 +378,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
-                {students.map((student, index) => {
+                {sortedAndFilteredStudents.map((student, index) => {
                   const record = attendanceMap[student.id] || {
                     type: "PRESENT",
                   };
@@ -396,8 +446,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       </td>
                       <td className="px-6 lg:px-8 py-5">
                         {isValidDate &&
-                        record.type !== "ALPHA" &&
-                        record.type !== "PRESENT" ? (
+                          record.type !== "ALPHA" &&
+                          record.type !== "PRESENT" ? (
                           <Input
                             placeholder="Add optional description..."
                             value={record.description || ""}
@@ -442,7 +492,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
           {/* Mobile Card View */}
           <div className="sm:hidden divide-y divide-[#E5E7EB]">
-            {students.map((student, index) => {
+            {sortedAndFilteredStudents.map((student, index) => {
               const record = attendanceMap[student.id] || { type: "PRESENT" };
 
               return (
@@ -501,8 +551,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
                     <div className="col-span-2 pt-2">
                       {isValidDate &&
-                      record.type !== "ALPHA" &&
-                      record.type !== "PRESENT" ? (
+                        record.type !== "ALPHA" &&
+                        record.type !== "PRESENT" ? (
                         <Input
                           placeholder="Add note..."
                           value={record.description || ""}

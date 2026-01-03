@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Users,
@@ -9,11 +11,20 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Clock,
   HelpCircle,
+  ArrowUpDown,
+  Search,
 } from "lucide-react";
 import { Role } from "@/lib/constants/roles";
 import axios from "axios";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface Attendance {
   date: string;
@@ -46,12 +57,16 @@ interface ClassroomProps {
   session: Session;
 }
 
+type SortOption = "name-asc" | "name-desc" | "status";
+
 const Classroom = ({ session }: ClassroomProps) => {
   const [data, setData] = useState<ClassroomData | null>(null);
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
   const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,8 +83,6 @@ const Classroom = ({ session }: ClassroomProps) => {
             }
           );
 
-          console.log(response);
-
           if (response.status === 200) {
             setData(response.data.data);
           }
@@ -84,128 +97,329 @@ const Classroom = ({ session }: ClassroomProps) => {
     fetchData();
   }, [session?.user?.id, date]);
 
+  // Each student only has one attendance per day
   const getAttendanceStatus = (attendances: Attendance[]) => {
     if (!attendances || attendances.length === 0) {
       return {
-        label: "Not Recorded",
-        icon: HelpCircle,
-        color: "text-gray-400",
+        label: "Present",
+        type: "PRESENT",
+        icon: CheckCircle,
+        color: "text-emerald-700 bg-emerald-50 border-emerald-200",
       };
     }
     const attendance = attendances[0];
     switch (attendance.type) {
-      case "PRESENT":
-        return { label: "Present", icon: CheckCircle, color: "text-green-500" };
-      case "ABSENT":
-        return { label: "Absent", icon: XCircle, color: "text-red-500" };
-      case "LATE":
-        return { label: "Late", icon: Clock, color: "text-yellow-500" };
       case "PERMISSION":
         return {
           label: "Permission",
+          type: "PERMISSION",
           icon: AlertCircle,
-          color: "text-blue-500",
+          color: "text-blue-700 bg-blue-50 border-blue-200",
         };
       case "SICK":
-        return { label: "Sick", icon: AlertCircle, color: "text-orange-500" };
+        return {
+          label: "Sick",
+          type: "SICK",
+          icon: AlertCircle,
+          color: "text-amber-700 bg-amber-50 border-amber-200",
+        };
       case "ALPHA":
-        return { label: "Alpha", icon: XCircle, color: "text-red-500" };
+        return {
+          label: "Alpha",
+          type: "ALPHA",
+          icon: XCircle,
+          color: "text-red-700 bg-red-50 border-red-200",
+        };
       default:
         return {
-          label: attendance.type,
-          icon: HelpCircle,
-          color: "text-gray-500",
+          label: "Present",
+          type: "PRESENT",
+          icon: CheckCircle,
+          color: "text-emerald-700 bg-emerald-50 border-emerald-200",
         };
     }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Prevent future dates
-    const selectedDate = new Date(e.target.value);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const stats = useMemo(() => {
+    if (!data?.students) return { total: 0, present: 0, sick: 0, permission: 0, alpha: 0 };
 
+    const total = data.students.length;
+    let sick = 0;
+    let permission = 0;
+    let alpha = 0;
+
+    data.students.forEach((student) => {
+      const att = student.attendances[0];
+      if (!att) return; // Counts as present
+
+      const type = att.type;
+      if (type === "SICK") sick++;
+      else if (type === "PERMISSION") permission++;
+      else if (type === "ALPHA") alpha++;
+      // PRESENT falls through
+    });
+
+    const present = total - (sick + permission + alpha);
+
+    return { total, present, sick, permission, alpha };
+  }, [data?.students]);
+
+  const sortedAndFilteredStudents = useMemo(() => {
+    if (!data?.students) return [];
+
+    let result = [...data.students];
+
+    // Filter
+    if (searchQuery) {
+      result = result.filter((student) =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "status":
+          const statusA = getAttendanceStatus(a.attendances).label;
+          const statusB = getAttendanceStatus(b.attendances).label;
+          return statusA.localeCompare(statusB);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [data?.students, sortBy, searchQuery]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedDate = new Date(e.target.value);
     if (selectedDate <= new Date()) {
       setDate(e.target.value);
-    } else {
-      // Ideally show a toast or message, but input max attribute handles UI constraint
-      // This is a fallback backup
     }
   };
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Homeroom Class</h1>
-          <p className="text-gray-500">Manage student attendance</p>
-        </div>
-        <div className="flex items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm">
-          <Calendar className="w-5 h-5 text-gray-500" />
-          <Input
-            type="date"
-            value={date}
-            max={new Date().toISOString().split("T")[0]}
-            onChange={handleDateChange}
-            className="border-0 focus-visible:ring-0 w-auto"
-          />
+    <div className="space-y-6 pb-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-4 sm:p-6 lg:p-8 text-white shadow-lg">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                Homeroom Class
+              </h1>
+              <p className="text-blue-100 text-sm">
+                Manage student attendance and details
+              </p>
+            </div>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
+              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
+              <div className="text-xs sm:text-sm text-blue-100 mt-1">
+                Total Students
+              </div>
+            </div>
+            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-emerald-400/30">
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats.present}
+              </div>
+              <div className="text-xs sm:text-sm text-emerald-100 mt-1">
+                Present
+              </div>
+            </div>
+            <div className="bg-amber-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-amber-400/30">
+              <div className="text-xl sm:text-2xl font-bold">{stats.sick}</div>
+              <div className="text-xs sm:text-sm text-amber-100 mt-1">Sick</div>
+            </div>
+            <div className="bg-blue-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-blue-400/30">
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats.permission}
+              </div>
+              <div className="text-xs sm:text-sm text-blue-100 mt-1">
+                Permission
+              </div>
+            </div>
+            <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-red-400/30 col-span-2 sm:col-span-1">
+              <div className="text-xl sm:text-2xl font-bold">{stats.alpha}</div>
+              <div className="text-xs sm:text-sm text-red-100 mt-1">Alpha</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            <span>Student List</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4 animate-pulse">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-16 bg-gray-100 rounded-lg"></div>
-              ))}
+      {/* Main Content Card */}
+      <div className="mx-4 sm:mx-6 lg:mx-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] overflow-hidden">
+          {/* Card Header & Controls */}
+          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Search students..."
+                    className="pl-9 bg-white"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => setSortBy(value as SortOption)}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                    <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="w-full sm:w-auto flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[#E5E7EB] shadow-sm">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <input
+                    type="date"
+                    value={date}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={handleDateChange}
+                    className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer text-[#111827] w-full"
+                  />
+                </div>
+              </div>
             </div>
-          ) : data?.students && data.students.length > 0 ? (
-            <div className="space-y-3">
-              {data.students.map((student) => {
-                const status = getAttendanceStatus(student.attendances);
-                return (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-white hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                        {student.name.charAt(0)}
+          </div>
+
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="p-8 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+            ) : sortedAndFilteredStudents.length > 0 ? (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#F9FAFB] border-b-2 border-[#E5E7EB]">
+                      <tr>
+                        <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Student Name
+                        </th>
+                        <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Attendance Status
+                        </th>
+                        <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Description
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E7EB]">
+                      {sortedAndFilteredStudents.map((student) => {
+                        console.log(student)
+                        const status = getAttendanceStatus(student.attendances);
+                        return (
+                          <tr
+                            key={student.id}
+                            className="hover:bg-blue-50/30 transition-colors duration-150"
+                          >
+                            <td className="px-6 lg:px-8 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#EBF5FF] text-[#1E40AF] flex items-center justify-center font-bold text-sm border border-[#BFDBFE]">
+                                  {student.name.charAt(0)}
+                                </div>
+                                <span className="font-semibold text-[#111827]">
+                                  {student.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 lg:px-8 py-5">
+                              <div
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${status.color}`}
+                              >
+                                <status.icon className="w-4 h-4" />
+                                <span className="font-medium text-sm">
+                                  {status.label}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 lg:px-8 py-5">
+                              <span className="text-gray-600 text-sm">
+                                {student.attendances[0]?.description || (
+                                  <span className="text-gray-400 italic">No description</span>
+                                )}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="sm:hidden divide-y divide-[#E5E7EB]">
+                  {sortedAndFilteredStudents.map((student) => {
+                    const status = getAttendanceStatus(student.attendances);
+                    return (
+                      <div key={student.id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#EBF5FF] text-[#1E40AF] flex items-center justify-center font-bold text-sm border border-[#BFDBFE]">
+                              {student.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                              <p className="text-xs text-gray-500">ID: {student.id.slice(0, 8)}...</p>
+                            </div>
+                          </div>
+                          <div
+                            className={`p-2 rounded-lg border ${status.color}`}
+                          >
+                            <status.icon className="w-4 h-4" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm pl-[52px]">
+                          <span className={`font-medium px-2 py-0.5 rounded ${status.color.split(' ')[1]} ${status.color.split(' ')[0]} bg-opacity-20`}>
+                            {status.label}
+                          </span>
+                          <span className="text-gray-500 truncate max-w-[150px]">
+                            {student.attendances[0]?.description || "—"}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {student.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {student.attendances[0]?.description ||
-                            "No description"}
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      className={`flex items-center space-x-2 ${status.color}`}
-                    >
-                      <status.icon className="w-5 h-5" />
-                      <span className="font-medium">{status.label}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-gray-500 italic text-center py-8">
-              No students found in homeroom class.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="p-12 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No students found</p>
+                <p className="text-gray-400 text-sm">
+                  Try adjusting your search or filters
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </div>
+      </div>
     </div>
   );
 };

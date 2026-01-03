@@ -77,98 +77,98 @@ const TeachingClassesAndTeachingAssignments = ({
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2].map((i) => (
+          <Card key={i} className="shadow-none border border-gray-200">
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="h-20 bg-gray-100 rounded animate-pulse" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Teacher Dashboard</h1>
-        <p className="text-gray-500">Welcome back, {session?.user?.name}</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Teaching Classes */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span>Teaching Classes</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data?.teachingClasses && data.teachingClasses.length > 0 ? (
-              <div className="space-y-4">
-                {data.teachingClasses.map((cls, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
-                  >
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Class {cls.grade} {cls.major} {cls.classNumber}
-                      </h3>
-                      <p className="text-sm text-gray-500">Homeroom</p>
-                    </div>
-                    <GraduationCap className="w-5 h-5 text-gray-400" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Teaching Classes */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            <span>Teaching Classes</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data?.teachingClasses && data.teachingClasses.length > 0 ? (
+            <div className="space-y-4">
+              {data.teachingClasses.map((cls, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
+                >
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Class {cls.grade} {cls.major} {cls.classNumber}
+                    </h3>
+                    <p className="text-sm text-gray-500">Homeroom</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic text-center py-4">
-                No classes assigned.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  <GraduationCap className="w-5 h-5 text-gray-400" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic text-center py-4">
+              No classes assigned.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Teaching Assignments */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BookOpen className="w-5 h-5 text-blue-600" />
-              <span>Teaching Assignments</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data?.teachingAssignments &&
+      {/* Teaching Assignments */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+            <span>Teaching Assignments</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data?.teachingAssignments &&
             data.teachingAssignments.length > 0 ? (
-              <div className="space-y-4">
-                {data.teachingAssignments.map((assignment, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-blue-600 shadow-sm"
-                  >
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {assignment.subject.subjectName}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Class {assignment.grade} {assignment.major}{" "}
-                        {assignment.classNumber}
-                      </p>
-                    </div>
-                    <Calendar className="w-5 h-5 text-gray-400" />
+            <div className="space-y-4">
+              {data.teachingAssignments.map((assignment, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 border-blue-600 shadow-sm"
+                >
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {assignment.subject.subjectName}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Class {assignment.grade} {assignment.major}{" "}
+                      {assignment.classNumber}
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic text-center py-4">
-                No teaching assignments.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic text-center py-4">
+              No teaching assignments.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

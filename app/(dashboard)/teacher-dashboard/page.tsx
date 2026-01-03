@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/authNode";
 import { redirect } from "next/navigation";
 import { getRoleDashboard, isTeacherRole } from "@/lib/constants/roles";
 import TeachingClassesAndTeachingAssignments from "@/components/dashboard/teacher/TeachingClassesAndTeachingAssignments";
+import TeacherSummary from "@/components/dashboard/teacher/TeacherSummary";
 
 const page = async () => {
   const session = await auth();
@@ -14,7 +15,8 @@ const page = async () => {
   }
 
   return (
-    <div>
+    <div className="p-8 space-y-8">
+      <TeacherSummary session={session} />
       <TeachingClassesAndTeachingAssignments session={session} />
     </div>
   );
