@@ -1,6 +1,6 @@
 "use client";
 import { GraduationCap, BookOpen, Calendar, TrendingUp } from "lucide-react";
-import { AttendanceChart } from "../attendance/AttendanceChart";
+import { AttendanceChart } from "../../attendance/AttendanceChart";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";

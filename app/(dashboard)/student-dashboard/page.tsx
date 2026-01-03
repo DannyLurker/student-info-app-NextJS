@@ -1,5 +1,5 @@
 import React from "react";
-import StudentDashboard from "@/components/dashboard/StudentDashboard";
+import StudentDashboard from "@/components/dashboard/student/StudentDashboard";
 
 import { auth } from "@/lib/auth/authNode";
 import { redirect } from "next/navigation";

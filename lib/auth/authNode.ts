@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
-import { isStudentRole } from "@/lib/constants/roles";
+import { isStudentRole, isTeacherRole, Role } from "@/lib/constants/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
@@ -27,6 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         let user;
+        let isHomeroomClassTeacher;
 
         user = await prisma.student.findUnique({
           where: { email },
@@ -63,6 +64,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("User not found");
         }
 
+        if (user.role === "TEACHER") {
+          isHomeroomClassTeacher = await prisma.homeroomClass.findUnique({
+            where: {
+              teacherId: user.id,
+            },
+            select: {
+              teacherId: true,
+            },
+          });
+        }
+
         // cek password
         const isValid = await bcrypt.compare(password, user.password as string);
 
@@ -78,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           homeroomTeacherId: isStudentRole(user.role)
             ? (user as { homeroomTeacherId: string }).homeroomTeacherId
             : null,
+          isHomeroomClassTeacher: isHomeroomClassTeacher ? true : false,
         };
       },
     }),
@@ -89,8 +102,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = user.role;
 
-        if (isStudentRole(user.role as string)) {
+        if (isStudentRole(user.role)) {
           token.homeroomTeacherId = user.homeroomTeacherId;
+        }
+
+        if (isTeacherRole(user.role)) {
+          token.isHomeroomClassTeacher = user.isHomeroomClassTeacher;
         }
       }
 
@@ -100,10 +117,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as Role;
       }
       if (isStudentRole(session.user.role)) {
         session.user.homeroomTeacherId = token.homeroomTeacherId as string;
+      } else {
+        session.user.homeroomTeacherId = null;
+      }
+
+      if (isTeacherRole(session.user.role)) {
+        session.user.isHomeroomClassTeacher =
+          token.isHomeroomClassTeacher as boolean;
       }
       return session;
     },

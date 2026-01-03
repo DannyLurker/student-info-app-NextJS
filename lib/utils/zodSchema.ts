@@ -82,15 +82,25 @@ const zodStudentAttandance = z.object({
 
 type StudentAttendanceSchema = z.infer<typeof zodStudentAttandance>;
 
+// HOMEROOM CLASS STUDENT
+const homeroomClassStudent = z.object({
+  teacherId: z.string({ message: "Must be filled" }),
+  date: z.date({ message: "Must be filled" }),
+});
+
+type homeroomClassStudentSchema = z.infer<typeof homeroomClassStudent>;
+
 export {
   zodStudentSignUp,
   zodTeacherSignUp,
   zodForgotPassword,
   zodResetPassword,
   zodStudentAttandance,
+  homeroomClassStudent,
   type StudentSignUpInput,
   type TeacherSignUpInput,
   type EmailSchema,
   type ResetPasswordSchema,
   type StudentAttendanceSchema,
+  type homeroomClassStudentSchema,
 };

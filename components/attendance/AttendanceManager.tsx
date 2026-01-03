@@ -344,7 +344,9 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                             {index + 1}
                           </div>
                           <span className="font-semibold text-[#111827]">
-                            {student.name}
+                            {student.name.split(" ").length > 0
+                              ? `${student.name.split(" ")[0]} ${student.name.split(" ")[1]?.[0] ?? ""}`
+                              : student.name}
                           </span>
                         </div>
                       </td>
@@ -356,21 +358,31 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                               handleAttendanceChange(student.id, "type", value)
                             }
                           >
-                            <SelectTrigger className={`w-40 h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}>
+                            <SelectTrigger
+                              className={`w-40 h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}
+                            >
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="PRESENT">
-                                <span className="font-semibold text-emerald-700">PRESENT</span>
+                                <span className="font-semibold text-emerald-700">
+                                  PRESENT
+                                </span>
                               </SelectItem>
                               <SelectItem value="SICK">
-                                <span className="font-semibold text-amber-700">SICK</span>
+                                <span className="font-semibold text-amber-700">
+                                  SICK
+                                </span>
                               </SelectItem>
                               <SelectItem value="PERMISSION">
-                                <span className="font-semibold text-blue-700">PERMISSION</span>
+                                <span className="font-semibold text-blue-700">
+                                  PERMISSION
+                                </span>
                               </SelectItem>
                               <SelectItem value="ALPHA">
-                                <span className="font-semibold text-red-700">ALPHA</span>
+                                <span className="font-semibold text-red-700">
+                                  ALPHA
+                                </span>
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -384,8 +396,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       </td>
                       <td className="px-6 lg:px-8 py-5">
                         {isValidDate &&
-                          record.type !== "ALPHA" &&
-                          record.type !== "PRESENT" ? (
+                        record.type !== "ALPHA" &&
+                        record.type !== "PRESENT" ? (
                           <Input
                             placeholder="Add optional description..."
                             value={record.description || ""}
@@ -456,21 +468,31 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                             handleAttendanceChange(student.id, "type", value)
                           }
                         >
-                          <SelectTrigger className={`w-full h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}>
+                          <SelectTrigger
+                            className={`w-full h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}
+                          >
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="PRESENT">
-                              <span className="font-semibold text-emerald-700">PRESENT</span>
+                              <span className="font-semibold text-emerald-700">
+                                PRESENT
+                              </span>
                             </SelectItem>
                             <SelectItem value="SICK">
-                              <span className="font-semibold text-amber-700">SICK</span>
+                              <span className="font-semibold text-amber-700">
+                                SICK
+                              </span>
                             </SelectItem>
                             <SelectItem value="PERMISSION">
-                              <span className="font-semibold text-blue-700">PERMISSION</span>
+                              <span className="font-semibold text-blue-700">
+                                PERMISSION
+                              </span>
                             </SelectItem>
                             <SelectItem value="ALPHA">
-                              <span className="font-semibold text-red-700">ALPHA</span>
+                              <span className="font-semibold text-red-700">
+                                ALPHA
+                              </span>
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -479,8 +501,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
                     <div className="col-span-2 pt-2">
                       {isValidDate &&
-                        record.type !== "ALPHA" &&
-                        record.type !== "PRESENT" ? (
+                      record.type !== "ALPHA" &&
+                      record.type !== "PRESENT" ? (
                         <Input
                           placeholder="Add note..."
                           value={record.description || ""}

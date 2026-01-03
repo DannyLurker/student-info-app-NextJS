@@ -14,7 +14,8 @@ import {
     LayoutDashboard,
     Users,
     FileText,
-    Home
+    Home,
+    School
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,9 +24,10 @@ import { ROLES } from "@/lib/constants/roles";
 
 interface SidebarProps {
     role?: string;
+    isHomeroomClassTeacher?: boolean;
 }
 
-export const Sidebar = ({ role }: SidebarProps) => {
+export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -67,10 +69,18 @@ export const Sidebar = ({ role }: SidebarProps) => {
 
         switch (currentRole) {
             case ROLES.TEACHER:
-                return [
+                const teacherItems = [
                     { href: "/teacher-dashboard", icon: LayoutDashboard, label: "Dashboard" },
                     { href: "/teacher-dashboard/classes", icon: Users, label: "My Classes" },
                     { href: "/teacher-dashboard/schedule", icon: Calendar, label: "Schedule" },
+                ];
+
+                if (isHomeroomClassTeacher) {
+                    teacherItems.splice(1, 0, { href: "/teacher-dashboard/classroom", icon: School, label: "Classroom" });
+                }
+
+                return [
+                    ...teacherItems,
                     ...commonItems
                 ];
             case ROLES.VICE_PRINCIPAL:

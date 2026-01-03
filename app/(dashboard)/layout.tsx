@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-gray-50">
-            <Sidebar role={session.user.role} />
+            <Sidebar role={session.user.role} isHomeroomClassTeacher={session.user.isHomeroomClassTeacher} />
             <main className="flex-1 lg:ml-64 overflow-y-auto w-full">
                 {children}
             </main>

@@ -9,8 +9,6 @@ const page = async () => {
 
   if (!session) return redirect("/sign-in");
 
-  console.log(session);
-
   return redirect(getRoleDashboard(session.user.role));
 };
 
