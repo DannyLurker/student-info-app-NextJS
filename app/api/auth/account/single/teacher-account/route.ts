@@ -3,7 +3,11 @@ import { prisma } from "@/prisma/prisma";
 import hashing from "@/lib/utils/hashing";
 import { zodTeacherSignUp, TeacherSignUpInput } from "@/lib/utils/zodSchema";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
-import { classNumberLabel, gradeLabel, majorLabel } from "@/lib/utils/labels";
+import {
+  formatClassNumber,
+  getGradeNumber,
+  getMajorDisplayName,
+} from "@/lib/utils/labels";
 
 export async function POST(req: Request) {
   try {
@@ -53,30 +57,20 @@ export async function POST(req: Request) {
         });
 
         if (existingHomeroomClass) {
+          const grade = getGradeNumber(data.homeroomClass.grade);
+          const major = getMajorDisplayName(data.homeroomClass.major);
+          const classNumber = formatClassNumber(data.homeroomClass.classNumber);
+
           throw badRequest(
-            `There is already a homeroom teacher in ${
-              data.homeroomClass.grade === "TWELFTH"
-                ? "12"
-                : data.homeroomClass.grade === "ELEVENTH"
-                  ? "11"
-                  : "10"
-            }-${
-              data.homeroomClass.major === "SOFTWARE_ENGINEERING"
-                ? "Software Engineering"
-                : "Accounting"
-            } ${
-              data.homeroomClass.classNumber === "none"
-                ? ""
-                : data.homeroomClass.classNumber
-            }`
+            `There is already a homeroom teacher in ${grade}-${major} ${classNumber}`
           );
         }
+
         await tx.homeroomClass.create({
           data: {
             grade: data.homeroomClass.grade,
             major: data.homeroomClass.major,
             classNumber: data.homeroomClass.classNumber,
-
             teacherId: teacher.id,
           },
         });
@@ -98,9 +92,9 @@ export async function POST(req: Request) {
           );
 
           if (!matchingClass) {
-            const grade = gradeLabel(ta.grade);
-            const major = majorLabel(ta.major);
-            const classNumber = classNumberLabel(ta.classNumber);
+            const grade = getGradeNumber(ta.grade);
+            const major = getMajorDisplayName(ta.major);
+            const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
               `Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
@@ -108,22 +102,22 @@ export async function POST(req: Request) {
           }
         }
 
-        // VALIDATION 2: Check if every teaching Classes matches one of the taeching assignments
+        // VALIDATION 2: Check if every teaching class matches one of the teaching assignments
         for (const tc of data.teachingClasses) {
-          const macthingAssignments = data.teachingAssignment.find(
+          const matchingAssignments = data.teachingAssignment.find(
             (ta) =>
               ta.major === tc.major &&
               ta.grade === tc.grade &&
               ta.classNumber === tc.classNumber
           );
 
-          if (!macthingAssignments) {
-            const grade = gradeLabel(tc.grade);
-            const major = majorLabel(tc.major);
-            const classNumber = classNumberLabel(tc.classNumber);
+          if (!matchingAssignments) {
+            const grade = getGradeNumber(tc.grade);
+            const major = getMajorDisplayName(tc.major);
+            const classNumber = formatClassNumber(tc.classNumber);
 
             throw badRequest(
-              `Teaching Classes mismatch! You have an teaching classes for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assigments list. Please add it to Teaching Assignments also.`
+              `Teaching Classes mismatch! You have a teaching class for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assignments list. Please add it to Teaching Assignments also.`
             );
           }
         }
@@ -133,12 +127,57 @@ export async function POST(req: Request) {
           const allowedSubjects = subjectsData[ta.grade].major[ta.major];
 
           if (!allowedSubjects.includes(ta.subjectName)) {
-            const grade = gradeLabel(ta.grade);
-            const major = majorLabel(ta.major);
-            const classNumber = classNumberLabel(ta.classNumber);
+            const grade = getGradeNumber(ta.grade);
+            const major = getMajorDisplayName(ta.major);
+            const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
               `Subject mismatch! The subject "${ta.subjectName}" is not available for ${grade}-${major} ${classNumber}. Please check the curriculum.`
+            );
+          }
+        }
+
+        // VALIDATION 4: Check for duplicate assignments (same subject in same class)
+        const assignmentKeys = new Set<string>();
+        for (const ta of data.teachingAssignment) {
+          const key = `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subjectName}`;
+          if (assignmentKeys.has(key)) {
+            const grade = getGradeNumber(ta.grade);
+            const major = getMajorDisplayName(ta.major);
+            const classNumber = formatClassNumber(ta.classNumber);
+
+            throw badRequest(
+              `Duplicate assignment detected! You cannot teach "${ta.subjectName}" more than once in ${grade}-${major} ${classNumber}.`
+            );
+          }
+          assignmentKeys.add(key);
+        }
+
+        // VALIDATION 5: Check if another teacher already teaches this subject in this class
+        for (const ta of data.teachingAssignment) {
+          const existingAssignment = await tx.teachingAssignment.findFirst({
+            where: {
+              grade: ta.grade,
+              major: ta.major,
+              classNumber: ta.classNumber,
+              subject: {
+                subjectName: ta.subjectName,
+              },
+            },
+            include: {
+              teacher: {
+                select: { name: true },
+              },
+            },
+          });
+
+          if (existingAssignment) {
+            const grade = getGradeNumber(ta.grade);
+            const major = getMajorDisplayName(ta.major);
+            const classNumber = formatClassNumber(ta.classNumber);
+
+            throw badRequest(
+              `Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${ta.subjectName}" in ${grade}-${major} ${classNumber}.`
             );
           }
         }
@@ -188,40 +227,20 @@ export async function POST(req: Request) {
           })
         );
 
-        const teachingAssignments = await Promise.all(
+        await Promise.all(
           data.teachingAssignment.map(async (assignment, i) => {
-            return await tx.teachingAssignment.upsert({
-              where: {
-                teacherId_subjectId_grade_major_classNumber: {
-                  teacherId: teacher.id,
-                  subjectId: subjects[i].id,
-                  grade: assignment.grade,
-                  major: assignment.major,
-                  classNumber: assignment.classNumber as string,
-                },
-              },
-              update: {},
-              create: {
+            return await tx.teachingAssignment.create({
+              data: {
                 teacherId: teacher.id,
                 subjectId: subjects[i].id,
                 grade: assignment.grade,
                 major: assignment.major,
                 classNumber: assignment.classNumber,
+                totalAssignmentsAssigned: 0,
               },
             });
           })
         );
-
-        await tx.teacher.update({
-          where: { id: teacher.id },
-          data: {
-            teachingAssignments: {
-              connect: teachingAssignments.map((assignment) => ({
-                id: assignment.id,
-              })),
-            },
-          },
-        });
       }
     });
 

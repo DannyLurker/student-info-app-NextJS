@@ -127,6 +127,7 @@ export async function GET(req: Request) {
             subject: {
               select: {
                 subjectName: true,
+                id: true,
               },
             },
           },

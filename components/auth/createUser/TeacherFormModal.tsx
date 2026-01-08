@@ -254,7 +254,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
       };
 
       const res = await axios.post(
-        "/api/auth/insert-account/single/teacher-account",
+        "/api/auth/account/single/teacher-account",
         payload
       );
       if (res.status === 201) {

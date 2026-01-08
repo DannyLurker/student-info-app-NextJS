@@ -5,7 +5,11 @@ import hashing from "@/lib/utils/hashing";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";
 import { ClassNumber, GRADES, MAJORS } from "@/lib/constants/class";
-import { classNumberLabel, gradeLabel, majorLabel } from "@/lib/utils/labels";
+import {
+  formatClassNumber,
+  getGradeNumber,
+  getMajorDisplayName,
+} from "@/lib/utils/labels";
 
 interface TeacherRow {
   username: string;
@@ -299,9 +303,9 @@ export async function POST(req: Request) {
               });
 
               if (!matchingClass) {
-                const grade = gradeLabel(ta.grade);
-                const major = majorLabel(ta.major);
-                const classNumber = classNumberLabel(ta.classNumber);
+                const grade = getGradeNumber(ta.grade);
+                const major = getMajorDisplayName(ta.major);
+                const classNumber = formatClassNumber(ta.classNumber);
 
                 throw badRequest(
                   `Row ${rowNumber}: Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
@@ -319,14 +323,59 @@ export async function POST(req: Request) {
               );
 
               if (!macthingAssignments) {
-                const grade = gradeLabel(tc.grade);
-                const major = majorLabel(tc.major);
-                const classNumber = classNumberLabel(tc.classNumber);
+                const grade = getGradeNumber(tc.grade);
+                const major = getMajorDisplayName(tc.major);
+                const classNumber = formatClassNumber(tc.classNumber);
 
                 throw badRequest(
                   `Teaching Classes mismatch! You have an teaching classes for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assigments list. Please add it to Teaching Assignments also.`
                 );
               }
+            }
+          }
+
+          // Check for duplicate assignments (same subject in same class)
+          const assignmentKeys = new Set<string>();
+          for (const ta of parseTeachingAssignments) {
+            const key = `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subject}`;
+            if (assignmentKeys.has(key)) {
+              const grade = getGradeNumber(ta.grade);
+              const major = getMajorDisplayName(ta.major);
+              const classNumber = formatClassNumber(ta.classNumber);
+
+              throw badRequest(
+                `Duplicate assignment detected! You cannot teach "${ta.subject}" more than once in ${grade}-${major} ${classNumber}.`
+              );
+            }
+            assignmentKeys.add(key);
+          }
+
+          // Check if another teacher already teaches this subject in this class
+          for (const ta of parseTeachingAssignments) {
+            const existingAssignment = await tx.teachingAssignment.findFirst({
+              where: {
+                grade: ta.grade,
+                major: ta.major,
+                classNumber: ta.classNumber,
+                subject: {
+                  subjectName: ta.subject,
+                },
+              },
+              include: {
+                teacher: {
+                  select: { name: true },
+                },
+              },
+            });
+
+            if (existingAssignment) {
+              const grade = getGradeNumber(ta.grade);
+              const major = getMajorDisplayName(ta.major);
+              const classNumber = formatClassNumber(ta.classNumber);
+
+              throw badRequest(
+                `Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${ta.subject}" in ${grade}-${major} ${classNumber}.`
+              );
             }
           }
 

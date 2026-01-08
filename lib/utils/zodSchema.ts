@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
@@ -135,12 +135,35 @@ const DescriptionSchema = z.object({
 const markColumn = z.object({
   teacherId: z.string({ message: "Must be filled" }),
   class: ClassInfoSchema,
+  subjectId: z.number({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
   assessmentType: AssessmentType,
   description: DescriptionSchema,
 });
 
 type MarkColumnSchema = z.infer<typeof markColumn>;
+
+const studentAssessments = z.object({
+  assignmentNumber: z.number({ message: "Must be filled" }),
+  score: z.number({ message: "Must be filled" }),
+});
+
+const studentMarkData = z.object({
+  studentId: z.string({ message: "Must be filled" }),
+  subjectName: z.string({ message: "Must be filled" }),
+  studentAssessments: z
+    .array(studentAssessments)
+    .min(1, { message: "At least one student assessment is required." }),
+});
+
+const markRecords = z.object({
+  teacherId: z.string({ message: "Must be filled" }), // for validation
+  students: z
+    .array(studentMarkData)
+    .min(1, { message: "At least one student is required." }),
+});
+
+type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
   zodStudentSignUp,
@@ -151,6 +174,7 @@ export {
   problemPoint,
   bulkAttendance,
   markColumn,
+  markRecords,
   type StudentSignUpInput,
   type TeacherSignUpInput,
   type EmailSchema,
@@ -159,4 +183,5 @@ export {
   type problemPointSchema,
   type BulkAttendanceSchema,
   type MarkColumnSchema,
+  type MarkRecordSchema,
 };

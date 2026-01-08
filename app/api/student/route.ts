@@ -36,7 +36,8 @@ export async function GET(req: Request) {
             select: {
               marks: {
                 select: {
-                  number: true,
+                  assessmentNumber: true,
+                  score: true,
                 },
               },
             },

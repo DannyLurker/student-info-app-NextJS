@@ -120,10 +120,11 @@ model Mark {
     subjectMarkId Int
     subjectMark   SubjectMark @relation(fields: [subjectMarkId], references: [id])
 
-    type          AssessmentType
-    number        Int             @default(0)
-    descriptionId Int
-    description   MarkDescription @relation(fields: [descriptionId], references: [id])
+    type             AssessmentType
+    score            Int?
+    assessmentNumber Int
+    descriptionId    Int
+    description      MarkDescription @relation(fields: [descriptionId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -230,9 +231,10 @@ model TeachingAssignment {
     subject   Subject @relation(fields: [subjectId], references: [id])
     subjectId Int
 
-    grade       Grade
-    major       Major
-    classNumber String @default("none")
+    grade                    Grade
+    major                    Major
+    classNumber              String @default("none")
+    totalAssignmentsAssigned Int    @default(0)
 
     @@unique([teacherId, subjectId, grade, major, classNumber])
     @@index([teacherId])
