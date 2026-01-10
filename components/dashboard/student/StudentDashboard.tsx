@@ -132,15 +132,18 @@ const StudentDashboard = ({ session }: DashboardProps) => {
 
   const fetchStudentSubjectsData = async () => {
     try {
-      const res = await axios.get("/api/student", {
+      const res = await axios.get("/api/student/profile", {
         params: {
           studentId: session.id,
         },
       });
 
+      console.log(res.data);
+
       if (res.status === 200) {
-        setSubjects(res.data.data.subjects);
+        setSubjects(res.data.data.subjects.studentSubjects);
       }
+      console.log(subjects)
     } catch (error) {
       console.error(`Error at fetching student subjects: ${error}`);
       toast.error("something went wrong. Can't retrieve subjects data");
@@ -183,7 +186,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2  gap-4">
         {/* Card 1: Total Subjects */}
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
@@ -197,21 +200,8 @@ const StudentDashboard = ({ session }: DashboardProps) => {
           <div className="text-sm text-gray-500">Total Subjects</div>
         </div>
 
-        {/* Card 2: Total Problem Points */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-          <div className="text-3xl font-bold text-gray-900 mb-1">
-            {totalproblemPoint}
-          </div>
-          <div className="text-sm text-gray-500">Total Problem Points</div>
-        </div>
-
         {/* Card 3: Profile (Spans 2 cols on mobile, 1 on desktop) */}
-        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />

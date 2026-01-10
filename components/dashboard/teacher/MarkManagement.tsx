@@ -341,8 +341,8 @@ const MarkManagement = ({ session }: Props) => {
   const columns =
     students.length > 0 && students[0].subjectMarks.length > 0
       ? students[0].subjectMarks[0].marks.sort(
-          (a, b) => a.assessmentNumber - b.assessmentNumber
-        )
+        (a, b) => a.assessmentNumber - b.assessmentNumber
+      )
       : [];
 
   return (
@@ -617,7 +617,9 @@ const MarkManagement = ({ session }: Props) => {
                   <TableRow key={student.id} className="hover:bg-blue-50/20">
                     <TableCell>{page * 10 + idx + 1}</TableCell>
                     <TableCell className="font-medium">
-                      {student.name}
+                      {student.name.split(" ").length > 0
+                        ? `${student.name.split(" ")[0]} ${student.name.split(" ")[1]?.[0] ?? ""}`
+                        : student.name}
                     </TableCell>
                     {columns.map((col) => {
                       const mark = student.subjectMarks[0]?.marks.find(

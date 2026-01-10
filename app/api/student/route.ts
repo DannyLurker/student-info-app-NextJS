@@ -1,5 +1,5 @@
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
-import { badRequest, forbidden, handleError, notFound } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/prisma/prisma";
 
 export async function GET(req: Request) {
@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     const page = Number(searchParams.get("page")) || 0;
     const takeRecords = 10;
     const subjectName = searchParams.get("subjectName");
+    const studentIdParam = searchParams.get("studentId");
 
     if (!grade || !major || !classNumber) {
       throw badRequest("There are missing parameters");
@@ -19,7 +20,38 @@ export async function GET(req: Request) {
 
     let findStudents;
 
-    if (subjectName) {
+    if (studentIdParam && subjectName) {
+      findStudents = await prisma.student.findUnique({
+        where: {
+          id: studentIdParam,
+        },
+        select: {
+          id: true,
+          name: true,
+          subjectMarks: {
+            where: {
+              subjectName: subjectName,
+            },
+            select: {
+              marks: {
+                select: {
+                  assessmentNumber: true,
+                  score: true,
+                  type: true,
+                  description: {
+                    select: {
+                      detail: true,
+                      dueAt: true,
+                      givenAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    } else if (subjectName) {
       findStudents = await prisma.student.findMany({
         where: {
           grade: grade,
