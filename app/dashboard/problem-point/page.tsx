@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/authNode";
 import { getRoleDashboard, isAllStaffRole } from "@/lib/constants/roles";
 import { redirect } from "next/navigation";
-import ProblemPointForm from "@/components/dashboard/ProblemPointForm";
+import ProblemPointPageClient from "@/components/dashboard/problemPoint/ProblemPointPageClient";
 
 const Page = async () => {
     const session = await auth();
@@ -14,12 +14,7 @@ const Page = async () => {
         return redirect(getRoleDashboard(session.user.role));
     }
 
-    return (
-        <div className="container py-8 max-w-4xl mx-auto">
-            <h1 className="mt-10 text-3xl font-bold mb-8 text-gray-800">Assign Problem Points</h1>
-            <ProblemPointForm session={session} />
-        </div>
-    );
+    return <ProblemPointPageClient session={session} />;
 };
 
 export default Page;

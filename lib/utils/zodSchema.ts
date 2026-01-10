@@ -124,6 +124,19 @@ const problemPoint = z.object({
 
 type problemPointSchema = z.infer<typeof problemPoint>;
 
+const updateProblemPoint = z.object({
+  problemPointId: z.number(),
+  teacherId: z.string({ message: "Must be filled" }),
+  problemPointCategory: ProblemPointCategoryEnum,
+  point: z
+    .number({ message: "Must be filled" })
+    .min(5, { message: "The minimum is 5" }),
+  description: z.string().max(300),
+  date: z.string(),
+});
+
+type upadateProblemPointSchema = z.infer<typeof problemPoint>;
+
 // SCORING SYSTEM (TEACHER)
 
 const DescriptionSchema = z.object({
@@ -173,6 +186,7 @@ export {
   bulkAttendance,
   markColumn,
   markRecords,
+  updateProblemPoint,
   type StudentSignUpInput,
   type TeacherSignUpInput,
   type EmailSchema,
@@ -182,4 +196,5 @@ export {
   type BulkAttendanceSchema,
   type MarkColumnSchema,
   type MarkRecordSchema,
+  type upadateProblemPointSchema,
 };

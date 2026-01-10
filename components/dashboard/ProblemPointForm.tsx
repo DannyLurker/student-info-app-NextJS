@@ -44,8 +44,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default function ProblemPointForm({ session }: { session: any }) {
+interface ProblemPointFormProps {
+  session: any;
+  mode?: "create" | "edit";
+  initialData?: any;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export default function ProblemPointForm({
+  session,
+  mode = "create",
+  initialData,
+  onSuccess,
+  onCancel,
+}: ProblemPointFormProps) {
   const [loading, setLoading] = useState(false);
+  // ... other states
+
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
@@ -132,10 +148,22 @@ export default function ProblemPointForm({ session }: { session: any }) {
     }
   };
 
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      setFormData({
+        category: initialData.problemPointCategory || initialData.category || "",
+        point: String(initialData.point || ""),
+        description: initialData.description || "",
+        date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      });
+    }
+  }, [mode, initialData]);
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedStudentIds.length === 0) {
+    if (mode === "create" && selectedStudentIds.length === 0) {
       toast.error("Please select at least one student");
       return;
     }
@@ -148,7 +176,7 @@ export default function ProblemPointForm({ session }: { session: any }) {
     setLoading(true);
 
     try {
-      const payload = {
+      const postPayload = {
         teacherId: session.user.id,
         studentsId: selectedStudentIds,
         problemPointCategory: formData.category,
@@ -157,20 +185,35 @@ export default function ProblemPointForm({ session }: { session: any }) {
         date: formData.date,
       };
 
-      const res = await axios.post("/api/problem-point", payload);
+      const updatePayload = {
+        problemPointId: initialData?.id,
+        problemPointCategory: formData.category,
+        point: Number(formData.point),
+        description: formData.description,
+        date: formData.date,
+        teacherId: session.user.id,
+      }
 
-      if (res.status === 201) {
-        toast.success("Problem points recorded successfully");
-        // Reset form but keep class selection? Or reset all?
-        // Usually better to keep class selection for rapid entry.
-        // But let's clear details.
-        setFormData({
-          category: "",
-          point: "",
-          description: "",
-          date: new Date().toISOString().split("T")[0],
-        });
-        setSelectedStudentIds([]);
+      let res;
+      if (mode === "create") {
+        res = await axios.post("/api/problem-point", postPayload);
+      } else {
+        res = await axios.patch("/api/problem-point", updatePayload);
+      }
+
+      if (res.status === 201 || res.status === 200) {
+        toast.success(mode === "create" ? "Problem points recorded successfully" : "Problem point updated successfully");
+        if (onSuccess) onSuccess();
+
+        if (mode === "create") {
+          setFormData({
+            category: "",
+            point: "",
+            description: "",
+            date: new Date().toISOString().split("T")[0],
+          });
+          setSelectedStudentIds([]);
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -183,166 +226,170 @@ export default function ProblemPointForm({ session }: { session: any }) {
 
   return (
     <div className="space-y-8">
-      {/* Class Selection Section */}
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">
-          1. Select Class
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Select
-            value={selectedClass.grade}
-            onValueChange={(val) =>
-              setSelectedClass({ ...selectedClass, grade: val })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Grade" />
-            </SelectTrigger>
-            <SelectContent>
-              {GRADES.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {GRADE_DISPLAY_MAP[g]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Class Selection Section - Hide in Edit Mode if not needed */}
+      {mode === "create" && (
+        <div className="bg-white p-6 rounded-xl border shadow-sm">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            1. Select Class
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select
+              value={selectedClass.grade}
+              onValueChange={(val) =>
+                setSelectedClass({ ...selectedClass, grade: val })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Grade" />
+              </SelectTrigger>
+              <SelectContent>
+                {GRADES.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {GRADE_DISPLAY_MAP[g]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={selectedClass.major}
-            onValueChange={(val) =>
-              setSelectedClass({ ...selectedClass, major: val })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Major" />
-            </SelectTrigger>
-            <SelectContent>
-              {MAJORS.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {MAJOR_DISPLAY_MAP[m]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={selectedClass.major}
+              onValueChange={(val) =>
+                setSelectedClass({ ...selectedClass, major: val })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Major" />
+              </SelectTrigger>
+              <SelectContent>
+                {MAJORS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {MAJOR_DISPLAY_MAP[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={selectedClass.classNumber}
-            onValueChange={(val) =>
-              setSelectedClass({ ...selectedClass, classNumber: val })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Class Number" />
-            </SelectTrigger>
-            <SelectContent>
-              {CLASSNUMBERS.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c === "none" ? "None" : c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={selectedClass.classNumber}
+              onValueChange={(val) =>
+                setSelectedClass({ ...selectedClass, classNumber: val })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Class Number" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSNUMBERS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c === "none" ? "None" : c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Form Section - Locked until class selected */}
+      {/* Form Section - Locked until class selected (only in create mode) */}
       <div
-        className={`transition-opacity duration-300 ${!isClassSelected ? "opacity-50 pointer-events-none" : "opacity-100"}`}
+        className={`transition-opacity duration-300 ${mode === "create" && !isClassSelected ? "opacity-50 pointer-events-none" : "opacity-100"}`}
       >
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Student Selection */}
-          <div className="bg-white p-6 rounded-xl border shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              2. Select Students
-            </h2>
-            {fetchingStudents ? (
-              <div className="flex justify-center p-8">
-                <Spinner />
-              </div>
-            ) : students.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                  >
-                    {selectedStudentIds.length === students.length
-                      ? "Deselect All"
-                      : "Select All"}
-                  </Button>
+          {/* Student Selection (Only in Create Mode) */}
+          {mode === "create" && (
+            <div className="bg-white p-6 rounded-xl border shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                2. Select Students
+              </h2>
+              {fetchingStudents ? (
+                <div className="flex justify-center p-8">
+                  <Spinner />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-2 border rounded-md">
-                  {students.map((student) => {
-                    const isSelected = selectedStudentIds.includes(student.id);
-                    return (
-                      <div
-                        key={student.id}
-                        onClick={() => handleToggleStudent(student.id)}
-                        className={`cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-colors ${isSelected
-                          ? "bg-blue-50 border-blue-500 text-blue-700"
-                          : "hover:bg-gray-50 border-gray-200"
-                          }`}
-                      >
-                        <span className="font-medium truncate mr-2">
-                          {student.name}
+              ) : students.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAll}
+                    >
+                      {selectedStudentIds.length === students.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-2 border rounded-md">
+                    {students.map((student) => {
+                      const isSelected = selectedStudentIds.includes(student.id);
+                      return (
+                        <div
+                          key={student.id}
+                          onClick={() => handleToggleStudent(student.id)}
+                          className={`cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-colors ${isSelected
+                            ? "bg-blue-50 border-blue-500 text-blue-700"
+                            : "hover:bg-gray-50 border-gray-200"
+                            }`}
+                        >
+                          <span className="font-medium truncate mr-2">
+                            {student.name}
+                          </span>
+                          {isSelected && (
+                            <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+                    <p className="text-sm text-gray-500">
+                      {selectedStudentIds.length} students selected (showing {students.length} of {totalStudents})
+                    </p>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                          disabled={currentPage === 0 || fetchingStudents}
+                          className="flex items-center gap-1"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Previous
+                        </Button>
+                        <span className="text-sm font-medium text-gray-700 px-2">
+                          Page {currentPage + 1} of {totalPages}
                         </span>
-                        {isSelected && (
-                          <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                          disabled={currentPage >= totalPages - 1 || fetchingStudents}
+                          className="flex items-center gap-1"
+                        >
+                          Next
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-                  <p className="text-sm text-gray-500">
-                    {selectedStudentIds.length} students selected (showing {students.length} of {totalStudents})
-                  </p>
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
-                        disabled={currentPage === 0 || fetchingStudents}
-                        className="flex items-center gap-1"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        Previous
-                      </Button>
-                      <span className="text-sm font-medium text-gray-700 px-2">
-                        Page {currentPage + 1} of {totalPages}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
-                        disabled={currentPage >= totalPages - 1 || fetchingStudents}
-                        className="flex items-center gap-1"
-                      >
-                        Next
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+              ) : (
+                <div className="text-center p-8 text-gray-500">
+                  {isClassSelected
+                    ? "No students found in this class."
+                    : "Select a class to see students."}
                 </div>
-              </div>
-            ) : (
-              <div className="text-center p-8 text-gray-500">
-                {isClassSelected
-                  ? "No students found in this class."
-                  : "Select a class to see students."}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Details Section */}
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              3. Problem Details
+              {mode === "create" ? "3. Problem Details" : "Edit Problem Details"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -409,14 +456,18 @@ export default function ProblemPointForm({ session }: { session: any }) {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
             <Button
               type="submit"
-              disabled={loading || selectedStudentIds.length === 0}
-              className="w-full md:w-auto min-w-[200px] h-11 text-lg"
+              disabled={loading || (mode === "create" && selectedStudentIds.length === 0)}
             >
               {loading ? <Spinner className="mr-2" /> : null}
-              Submit Problem Points
+              {mode === "create" ? "Submit Problem Points" : "Update Problem Point"}
             </Button>
           </div>
         </form>
