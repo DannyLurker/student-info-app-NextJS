@@ -24,9 +24,6 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { GRADES, CLASSNUMBERS, MAJORS } from "@/lib/constants/class";
 import {
-  formatClassNumber,
-  getGradeNumber,
-  getMajorDisplayName,
   MAJOR_DISPLAY_MAP,
   GRADE_DISPLAY_MAP,
   STUDENT_ROLES_MAP,
@@ -103,7 +100,20 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
       );
 
       if (res.status === 200) {
-        toast.success(res.data.message);
+        // Create a download link and trigger it
+        const blob = new Blob([res.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "parent-accounts.xlsx";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast.success("Successfully imported students data");
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || "Failed to upload file";

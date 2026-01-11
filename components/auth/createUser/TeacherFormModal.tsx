@@ -295,7 +295,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
       formData.append("file", file);
 
       const res = await axios.post(
-        "/api/auth/insert-account/bulk/teacher-accounts",
+        "/api/auth/account/bulk/teacher-accounts",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

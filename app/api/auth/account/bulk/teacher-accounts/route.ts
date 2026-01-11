@@ -9,6 +9,7 @@ import {
   formatClassNumber,
   getGradeNumber,
   getMajorDisplayName,
+  SUBJECT_DISPLAY_MAP,
 } from "@/lib/utils/labels";
 
 interface TeacherRow {
@@ -220,6 +221,13 @@ export async function POST(req: Request) {
               const [subjectName, grade, major, classNumber] =
                 subjectStr.split(":");
 
+              const gradeNumber = getGradeNumber(grade as Grade);
+              const majorName = getMajorDisplayName(major as Major);
+              const classNumberFormatted = formatClassNumber(
+                classNumber as ClassNumber
+              );
+              const subjectNameDisplay = SUBJECT_DISPLAY_MAP[subjectName];
+
               if (grade) {
                 if (!GRADES.includes(grade as Grade)) {
                   throw badRequest(
@@ -243,7 +251,7 @@ export async function POST(req: Request) {
                 !(major in subjectsData[grade as Grade].major)
               ) {
                 throw badRequest(
-                  `Row ${rowNumber}: Invalid grade or major: ${grade}-${major}`
+                  `Row ${rowNumber}: Invalid grade or major: ${gradeNumber}-${majorName}`
                 );
               }
 
@@ -252,7 +260,29 @@ export async function POST(req: Request) {
 
               if (!allowedSubjects.includes(subjectName)) {
                 throw badRequest(
-                  `Row ${rowNumber}: ${subjectName} not allowed for ${grade}-${major}`
+                  `Row ${rowNumber}: ${subjectName} not allowed for ${`Row ${rowNumber}: Invalid grade or major: ${gradeNumber}-${majorName}`}-${majorName}`
+                );
+              }
+
+              const existingAssignment = await tx.teachingAssignment.findFirst({
+                where: {
+                  grade: grade as Grade,
+                  major: major as Major,
+                  classNumber: classNumber as ClassNumber,
+                  subject: {
+                    subjectName: subjectName,
+                  },
+                },
+                include: {
+                  teacher: {
+                    select: { name: true },
+                  },
+                },
+              });
+
+              if (existingAssignment) {
+                throw badRequest(
+                  `Row ${rowNumber}: Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${subjectNameDisplay}" in ${gradeNumber}-${majorName} ${classNumberFormatted}.`
                 );
               }
 
@@ -303,12 +333,14 @@ export async function POST(req: Request) {
               });
 
               if (!matchingClass) {
-                const grade = getGradeNumber(ta.grade);
-                const major = getMajorDisplayName(ta.major);
-                const classNumber = formatClassNumber(ta.classNumber);
+                const gradeNumber = getGradeNumber(ta.grade as Grade);
+                const majorName = getMajorDisplayName(ta.major as Major);
+                const classNumberFormatted = formatClassNumber(
+                  ta.classNumber as ClassNumber
+                );
 
                 throw badRequest(
-                  `Row ${rowNumber}: Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
+                  `Row ${rowNumber}: Teaching Assignment mismatch! You have an assignment for ${gradeNumber}-${majorName} ${classNumberFormatted}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
                 );
               }
             }
@@ -323,12 +355,14 @@ export async function POST(req: Request) {
               );
 
               if (!macthingAssignments) {
-                const grade = getGradeNumber(tc.grade);
-                const major = getMajorDisplayName(tc.major);
-                const classNumber = formatClassNumber(tc.classNumber);
+                const gradeNumber = getGradeNumber(tc.grade as Grade);
+                const majorName = getMajorDisplayName(tc.major as Major);
+                const classNumberFormatted = formatClassNumber(
+                  tc.classNumber as ClassNumber
+                );
 
                 throw badRequest(
-                  `Teaching Classes mismatch! You have an teaching classes for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assigments list. Please add it to Teaching Assignments also.`
+                  `Row ${rowNumber}: Teaching Classes mismatch! You have an teaching classes for ${gradeNumber}-${majorName} ${classNumberFormatted}, but this class is not in your Teaching Assigments list. Please add it to Teaching Assignments also.`
                 );
               }
             }
@@ -339,44 +373,18 @@ export async function POST(req: Request) {
           for (const ta of parseTeachingAssignments) {
             const key = `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subject}`;
             if (assignmentKeys.has(key)) {
-              const grade = getGradeNumber(ta.grade);
-              const major = getMajorDisplayName(ta.major);
-              const classNumber = formatClassNumber(ta.classNumber);
+              const gradeNumber = getGradeNumber(ta.grade as Grade);
+              const majorName = getMajorDisplayName(ta.major as Major);
+              const classNumberFormatted = formatClassNumber(
+                ta.classNumber as ClassNumber
+              );
+              const subjectNameDisplay = SUBJECT_DISPLAY_MAP[ta.subject];
 
               throw badRequest(
-                `Duplicate assignment detected! You cannot teach "${ta.subject}" more than once in ${grade}-${major} ${classNumber}.`
+                `Duplicate assignment detected! You cannot teach "${subjectNameDisplay}" more than once in ${gradeNumber}-${majorName} ${classNumberFormatted}.`
               );
             }
             assignmentKeys.add(key);
-          }
-
-          // Check if another teacher already teaches this subject in this class
-          for (const ta of parseTeachingAssignments) {
-            const existingAssignment = await tx.teachingAssignment.findFirst({
-              where: {
-                grade: ta.grade,
-                major: ta.major,
-                classNumber: ta.classNumber,
-                subject: {
-                  subjectName: ta.subject,
-                },
-              },
-              include: {
-                teacher: {
-                  select: { name: true },
-                },
-              },
-            });
-
-            if (existingAssignment) {
-              const grade = getGradeNumber(ta.grade);
-              const major = getMajorDisplayName(ta.major);
-              const classNumber = formatClassNumber(ta.classNumber);
-
-              throw badRequest(
-                `Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${ta.subject}" in ${grade}-${major} ${classNumber}.`
-              );
-            }
           }
 
           await tx.teacher.update({

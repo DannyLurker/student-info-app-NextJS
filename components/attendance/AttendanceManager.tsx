@@ -14,7 +14,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Save, Lock, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Save,
+  Lock,
+  Search,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { ROLES, getRoleDashboard } from "@/lib/constants/roles";
 import { Session } from "@/lib/types/session";
 
@@ -137,13 +146,19 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
         },
       });
 
-      const { studentAttendanceRecords, totalStudents: total, stats: apiStats } = attendanceRes.data.data;
+      const {
+        studentAttendanceRecords,
+        totalStudents: total,
+        stats: apiStats,
+      } = attendanceRes.data.data;
 
       // Transform students with their attendance
-      const studentList: Student[] = studentAttendanceRecords.map((record: any) => ({
-        id: record.id,
-        name: record.name,
-      }));
+      const studentList: Student[] = studentAttendanceRecords.map(
+        (record: any) => ({
+          id: record.id,
+          name: record.name,
+        })
+      );
       setStudents(studentList);
       setTotalStudents(total);
 
@@ -221,7 +236,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       }));
 
       // Single atomic bulk request
-      const response = await axios.post("/api/attendance", {
+      const response = await axios.post("/api/student/attendance", {
         secretaryId: session?.id,
         date: selectedDate,
         records,
@@ -450,8 +465,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       </td>
                       <td className="px-6 lg:px-8 py-5">
                         {isValidDate &&
-                          record.type !== "ALPHA" &&
-                          record.type !== "PRESENT" ? (
+                        record.type !== "ALPHA" &&
+                        record.type !== "PRESENT" ? (
                           <Input
                             placeholder="Add optional description..."
                             value={record.description || ""}
@@ -555,8 +570,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
                     <div className="col-span-2 pt-2">
                       {isValidDate &&
-                        record.type !== "ALPHA" &&
-                        record.type !== "PRESENT" ? (
+                      record.type !== "ALPHA" &&
+                      record.type !== "PRESENT" ? (
                         <Input
                           placeholder="Add note..."
                           value={record.description || ""}
@@ -605,7 +620,9 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(0, prev - 1))
+                  }
                   disabled={currentPage === 0 || loading}
                   className="flex items-center gap-1"
                 >
@@ -618,7 +635,9 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
+                  }
                   disabled={currentPage >= totalPages - 1 || loading}
                   className="flex items-center gap-1"
                 >
