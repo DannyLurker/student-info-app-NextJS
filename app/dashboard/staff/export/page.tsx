@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, isAllStaffRole } from "@/lib/constants/roles";
+import { getRoleDashboard, isStaffRole } from "@/lib/constants/roles";
 import { redirect } from "next/navigation";
-import ProblemPointPageClient from "@/components/dashboard/problemPoint/ProblemPointPageClient";
+import ExportStudentExcel from "@/components/dashboard/staff/ExportStudentExcel";
 
 const Page = async () => {
     const session = await auth();
@@ -10,11 +10,11 @@ const Page = async () => {
         return redirect("/sign-in");
     }
 
-    if (!isAllStaffRole(session.user.role)) {
+    if (!isStaffRole(session.user.role)) {
         return redirect(getRoleDashboard(session.user.role));
     }
 
-    return <ProblemPointPageClient session={session.user} />;
+    return <ExportStudentExcel session={session.user} />;
 };
 
 export default Page;

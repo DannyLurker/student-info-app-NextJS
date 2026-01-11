@@ -8,14 +8,10 @@ import axios from "axios";
 import { toast } from "sonner";
 import { ValidProblemPointType } from "@/lib/constants/problemPoint";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Session } from "@/lib/types/session";
 
 interface DashboardProps {
-    session: {
-        id: string;
-        name: string;
-        email: string;
-        role: string;
-    };
+    session: Session;
 }
 
 type AttendanceStats = {

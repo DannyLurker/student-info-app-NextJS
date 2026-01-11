@@ -9,13 +9,7 @@ import { toast } from "sonner";
 import { getRoleDisplayName, Role } from "@/lib/constants/roles";
 import { ValidProblemPointType } from "@/lib/constants/problemPoint";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Session = {
-  name: string;
-  id: string;
-  homeroomTeacherId: string | null;
-  role: Role;
-};
+import { Session } from "@/lib/types/session";
 
 interface DashboardProps {
   session: Session;
@@ -143,7 +137,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
       if (res.status === 200) {
         setSubjects(res.data.data.subjects.studentSubjects);
       }
-      console.log(subjects)
+      console.log(subjects);
     } catch (error) {
       console.error(`Error at fetching student subjects: ${error}`);
       toast.error("something went wrong. Can't retrieve subjects data");

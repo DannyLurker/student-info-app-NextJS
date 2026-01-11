@@ -16,8 +16,8 @@ const page = async () => {
 
   return (
     <div className="p-8 space-y-8">
-      <TeacherSummary session={session} />
-      <TeachingClassesAndTeachingAssignments session={session} />
+      <TeacherSummary session={session.user} />
+      <TeachingClassesAndTeachingAssignments session={session.user} />
     </div>
   );
 };

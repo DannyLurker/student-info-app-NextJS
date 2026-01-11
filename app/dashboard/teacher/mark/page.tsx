@@ -7,8 +7,10 @@ import MarkManagement from '@/components/dashboard/teacher/MarkManagement';
 const page = async () => {
     const session = await auth();
 
+    if (!session) return null;
+
     return (
-        <MarkManagement session={session} />
+        <MarkManagement session={session.user} />
     );
 }
 

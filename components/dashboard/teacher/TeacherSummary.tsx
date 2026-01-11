@@ -5,17 +5,7 @@ import { Users, GraduationCap, BookOpen } from "lucide-react";
 import axios from "axios";
 import { Role } from "@/lib/constants/roles";
 import TeacherSummarySkeleton from "./TeacherSummarySkeleton";
-
-interface Session {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: Role;
-    homeroomTeacherId: string | null;
-    isHomeroomClassTeacher: boolean;
-  };
-}
+import { Session } from "@/lib/types/session";
 
 interface TeacherSummaryProps {
   session: Session;
@@ -32,13 +22,13 @@ const TeacherSummary = ({ session }: TeacherSummaryProps) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (session?.user?.id) {
+      if (session?.id) {
         try {
           const response = await axios.get(
             `/api/teacher`,
             {
               params: {
-                teacherId: session.user.id,
+                teacherId: session.id,
               },
             }
           );
@@ -59,7 +49,7 @@ const TeacherSummary = ({ session }: TeacherSummaryProps) => {
     };
 
     fetchData();
-  }, [session?.user?.id]);
+  }, [session?.id]);
 
   if (loading) {
     return <TeacherSummarySkeleton />;
@@ -99,16 +89,16 @@ const TeacherSummary = ({ session }: TeacherSummaryProps) => {
           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
-          {session.user.isHomeroomClassTeacher && (
+          {session.isHomeroomClassTeacher && (
             <span className="bg-emerald-500/20 px-2 py-1 rounded text-xs font-medium border border-emerald-400/30 text-emerald-100">
               Homeroom Teacher
             </span>
           )}
         </div>
         <div className="truncate text-xl font-bold mb-1">
-          {session.user.name}
+          {session.name}
         </div>
-        <div className="text-sm text-blue-100">{session.user.role}</div>
+        <div className="text-sm text-blue-100">{session.role}</div>
       </div>
     </div>
   );

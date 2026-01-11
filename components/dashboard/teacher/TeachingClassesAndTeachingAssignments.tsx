@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
-import { Role } from "@/lib/constants/roles";
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users, Calendar, GraduationCap, BookOpen } from "lucide-react";
@@ -13,6 +12,7 @@ import {
   getMajorDisplayName,
   SUBJECT_DISPLAY_MAP,
 } from "@/lib/utils/labels";
+import { Session } from "@/lib/types/session";
 
 interface TeachingAssignment {
   grade: string;
@@ -33,16 +33,7 @@ interface DashboardData {
   teachingClasses: TeachingClass[];
   teachingAssignments: TeachingAssignment[];
 }
-interface Session {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: Role;
-    homeroomTeacherId: string | null;
-    isHomeroomClassTeacher: boolean;
-  };
-}
+
 
 interface TeachingClassesAndTeachingAssignmentsProps {
   session: Session;
@@ -56,11 +47,11 @@ const TeachingClassesAndTeachingAssignments = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      if (session?.user?.id) {
+      if (session?.id) {
         try {
           const response = await axios.get(`/api/teacher`, {
             params: {
-              teacherId: session.user.id,
+              teacherId: session.id,
             },
           });
 
@@ -76,7 +67,7 @@ const TeachingClassesAndTeachingAssignments = ({
     };
 
     fetchData();
-  }, [session?.user?.id]);
+  }, [session?.id]);
 
   if (loading) {
     return (

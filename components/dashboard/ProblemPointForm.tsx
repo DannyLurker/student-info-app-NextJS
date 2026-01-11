@@ -18,6 +18,7 @@ import { GRADES, MAJORS, CLASSNUMBERS } from "@/lib/constants/class";
 import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
 
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Session } from "@/lib/types/session";
 
 interface Student {
   id: string;
@@ -45,7 +46,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 interface ProblemPointFormProps {
-  session: any;
+  session: Session;
   mode?: "create" | "edit";
   initialData?: any;
   onSuccess?: () => void;
@@ -151,14 +152,16 @@ export default function ProblemPointForm({
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
-        category: initialData.problemPointCategory || initialData.category || "",
+        category:
+          initialData.problemPointCategory || initialData.category || "",
         point: String(initialData.point || ""),
         description: initialData.description || "",
-        date: initialData.date ? new Date(initialData.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+        date: initialData.date
+          ? new Date(initialData.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
       });
     }
   }, [mode, initialData]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +180,7 @@ export default function ProblemPointForm({
 
     try {
       const postPayload = {
-        teacherId: session.user.id,
+        teacherId: session.id,
         studentsId: selectedStudentIds,
         problemPointCategory: formData.category,
         point: Number(formData.point),
@@ -191,8 +194,8 @@ export default function ProblemPointForm({
         point: Number(formData.point),
         description: formData.description,
         date: formData.date,
-        teacherId: session.user.id,
-      }
+        teacherId: session.id,
+      };
 
       let res;
       if (mode === "create") {
@@ -202,7 +205,11 @@ export default function ProblemPointForm({
       }
 
       if (res.status === 201 || res.status === 200) {
-        toast.success(mode === "create" ? "Problem points recorded successfully" : "Problem point updated successfully");
+        toast.success(
+          mode === "create"
+            ? "Problem points recorded successfully"
+            : "Problem point updated successfully"
+        );
         if (onSuccess) onSuccess();
 
         if (mode === "create") {
@@ -321,15 +328,18 @@ export default function ProblemPointForm({
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-2 border rounded-md">
                     {students.map((student) => {
-                      const isSelected = selectedStudentIds.includes(student.id);
+                      const isSelected = selectedStudentIds.includes(
+                        student.id
+                      );
                       return (
                         <div
                           key={student.id}
                           onClick={() => handleToggleStudent(student.id)}
-                          className={`cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-colors ${isSelected
-                            ? "bg-blue-50 border-blue-500 text-blue-700"
-                            : "hover:bg-gray-50 border-gray-200"
-                            }`}
+                          className={`cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-colors ${
+                            isSelected
+                              ? "bg-blue-50 border-blue-500 text-blue-700"
+                              : "hover:bg-gray-50 border-gray-200"
+                          }`}
                         >
                           <span className="font-medium truncate mr-2">
                             {student.name}
@@ -343,7 +353,8 @@ export default function ProblemPointForm({
                   </div>
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
                     <p className="text-sm text-gray-500">
-                      {selectedStudentIds.length} students selected (showing {students.length} of {totalStudents})
+                      {selectedStudentIds.length} students selected (showing{" "}
+                      {students.length} of {totalStudents})
                     </p>
                     {totalPages > 1 && (
                       <div className="flex items-center gap-2">
@@ -351,7 +362,9 @@ export default function ProblemPointForm({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(0, prev - 1))
+                          }
                           disabled={currentPage === 0 || fetchingStudents}
                           className="flex items-center gap-1"
                         >
@@ -365,8 +378,14 @@ export default function ProblemPointForm({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
-                          disabled={currentPage >= totalPages - 1 || fetchingStudents}
+                          onClick={() =>
+                            setCurrentPage((prev) =>
+                              Math.min(totalPages - 1, prev + 1)
+                            )
+                          }
+                          disabled={
+                            currentPage >= totalPages - 1 || fetchingStudents
+                          }
                           className="flex items-center gap-1"
                         >
                           Next
@@ -389,7 +408,9 @@ export default function ProblemPointForm({
           {/* Details Section */}
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              {mode === "create" ? "3. Problem Details" : "Edit Problem Details"}
+              {mode === "create"
+                ? "3. Problem Details"
+                : "Edit Problem Details"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -464,10 +485,15 @@ export default function ProblemPointForm({
             )}
             <Button
               type="submit"
-              disabled={loading || (mode === "create" && selectedStudentIds.length === 0)}
+              disabled={
+                loading ||
+                (mode === "create" && selectedStudentIds.length === 0)
+              }
             >
               {loading ? <Spinner className="mr-2" /> : null}
-              {mode === "create" ? "Submit Problem Points" : "Update Problem Point"}
+              {mode === "create"
+                ? "Submit Problem Points"
+                : "Update Problem Point"}
             </Button>
           </div>
         </form>

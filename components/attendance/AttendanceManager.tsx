@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, Save, Lock, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ROLES, getRoleDashboard } from "@/lib/constants/roles";
+import { Session } from "@/lib/types/session";
 
 interface Student {
   id: string;
@@ -38,13 +39,6 @@ interface AttendanceStats {
 }
 
 const ITEMS_PER_PAGE = 10;
-
-type Session = {
-  id: string;
-  name: string;
-  role: string;
-  homeroomTeacherId: string | null;
-};
 
 interface AttendanceManagerProps {
   session: Session;

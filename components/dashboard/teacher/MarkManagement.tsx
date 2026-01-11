@@ -55,6 +55,7 @@ import {
   SUBJECT_DISPLAY_MAP,
   GRADE_DISPLAY_MAP,
 } from "@/lib/utils/labels";
+import { Session } from "@/lib/types/session";
 
 interface Mark {
   assessmentNumber: number;
@@ -76,7 +77,7 @@ interface Student {
 }
 
 interface Props {
-  session: any;
+  session: Session;
 }
 
 const MarkManagement = ({ session }: Props) => {
@@ -121,10 +122,10 @@ const MarkManagement = ({ session }: Props) => {
   // Fetch Teacher Assignments
   useEffect(() => {
     const fetchTeacherData = async () => {
-      if (!session?.user?.id) return;
+      if (!session?.id) return;
       try {
         const res = await axios.get(
-          `/api/teacher?teacherId=${session.user.id}`
+          `/api/teacher?teacherId=${session.id}`
         );
         if (res.data?.data?.teachingAssignments) {
           setAvailableClasses(res.data.data.teachingAssignments);
@@ -191,7 +192,7 @@ const MarkManagement = ({ session }: Props) => {
             classNumber: selectedClassNumber,
             subjectName: selectedSubject,
             page: page,
-            role: session.user.role,
+            role: session.role,
           },
         });
         const studentData = res.data.students || [];
@@ -332,7 +333,7 @@ const MarkManagement = ({ session }: Props) => {
     }
 
     const payload = {
-      teacherId: session?.user?.id,
+      teacherId: session?.id,
       students: changedStudents,
     };
 
@@ -363,7 +364,7 @@ const MarkManagement = ({ session }: Props) => {
           major: selectedMajor,
           classNumber: selectedClassNumber,
         },
-        teacherId: session?.user?.id,
+        teacherId: session?.id,
         subjectId: Number(selectedSubjectId),
         subjectName: selectedSubject,
         description: {
@@ -381,7 +382,7 @@ const MarkManagement = ({ session }: Props) => {
           classNumber: selectedClassNumber,
           subjectName: selectedSubject,
           page: page,
-          role: session.user.role,
+          role: session.role,
         },
       });
 

@@ -8,11 +8,12 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import ProblemPointManagement from "./ProblemPointManagement";
+import { Session } from "@/lib/types/session";
 
 interface ManageProblemPointModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    session: any;
+    session: Session;
 }
 
 export default function ManageProblemPointModal({

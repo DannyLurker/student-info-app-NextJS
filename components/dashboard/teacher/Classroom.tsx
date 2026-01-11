@@ -14,8 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Role } from "@/lib/constants/roles";
 import axios from "axios";
+import { Session } from "@/lib/types/session";
 import {
   Select,
   SelectContent,
@@ -47,17 +47,6 @@ interface ClassroomData {
     sick: number;
     permission: number;
     alpha: number;
-  };
-}
-
-interface Session {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: Role;
-    homeroomTeacherId: string | null;
-    isHomeroomClassTeacher: boolean;
   };
 }
 
@@ -96,12 +85,12 @@ const Classroom = ({ session }: ClassroomProps) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (session?.user?.id && date) {
+      if (session?.id && date) {
         setLoading(true);
         try {
           const response = await axios.get(`/api/teacher`, {
             params: {
-              teacherId: session.user.id,
+              teacherId: session.id,
               date: date,
               page: currentPage,
             },
@@ -121,7 +110,7 @@ const Classroom = ({ session }: ClassroomProps) => {
     };
 
     fetchData();
-  }, [session?.user?.id, date, currentPage]);
+  }, [session?.id, date, currentPage]);
 
   // Each student only has one attendance per day
   const getAttendanceStatus = (attendances: Attendance[]) => {

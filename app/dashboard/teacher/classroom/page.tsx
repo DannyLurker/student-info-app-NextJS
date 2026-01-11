@@ -8,7 +8,7 @@ const page = async () => {
 
   if (!session) redirect("/sign-in");
 
-  return <Classroom session={session}></Classroom>;
+  return <Classroom session={session.user}></Classroom>;
 };
 
 export default page;
