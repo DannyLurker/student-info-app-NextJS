@@ -22,6 +22,14 @@ const AssessmentType = z.enum([
   "GROUP",
 ]);
 
+const classParams = z.object({
+  grade: GradeEnum,
+  major: MajorEnum,
+  classNumber: ClassNumberEnum,
+});
+
+type classParamsSchema = z.infer<typeof classParams>;
+
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const TeachingAssignmentInput = z.object({
   subjectName: z.string({ message: "Must be filled" }),
@@ -158,7 +166,7 @@ type MarkColumnSchema = z.infer<typeof markColumn>;
 
 const studentAssessments = z.object({
   assessmentNumber: z.number({ message: "Must be number and filled" }),
-  score: z.number({ message: "Must be number and filled" }),
+  score: z.number({ message: "Must be number and filled" }).nullable(),
 });
 
 const studentMarkData = z.object({
@@ -177,6 +185,7 @@ const markRecords = z.object({
 type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
+  classParams,
   zodStudentSignUp,
   zodTeacherSignUp,
   zodForgotPassword,
@@ -187,6 +196,7 @@ export {
   markColumn,
   markRecords,
   updateProblemPoint,
+  type classParamsSchema,
   type StudentSignUpInput,
   type TeacherSignUpInput,
   type EmailSchema,

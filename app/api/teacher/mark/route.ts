@@ -1,9 +1,4 @@
-import {
-  badRequest,
-  handleError,
-  interalServerError,
-  notFound,
-} from "@/lib/errors";
+import { handleError, notFound } from "@/lib/errors";
 import { getSemester } from "@/lib/utils/date";
 import { markRecords } from "@/lib/utils/zodSchema";
 import { prisma } from "@/prisma/prisma";
@@ -30,10 +25,13 @@ export async function PATCH(req: Request) {
         });
 
         if (!subjectMark) {
-          throw interalServerError();
+          throw notFound("Subject not found");
         }
 
         for (const assessment of student.studentAssessments) {
+          // Skip if score is null
+          if (assessment.score === null) continue;
+
           await tx.mark.update({
             where: {
               subjectMarkId_assessmentNumber: {

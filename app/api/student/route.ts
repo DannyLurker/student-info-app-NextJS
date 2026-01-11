@@ -1,5 +1,10 @@
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
-import { badRequest, handleError } from "@/lib/errors";
+import {
+  isAllStaffRole,
+  isClassSecretaryRole,
+  Role,
+} from "@/lib/constants/roles";
+import { badRequest, forbidden, handleError } from "@/lib/errors";
 import { prisma } from "@/prisma/prisma";
 
 export async function GET(req: Request) {
@@ -13,9 +18,19 @@ export async function GET(req: Request) {
     const takeRecords = 10;
     const subjectName = searchParams.get("subjectName");
     const studentIdParam = searchParams.get("studentId");
+    const role = searchParams.get("role");
 
     if (!grade || !major || !classNumber) {
       throw badRequest("There are missing parameters");
+    }
+
+    if (
+      !(
+        isAllStaffRole(role?.toString() as Role) ||
+        isClassSecretaryRole(role?.toString() as Role)
+      )
+    ) {
+      throw forbidden("You're not allowed to access");
     }
 
     let findStudents;

@@ -148,6 +148,7 @@ export async function GET(req: Request) {
       route: "/api/problem-point",
       message: error instanceof Error ? error.message : String(error),
     });
+    return handleError(error);
   }
 }
 
@@ -180,6 +181,7 @@ export async function DELETE(req: Request) {
       route: "/api/problem-point",
       message: error instanceof Error ? error.message : String(error),
     });
+    return handleError(error);
   }
 }
 
@@ -249,5 +251,6 @@ export async function PATCH(req: Request) {
       route: "/api/problem-point",
       message: error instanceof Error ? error.message : String(error),
     });
+    return handleError(error);
   }
 }

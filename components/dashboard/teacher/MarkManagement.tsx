@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   Plus,
   Save,
-  Upload,
   Info,
   ChevronLeft,
   ChevronRight,
@@ -85,8 +84,9 @@ const MarkManagement = ({ session }: Props) => {
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
+  const [originalStudents, setOriginalStudents] = useState<Student[]>([]);
 
-  // Selection State
+  // ✅ Initialize with empty values (same on server and client)
   const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [selectedMajor, setSelectedMajor] = useState<string>("");
   const [selectedClassNumber, setSelectedClassNumber] = useState<string>("");
@@ -94,11 +94,8 @@ const MarkManagement = ({ session }: Props) => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
 
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
-
-  // Pagination
   const [page, setPage] = useState(0);
 
-  // Add Column Modal State
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnData, setNewColumnData] = useState({
     type: AssessmentType.SCHOOLWORK,
@@ -106,6 +103,20 @@ const MarkManagement = ({ session }: Props) => {
     dueAt: new Date().toISOString().split("T")[0],
     detail: "",
   });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mark-management-selection");
+      if (!saved) return;
+
+      const data = JSON.parse(saved);
+      setSelectedGrade(data.grade || "");
+      setSelectedMajor(data.major || "");
+      setSelectedClassNumber(data.classNumber || "");
+    } catch (error) {
+      console.error("Failed to load saved selection:", error);
+    }
+  }, []);
 
   // Fetch Teacher Assignments
   useEffect(() => {
@@ -116,8 +127,7 @@ const MarkManagement = ({ session }: Props) => {
           `/api/teacher?teacherId=${session.user.id}`
         );
         if (res.data?.data?.teachingAssignments) {
-          const assignments = res.data.data.teachingAssignments;
-          setAvailableClasses(assignments);
+          setAvailableClasses(res.data.data.teachingAssignments);
         }
       } catch (e) {
         console.error(e);
@@ -139,17 +149,39 @@ const MarkManagement = ({ session }: Props) => {
       .map((a) => a.subject);
   }, [selectedGrade, selectedMajor, selectedClassNumber, availableClasses]);
 
+  // Restore subject from localStorage when uniqueSubjects is populated
+  useEffect(() => {
+    if (uniqueSubjects.length === 0 || selectedSubject) return;
+
+    try {
+      const saved = localStorage.getItem("mark-management-selection");
+      if (!saved) return;
+
+      const data = JSON.parse(saved);
+      if (!data.subject) return;
+
+      const matchedSubject = uniqueSubjects.find(
+        (s: any) => s.subjectName === data.subject
+      );
+
+      if (matchedSubject) {
+        setSelectedSubject(data.subject);
+        setSelectedSubjectId(String(matchedSubject.id));
+      }
+    } catch (error) {
+      console.error("Failed to restore subject:", error);
+    }
+  }, [uniqueSubjects]);
+
   // Fetch Students
   useEffect(() => {
-    if (
-      !selectedGrade ||
-      !selectedMajor ||
-      !selectedClassNumber ||
-      !selectedSubject
-    )
-      return;
-
     const fetchStudents = async () => {
+      // Don't fetch if basic class info is missing
+      if (!selectedGrade || !selectedMajor || !selectedClassNumber || !selectedSubject) {
+        setStudents([]);
+        return;
+      }
+
       setLoading(true);
       try {
         const res = await axios.get("/api/student", {
@@ -159,13 +191,15 @@ const MarkManagement = ({ session }: Props) => {
             classNumber: selectedClassNumber,
             subjectName: selectedSubject,
             page: page,
+            role: session.user.role,
           },
         });
-        setStudents(res.data.students || []);
+        const studentData = res.data.students || [];
+        setStudents(studentData);
+        setOriginalStudents(JSON.parse(JSON.stringify(studentData)));
         setTotalStudents(res.data.totalStudents || 0);
       } catch (error) {
         console.error(error);
-        toast.error("Failed to fetch students");
       } finally {
         setLoading(false);
       }
@@ -179,18 +213,6 @@ const MarkManagement = ({ session }: Props) => {
     selectedSubject,
     page,
   ]);
-
-  //Try to check if class data was saved or not before
-  useEffect(() => {
-    const saved = localStorage.getItem("mark-management-selection");
-    if (!saved) return;
-
-    const data = JSON.parse(saved);
-    setSelectedGrade(data.grade);
-    setSelectedMajor(data.major);
-    setSelectedClassNumber(data.classNumber);
-    setSelectedSubject(data.subject);
-  }, []);
 
   // Handlers
   const handleScoreChange = (
@@ -223,11 +245,16 @@ const MarkManagement = ({ session }: Props) => {
   };
 
   const handleImport = (importedData: any[]) => {
-    // Build lookup: studentId -> { assessmentNumber -> score }
     const excelMap = new Map<string, Map<number, number>>();
+    console.log(importedData);
 
     for (const row of importedData) {
-      if (!row.studentId || !row.studentAssessments) continue;
+      console.log(row);
+      // NOTES:
+      // Each Excel row is parsed into an object.
+      // Column headers become object keys (e.g. row.id)
+      // Column names are flexible, but must be consistent between Excel and code
+      if (!row.id || !row.studentAssessments) continue;
 
       const assessmentMap = new Map<number, number>();
 
@@ -242,7 +269,7 @@ const MarkManagement = ({ session }: Props) => {
         }
       }
 
-      excelMap.set(row.studentId.trim(), assessmentMap);
+      excelMap.set(row.id.trim(), assessmentMap);
     }
 
     // Update state once
@@ -257,8 +284,6 @@ const MarkManagement = ({ session }: Props) => {
 
           return { ...mark, score: newScore };
         });
-
-        console.log(updatedMarks);
 
         return {
           ...student,
@@ -276,21 +301,48 @@ const MarkManagement = ({ session }: Props) => {
   };
 
   const handleSave = async () => {
+    const changedStudents = students
+      .map((student) => {
+        const original = originalStudents.find((o) => o.id === student.id);
+        if (!original) return null;
+
+        const changedMarks = student.subjectMarks[0].marks.filter((mark) => {
+          const originalMark = original.subjectMarks[0].marks.find(
+            (m) => m.assessmentNumber === mark.assessmentNumber
+          );
+          return originalMark?.score !== mark.score;
+        });
+
+        if (changedMarks.length === 0) return null;
+
+        return {
+          studentId: student.id,
+          subjectName: selectedSubject,
+          studentAssessments: changedMarks.map((m) => ({
+            assessmentNumber: m.assessmentNumber,
+            score: m.score,
+          })),
+        };
+      })
+      .filter(Boolean);
+
+    if (changedStudents.length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+
     const payload = {
       teacherId: session?.user?.id,
-      students: students.map((s) => ({
-        studentId: s.id,
-        subjectName: selectedSubject,
-        studentAssessments: s.subjectMarks[0].marks.map((m) => ({
-          assessmentNumber: m.assessmentNumber,
-          score: m.score,
-        })),
-      })),
+      students: changedStudents,
     };
 
     try {
       await axios.patch("/api/teacher/mark", payload);
-      toast.success("Marks saved successfully!");
+      // Update original setelah save berhasil
+      setOriginalStudents(JSON.parse(JSON.stringify(students)));
+      toast.success(
+        `${changedStudents.length} student(s) updated successfully!`
+      );
     } catch (e) {
       console.error(e);
       toast.error("Failed to save marks");
@@ -321,6 +373,21 @@ const MarkManagement = ({ session }: Props) => {
         },
       });
       toast.success("Column added!");
+
+      const res = await axios.get("/api/student", {
+        params: {
+          grade: selectedGrade,
+          major: selectedMajor,
+          classNumber: selectedClassNumber,
+          subjectName: selectedSubject,
+          page: page,
+          role: session.user.role,
+        },
+      });
+
+      const newStudentData = res.data.students || [];
+      setStudents(newStudentData);
+      setOriginalStudents(JSON.parse(JSON.stringify(newStudentData)));
       setIsAddColumnOpen(false);
       localStorage.setItem(
         "mark-management-selection",
@@ -329,6 +396,7 @@ const MarkManagement = ({ session }: Props) => {
           major: selectedMajor,
           classNumber: selectedClassNumber,
           subject: selectedSubject,
+          subjectId: selectedSubjectId,
         })
       );
       window.location.reload();
@@ -339,7 +407,9 @@ const MarkManagement = ({ session }: Props) => {
   };
 
   const columns =
-    students.length > 0 && students[0].subjectMarks.length > 0
+    students.length > 0 &&
+      students[0]?.subjectMarks?.length > 0 &&
+      students[0].subjectMarks[0]?.marks?.length > 0
       ? students[0].subjectMarks[0].marks.sort(
         (a, b) => a.assessmentNumber - b.assessmentNumber
       )
@@ -622,7 +692,8 @@ const MarkManagement = ({ session }: Props) => {
                         : student.name}
                     </TableCell>
                     {columns.map((col) => {
-                      const mark = student.subjectMarks[0]?.marks.find(
+                      const marks = student.subjectMarks?.[0]?.marks;
+                      const mark = marks?.find(
                         (m) => m.assessmentNumber === col.assessmentNumber
                       );
                       return (
