@@ -1,3 +1,4 @@
+import { SortBy, SortOrder } from "@/lib/constants/sortingAndFilltering";
 import { badRequest, handleError, notFound } from "@/lib/errors";
 import { getDayBounds } from "@/lib/utils/date";
 import { prisma } from "@/prisma/prisma";
@@ -6,24 +7,28 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    const teacherIdParam = searchParams.get("teacherId");
-    const dateParam = searchParams.get("date");
-    if (!teacherIdParam) {
+    const teacherId = searchParams.get("teacherId");
+    const date = searchParams.get("date");
+    const sortBy = (searchParams.get("sortBy") || "name") as SortBy;
+    const sortOrder = (searchParams.get("sortOrder") || "asc") as SortOrder;
+    const searchQuery = searchParams.get("searchQuery") || "";
+
+    if (!teacherId) {
       throw badRequest("Teacher id is missing.");
     }
 
-    if (dateParam) {
+    if (date) {
       const page = Number(searchParams.get("page")) || 0;
 
-      if (!teacherIdParam || !dateParam) {
+      if (!teacherId || !date) {
         throw badRequest("Missing required field");
       }
-      const targetDate = new Date(dateParam);
+      const targetDate = new Date(date);
 
       const { startOfDay, endOfDay } = getDayBounds(targetDate);
 
       const existingTeacher = await prisma.homeroomClass.findUnique({
-        where: { teacherId: teacherIdParam },
+        where: { teacherId: teacherId },
         select: {
           classNumber: true,
           grade: true,
@@ -35,32 +40,102 @@ export async function GET(req: Request) {
         return notFound("Teacher not found");
       }
 
-      const findStudents = await prisma.student.findMany({
-        where: {
-          classNumber: existingTeacher.classNumber,
-          grade: existingTeacher.grade,
-          major: existingTeacher.major,
-        },
-        select: {
-          id: true,
-          name: true,
-          attendances: {
-            where: {
-              date: {
-                gte: startOfDay,
-                lte: endOfDay,
-              },
-            },
-            select: {
-              date: true,
-              type: true,
-              description: true,
+      let findStudents;
+
+      const MIN_SEARCH_LENGTH = 3;
+
+      if (searchQuery.length >= MIN_SEARCH_LENGTH) {
+        findStudents = await prisma.student.findMany({
+          where: {
+            classNumber: existingTeacher.classNumber,
+            grade: existingTeacher.grade,
+            major: existingTeacher.major,
+            name: {
+              contains: searchQuery,
+              mode: "insensitive",
             },
           },
-        },
-        skip: page * 10,
-        take: 10,
-      });
+          select: {
+            id: true,
+            name: true,
+            attendances: {
+              where: {
+                date: {
+                  gte: startOfDay,
+                  lte: endOfDay,
+                },
+              },
+              select: {
+                date: true,
+                type: true,
+                description: true,
+              },
+            },
+          },
+          skip: page * 10,
+          take: 10,
+        });
+      } else if (sortBy === "name") {
+        findStudents = await prisma.student.findMany({
+          where: {
+            classNumber: existingTeacher.classNumber,
+            grade: existingTeacher.grade,
+            major: existingTeacher.major,
+          },
+          select: {
+            id: true,
+            name: true,
+            attendances: {
+              where: {
+                date: {
+                  gte: startOfDay,
+                  lte: endOfDay,
+                },
+              },
+              select: {
+                date: true,
+                type: true,
+                description: true,
+              },
+            },
+          },
+          orderBy: {
+            name: sortOrder === "asc" ? "asc" : "desc",
+          },
+          skip: page * 10,
+          take: 10,
+        });
+      } else {
+        findStudents = await prisma.student.findMany({
+          where: {
+            classNumber: existingTeacher.classNumber,
+            grade: existingTeacher.grade,
+            major: existingTeacher.major,
+          },
+          select: {
+            id: true,
+            name: true,
+            attendances: {
+              where: {
+                date: {
+                  gte: startOfDay,
+                  lte: endOfDay,
+                },
+              },
+              select: {
+                date: true,
+                type: true,
+                description: true,
+              },
+              orderBy: {
+                type: sortOrder === "asc" ? "asc" : "desc",
+              },
+            },
+          },
+          skip: page * 10,
+          take: 10,
+        });
+      }
 
       const totalStudents = await prisma.student.count({
         where: {
@@ -94,6 +169,7 @@ export async function GET(req: Request) {
         sick: 0,
         permission: 0,
         alpha: 0,
+        late: 0,
       };
 
       for (const stat of attendanceStats) {
@@ -101,6 +177,7 @@ export async function GET(req: Request) {
         else if (stat.type === "PERMISSION")
           stats.permission = stat._count.type;
         else if (stat.type === "ALPHA") stats.alpha = stat._count.type;
+        else if (stat.type === "LATE") stats.late = stat._count.type;
       }
 
       return Response.json(
@@ -117,7 +194,7 @@ export async function GET(req: Request) {
     }
 
     const existingTeacher = await prisma.teacher.findUnique({
-      where: { id: teacherIdParam },
+      where: { id: teacherId },
       select: {
         teachingAssignments: {
           select: {

@@ -13,6 +13,7 @@ import MarkStatsCards from "./MarkStatsCards";
 import MarkTable from "./MarkTable";
 import MarkSkeleton from "./MarkSkeleton";
 import { SUBJECT_DISPLAY_MAP } from "@/lib/utils/labels";
+import { toast } from "sonner";
 
 interface Subject {
     id: number;
@@ -34,7 +35,6 @@ interface StudentMarkViewProps {
 const StudentMarkView = ({ subjects, studentInfo }: StudentMarkViewProps) => {
     const [selectedSubject, setSelectedSubject] = useState<string>("");
     const [marks, setMarks] = useState<any[]>([]);
-    const [totalAssignments, setTotalAssignments] = useState(0);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(0);
     const [totalRecords, setTotalRecords] = useState(0);
@@ -51,35 +51,28 @@ const StudentMarkView = ({ subjects, studentInfo }: StudentMarkViewProps) => {
         const fetchMarks = async () => {
             setLoading(true);
             try {
-                const response = await axios.get("/api/student", {
+                const response = await axios.get("/api/student/profile", {
                     params: {
-                        grade: studentInfo.grade,
-                        major: studentInfo.major,
-                        classNumber: studentInfo.classNumber,
-                        subjectName: selectedSubject,
                         studentId: studentInfo.id,
+                        subjectName: selectedSubject,
+                        isMarkPage: true,
                         page,
                     },
                 });
 
-                const studentData = response.data.students;
-                let marksData: any[] = [];
-                const targetStudent = Array.isArray(studentData) ? studentData[0] : studentData;
+                const data = response.data.data.marks;
 
-                if (targetStudent && targetStudent.subjectMarks && targetStudent.subjectMarks.length > 0) {
-                    const subjectMark = targetStudent.subjectMarks[0]; // Specific subject
-                    if (subjectMark && subjectMark.marks) {
-                        marksData = subjectMark.marks;
-                    }
+                let marksData: any[] = [];
+                if (data.studentMarkRecords?.subjectMarks?.[0]?.marks) {
+                    marksData = data.studentMarkRecords.subjectMarks[0].marks;
                 }
 
                 setMarks(marksData);
-                setTotalAssignments(marksData.length);
-
-                setTotalRecords(marksData.length);
+                setTotalRecords(data.totalMarks || 0);
 
             } catch (error) {
                 console.error("Failed to fetch marks", error);
+                toast.error("Failed to fetch marks data");
                 setMarks([]);
             } finally {
                 setLoading(false);
@@ -87,12 +80,10 @@ const StudentMarkView = ({ subjects, studentInfo }: StudentMarkViewProps) => {
         };
 
         fetchMarks();
-    }, [selectedSubject, page, studentInfo]);
+    }, [selectedSubject, page, studentInfo.id]);
 
-    // Client-side pagination logic since API returns all marks
     const recordsPerPage = 10;
-    const paginatedMarks = marks.slice(page * recordsPerPage, (page + 1) * recordsPerPage);
-    const hasMore = (page + 1) * recordsPerPage < marks.length;
+    const hasMore = (page + 1) * recordsPerPage < totalRecords;
 
     return (
         <div className="space-y-6">
@@ -124,11 +115,11 @@ const StudentMarkView = ({ subjects, studentInfo }: StudentMarkViewProps) => {
                 <>
                     <MarkStatsCards
                         subjectName={SUBJECT_DISPLAY_MAP[selectedSubject]}
-                        totalAssignments={marks.length}
+                        totalAssignments={totalRecords}
                     />
 
                     <MarkTable
-                        marks={paginatedMarks}
+                        marks={marks}
                         page={page}
                         hasMore={hasMore}
                         onPageChange={setPage}

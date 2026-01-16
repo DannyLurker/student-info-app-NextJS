@@ -103,6 +103,7 @@ model Student {
 model SubjectMark {
     id           Int      @id @default(autoincrement())
     subjectName  String
+    subject      Subject  @relation(fields: [subjectName], references: [subjectName])
     studentId    String
     student      Student  @relation(fields: [studentId], references: [id])
     academicYear String
@@ -282,6 +283,7 @@ model Subject {
     students Student[] @relation("SubjectStudents")
 
     teachingAssignments TeachingAssignment[]
+    subjectMarks        SubjectMark[]
 }
 
 model VerificationToken {

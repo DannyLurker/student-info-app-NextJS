@@ -106,6 +106,8 @@ async function main() {
   console.log("✓ Created Parent:", parent.email);
 
   console.log("\n Successfully seeded database!");
+  0;
+
   console.log("\n Test Accounts (Password: Test@12345):");
   console.log("   - Principal: principal@test.com");
   console.log("   - Vice Principal: viceprincipal@test.com");

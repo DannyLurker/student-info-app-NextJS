@@ -56,6 +56,22 @@ interface ClassroomProps {
 
 type SortOption = "name-asc" | "name-desc" | "status";
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 const Classroom = ({ session }: ClassroomProps) => {
   const [data, setData] = useState<ClassroomData | null>(null);
   const [date, setDate] = useState<string>(
@@ -66,12 +82,17 @@ const Classroom = ({ session }: ClassroomProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const effectiveSearchQuery =
+    debouncedSearchQuery.length >= 3 ? debouncedSearchQuery : "";
+
   // Calculate total pages based on API response
   const totalPages = data ? Math.ceil(data.totalStudents / ITEMS_PER_PAGE) : 0;
 
   // Stats from API response
   const stats = useMemo(() => {
-    if (!data) return { total: 0, present: 0, sick: 0, permission: 0, alpha: 0 };
+    if (!data)
+      return { total: 0, present: 0, sick: 0, permission: 0, alpha: 0 };
 
     const { totalStudents, stats: apiStats } = data;
     return {
@@ -79,20 +100,38 @@ const Classroom = ({ session }: ClassroomProps) => {
       sick: apiStats.sick,
       permission: apiStats.permission,
       alpha: apiStats.alpha,
-      present: totalStudents - (apiStats.sick + apiStats.permission + apiStats.alpha),
+      present:
+        totalStudents - (apiStats.sick + apiStats.permission + apiStats.alpha),
     };
   }, [data]);
+
+  useEffect(() => {
+    // Reset page when search or filters change
+    setCurrentPage(0);
+  }, [debouncedSearchQuery, sortBy, date]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (session?.id && date) {
         setLoading(true);
         try {
+          let sortByParam = "name";
+          let sortOrderParam = "asc";
+
+          if (sortBy === "name-desc") {
+            sortOrderParam = "desc";
+          } else if (sortBy === "status") {
+            sortByParam = "status";
+          }
+
           const response = await axios.get(`/api/teacher`, {
             params: {
               teacherId: session.id,
               date: date,
               page: currentPage,
+              searchQuery: effectiveSearchQuery,
+              sortBy: sortByParam,
+              sortOrder: sortOrderParam,
             },
           });
 
@@ -110,7 +149,7 @@ const Classroom = ({ session }: ClassroomProps) => {
     };
 
     fetchData();
-  }, [session?.id, date, currentPage]);
+  }, [session?.id, date, currentPage, effectiveSearchQuery, sortBy]);
 
   // Each student only has one attendance per day
   const getAttendanceStatus = (attendances: Attendance[]) => {
@@ -154,37 +193,6 @@ const Classroom = ({ session }: ClassroomProps) => {
         };
     }
   };
-
-  const sortedAndFilteredStudents = useMemo(() => {
-    if (!data?.students) return [];
-
-    let result = [...data.students];
-
-    // Filter
-    if (searchQuery) {
-      result = result.filter((student) =>
-        student.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "status":
-          const statusA = getAttendanceStatus(a.attendances).label;
-          const statusB = getAttendanceStatus(b.attendances).label;
-          return statusA.localeCompare(statusB);
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [data?.students, sortBy, searchQuery]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedDate = new Date(e.target.value);
@@ -263,6 +271,11 @@ const Classroom = ({ session }: ClassroomProps) => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  {searchQuery.length > 0 && searchQuery.length < 3 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter at least 3 characters to search
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -306,7 +319,7 @@ const Classroom = ({ session }: ClassroomProps) => {
                   ></div>
                 ))}
               </div>
-            ) : sortedAndFilteredStudents.length > 0 ? (
+            ) : data?.students && data.students.length > 0 ? (
               <>
                 {/* Desktop Table View */}
                 <div className="hidden sm:block overflow-x-auto">
@@ -325,8 +338,7 @@ const Classroom = ({ session }: ClassroomProps) => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E7EB]">
-                      {sortedAndFilteredStudents.map((student) => {
-                        console.log(student);
+                      {data.students.map((student) => {
                         const status = getAttendanceStatus(student.attendances);
                         return (
                           <tr
@@ -371,7 +383,7 @@ const Classroom = ({ session }: ClassroomProps) => {
 
                 {/* Mobile Card View */}
                 <div className="sm:hidden divide-y divide-[#E5E7EB]">
-                  {sortedAndFilteredStudents.map((student) => {
+                  {data.students.map((student) => {
                     const status = getAttendanceStatus(student.attendances);
                     return (
                       <div
@@ -428,14 +440,19 @@ const Classroom = ({ session }: ClassroomProps) => {
               <div className="px-4 sm:px-6 lg:px-8 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex flex-col sm:flex-row items-center justify-between gap-3">
                 <p className="text-sm text-gray-600">
                   Showing {currentPage * ITEMS_PER_PAGE + 1} to{" "}
-                  {Math.min((currentPage + 1) * ITEMS_PER_PAGE, data?.totalStudents || 0)} of{" "}
-                  {data?.totalStudents || 0} students
+                  {Math.min(
+                    (currentPage + 1) * ITEMS_PER_PAGE,
+                    data?.totalStudents || 0
+                  )}{" "}
+                  of {data?.totalStudents || 0} students
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(0, prev - 1))
+                    }
                     disabled={currentPage === 0 || loading}
                     className="flex items-center gap-1"
                   >
@@ -448,7 +465,11 @@ const Classroom = ({ session }: ClassroomProps) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) =>
+                        Math.min(totalPages - 1, prev + 1)
+                      )
+                    }
                     disabled={currentPage >= totalPages - 1 || loading}
                     className="flex items-center gap-1"
                   >

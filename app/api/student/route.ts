@@ -1,5 +1,5 @@
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
-import { badRequest, forbidden, handleError } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/prisma/prisma";
 
 export async function GET(req: Request) {
@@ -9,49 +9,18 @@ export async function GET(req: Request) {
     const grade = searchParams.get("grade") as Grade;
     const major = searchParams.get("major") as Major;
     const classNumber = searchParams.get("classNumber") as ClassNumber;
+    const subjectName = searchParams.get("subjectName");
+    const teacherId = searchParams.get("teacherId");
     const page = Number(searchParams.get("page")) || 0;
     const takeRecords = 10;
-    const subjectName = searchParams.get("subjectName");
-    const studentIdParam = searchParams.get("studentId");
 
     if (!grade || !major || !classNumber) {
       throw badRequest("There are missing parameters");
     }
 
-    let findStudents;
+    let findStudents, totalMarks;
 
-    if (studentIdParam && subjectName) {
-      findStudents = await prisma.student.findUnique({
-        where: {
-          id: studentIdParam,
-        },
-        select: {
-          id: true,
-          name: true,
-          subjectMarks: {
-            where: {
-              subjectName: subjectName,
-            },
-            select: {
-              marks: {
-                select: {
-                  assessmentNumber: true,
-                  score: true,
-                  type: true,
-                  description: {
-                    select: {
-                      detail: true,
-                      dueAt: true,
-                      givenAt: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-    } else if (subjectName) {
+    if (subjectName && teacherId) {
       findStudents = await prisma.student.findMany({
         where: {
           grade: grade,
@@ -66,8 +35,10 @@ export async function GET(req: Request) {
               subjectName: subjectName,
             },
             select: {
+              id: true,
               marks: {
                 select: {
+                  id: true,
                   assessmentNumber: true,
                   score: true,
                   type: true,
@@ -84,6 +55,11 @@ export async function GET(req: Request) {
               },
             },
           },
+        },
+      });
+      totalMarks = await prisma.mark.count({
+        where: {
+          subjectMarkId: findStudents[0].subjectMarks[0].id,
         },
       });
     } else {
@@ -113,7 +89,7 @@ export async function GET(req: Request) {
     return Response.json(
       {
         message: "Successfully retrieved list of students by class",
-        students: findStudents,
+        data: { students: findStudents, totalMarks },
         totalStudents,
       },
       { status: 200 }

@@ -5,6 +5,8 @@ const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const AttendanceTypesEnum = z.enum(["ALPHA", "SICK", "PERMISSION", "LATE"]);
 const ClassNumberEnum = z.enum(["none", "1", "2"]);
+const SortByEnum = z.enum(["name", "status"]);
+const SortOrderEnum = z.enum(["asc", "desc"]);
 const ProblemPointCategoryEnum = z.enum([
   "DISCIPLINE",
   "ACADEMIC",
@@ -29,6 +31,14 @@ const classParams = z.object({
 });
 
 type classParamsSchema = z.infer<typeof classParams>;
+
+const page = z
+  .string()
+  .default("0")
+  .transform((val) => Number(val))
+  .refine((val) => Number.isInteger(val) && val >= 0, {
+    message: "page must be a non-negative integer",
+  });
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const TeachingAssignmentInput = z.object({
@@ -110,6 +120,18 @@ const bulkAttendance = z.object({
 
 type BulkAttendanceSchema = z.infer<typeof bulkAttendance>;
 
+const queryStudentAttendances = z.object({
+  studentId: z.string({ message: "Must be filled" }),
+  dateParam: z.string({ message: "Must be filled" }),
+  homeroomTeacherId: z.string({ message: "Must be filled" }),
+  page,
+  sortBy: SortByEnum,
+  sortOrder: SortOrderEnum,
+  searchQuery: z.string().optional(),
+});
+
+type QueryStudentAttendancesSchema = z.infer<typeof queryStudentAttendances>;
+
 // HOMEROOM CLASS STUDENT
 const homeroomClassStudent = z.object({
   teacherId: z.string({ message: "Must be filled" }),
@@ -146,6 +168,17 @@ const updateProblemPoint = z.object({
 type upadateProblemPointSchema = z.infer<typeof problemPoint>;
 
 // SCORING SYSTEM (TEACHER)
+const queryStudentMarks = z.object({
+  studentId: z.string().min(1).optional(),
+  subjectName: z.string().min(1).optional(),
+  isMarkPage: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((val) => val === "true"),
+  page,
+});
+
+type QueryStudentMarksSchema = z.infer<typeof queryStudentMarks>;
 
 const DescriptionSchema = z.object({
   givenAt: z.string({ message: "Must be filled" }),
@@ -193,6 +226,8 @@ export {
   homeroomClassStudent,
   problemPoint,
   bulkAttendance,
+  queryStudentAttendances,
+  queryStudentMarks,
   markColumn,
   markRecords,
   updateProblemPoint,
@@ -204,7 +239,9 @@ export {
   type homeroomClassStudentSchema,
   type problemPointSchema,
   type BulkAttendanceSchema,
+  type QueryStudentMarksSchema,
   type MarkColumnSchema,
   type MarkRecordSchema,
   type upadateProblemPointSchema,
+  type QueryStudentAttendancesSchema,
 };

@@ -123,7 +123,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             icon: LayoutDashboard,
             label: "Dashboard",
           },
-          { href: "/dashboard/parent/mark", icon: TrendingUp, label: "Grades" },
+          { href: "/dashboard/parent/mark", icon: TrendingUp, label: "Marks" },
           ...commonItems,
         ];
       case ROLES.STUDENT:
@@ -133,7 +133,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             icon: BookOpen,
             label: "Dashboard",
           },
-          { href: "/dashboard/student/mark", icon: TrendingUp, label: "Grades" },
+          { href: "/dashboard/student/mark", icon: TrendingUp, label: "Marks" },
           ...commonItems,
         ];
       case ROLES.CLASS_SECRETARY:
@@ -148,7 +148,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             icon: ClipboardCheck,
             label: "Attendance",
           },
-          { href: "/dashboard/student/mark", icon: TrendingUp, label: "Grades" },
+          { href: "/dashboard/student/mark", icon: TrendingUp, label: "Marks" },
           ...commonItems,
         ];
 
@@ -194,10 +194,11 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
               key={item.href + item.label}
               href={item.href}
               onClick={() => setIsOpen(false)}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all ${isActive(item.href)
-                ? "bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] text-white"
-                : "text-[#111827] hover:bg-[#F9FAFB]"
-                }`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all ${
+                isActive(item.href)
+                  ? "bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] text-white"
+                  : "text-[#111827] hover:bg-[#F9FAFB]"
+              }`}
             >
               {item.icon && <item.icon className="w-5 h-5" />}
               <span>{item.label}</span>
@@ -239,8 +240,9 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`lg:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-[#E5E7EB] shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+        className={`lg:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-[#E5E7EB] shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         {/* Close Button */}
         <button

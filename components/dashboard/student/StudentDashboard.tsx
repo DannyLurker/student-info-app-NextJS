@@ -163,16 +163,15 @@ const StudentDashboard = ({ session }: DashboardProps) => {
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Skeleton className="h-32 rounded-2xl" />
           <Skeleton className="h-32 rounded-2xl" />
-          <Skeleton className="col-span-2 sm:col-span-1 h-32 rounded-2xl" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Skeleton className="lg:col-span-2 h-[400px] rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <Skeleton className="h-[400px] rounded-2xl" />
           <Skeleton className="h-[400px] rounded-2xl" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <Skeleton className="h-[400px] rounded-2xl" />
           <Skeleton className="h-[400px] rounded-2xl" />
         </div>

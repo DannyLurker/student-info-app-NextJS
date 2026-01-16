@@ -13,6 +13,7 @@ import MarkStatsCards from "../../student/mark/MarkStatsCards";
 import MarkTable from "../../student/mark/MarkTable";
 import MarkSkeleton from "../../student/mark/MarkSkeleton";
 import { SUBJECT_DISPLAY_MAP } from "@/lib/utils/labels";
+import { toast } from "sonner";
 
 interface Subject {
   id: number;
@@ -37,6 +38,7 @@ const ParentMarkView = ({ subjects, studentInfo }: ParentMarkViewProps) => {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [studentName, setStudentName] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
 
   useEffect(() => {
     if (subjects.length > 0 && !selectedSubject) {
@@ -50,38 +52,29 @@ const ParentMarkView = ({ subjects, studentInfo }: ParentMarkViewProps) => {
     const fetchMarks = async () => {
       setLoading(true);
       try {
-        const response = await axios.get("/api/student", {
+        const response = await axios.get("/api/student/profile", {
           params: {
-            grade: studentInfo.grade,
-            major: studentInfo.major,
-            classNumber: studentInfo.classNumber,
-            subjectName: selectedSubject,
             studentId: studentInfo.id,
+            subjectName: selectedSubject,
+            isMarkPage: true,
             page,
           },
         });
 
-        const studentData = response.data.students;
-        let marksData: any[] = [];
-        const targetStudent = Array.isArray(studentData)
-          ? studentData[0]
-          : studentData;
+        const data = response.data.data.marks;
 
-        if (
-          targetStudent &&
-          targetStudent.subjectMarks &&
-          targetStudent.subjectMarks.length > 0
-        ) {
-          const subjectMark = targetStudent.subjectMarks[0]; // Specific subject
-          if (subjectMark && subjectMark.marks) {
-            marksData = subjectMark.marks;
-          }
+        let marksData: any[] = [];
+        if (data.studentMarkRecords?.subjectMarks?.[0]?.marks) {
+          marksData = data.studentMarkRecords.subjectMarks[0].marks;
         }
 
-        setStudentName(response.data.students.name);
+        setStudentName(data.studentMarkRecords?.name || "");
         setMarks(marksData);
+        setTotalRecords(data.totalMarks || 0);
+
       } catch (error) {
         console.error("Failed to fetch marks", error);
+        toast.error("Failed to fetch student marks");
         setMarks([]);
       } finally {
         setLoading(false);
@@ -89,15 +82,10 @@ const ParentMarkView = ({ subjects, studentInfo }: ParentMarkViewProps) => {
     };
 
     fetchMarks();
-  }, [selectedSubject, page, studentInfo]);
+  }, [selectedSubject, page, studentInfo.id]);
 
-  // Client-side pagination logic since API returns all marks (I Don't think we need this because I've already made pagination on the route site)
   const recordsPerPage = 10;
-  const paginatedMarks = marks.slice(
-    page * recordsPerPage,
-    (page + 1) * recordsPerPage
-  );
-  const hasMore = (page + 1) * recordsPerPage < marks.length;
+  const hasMore = (page + 1) * recordsPerPage < totalRecords;
 
   return (
     <div className="space-y-6">
@@ -132,11 +120,11 @@ const ParentMarkView = ({ subjects, studentInfo }: ParentMarkViewProps) => {
         <>
           <MarkStatsCards
             subjectName={SUBJECT_DISPLAY_MAP[selectedSubject]}
-            totalAssignments={marks.length}
+            totalAssignments={totalRecords}
           />
 
           <MarkTable
-            marks={paginatedMarks}
+            marks={marks}
             page={page}
             hasMore={hasMore}
             onPageChange={setPage}

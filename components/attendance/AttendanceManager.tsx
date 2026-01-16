@@ -342,6 +342,11 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  {searchQuery.length > 0 && searchQuery.length < 3 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter at least 3 characters to search
+                    </p>
+                  )}
                 </div>
               </div>
 

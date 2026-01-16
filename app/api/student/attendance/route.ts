@@ -4,12 +4,17 @@ import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
 } from "@/lib/constants/attendance";
-import { bulkAttendance } from "@/lib/utils/zodSchema";
+import { bulkAttendance, queryStudentAttendances } from "@/lib/utils/zodSchema";
 import {
   getDayBounds,
   getSemester,
   getSemesterDateRange,
 } from "@/lib/utils/date";
+import {
+  MIN_SEARCH_LENGTH,
+  OFFSET,
+  TAKE_RECORDS,
+} from "@/lib/utils/pagination";
 
 /**
  * Validates and normalizes the attendance type.
@@ -230,21 +235,13 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const dateParam = searchParams.get("date");
-    const homeroomTeacherId = searchParams.get("homeroomTeacherId");
-    const studentId = searchParams.get("studentId");
-    const page = Number(searchParams.get("page")) || 0;
 
-    if (!dateParam || !homeroomTeacherId || !studentId) {
-      throw badRequest(
-        "Missing required parameters: date, homeroomTeacher ID and student ID ."
-      );
-    }
+    const rawParams = Object.fromEntries(searchParams.entries());
 
-    // Validate studentId if provided (for secretary verification)
+    const data = queryStudentAttendances.parse(rawParams);
 
     const secretary = await prisma.student.findUnique({
-      where: { id: studentId },
+      where: { id: data.studentId },
       select: {
         role: true,
         homeroomTeacherId: true,
@@ -262,39 +259,107 @@ export async function GET(req: Request) {
       throw forbidden("Only class secretaries can view attendance records.");
     }
 
-    if (secretary.homeroomTeacherId !== homeroomTeacherId) {
+    if (secretary.homeroomTeacherId !== data.homeroomTeacherId) {
       throw forbidden("You can only view attendance for your own class.");
     }
 
-    const targetDate = new Date(dateParam);
+    const targetDate = new Date(data.dateParam);
     const { startOfDay, endOfDay } = getDayBounds(targetDate);
 
-    const studentAttendanceRecords = await prisma.student.findMany({
-      where: {
-        classNumber: secretary.classNumber,
-        grade: secretary.grade,
-        major: secretary.major,
-      },
-      select: {
-        id: true,
-        name: true,
-        attendances: {
-          where: {
-            date: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-          },
-          select: {
-            date: true,
-            type: true,
-            description: true,
+    let studentAttendanceRecords;
+
+    if (data.searchQuery && data.searchQuery.length >= MIN_SEARCH_LENGTH) {
+      studentAttendanceRecords = await prisma.student.findMany({
+        where: {
+          name: {
+            contains: data.searchQuery,
+            mode: "insensitive",
           },
         },
-      },
-      skip: page * 10,
-      take: 10,
-    });
+        select: {
+          id: true,
+          name: true,
+          attendances: {
+            where: {
+              date: {
+                gte: startOfDay,
+                lte: endOfDay,
+              },
+            },
+            select: {
+              date: true,
+              type: true,
+              description: true,
+            },
+          },
+        },
+        skip: data.page * OFFSET,
+        take: TAKE_RECORDS,
+        orderBy: {
+          name: data.sortOrder === "asc" ? "asc" : "desc",
+        },
+      });
+    } else if (data.sortBy === "name") {
+      studentAttendanceRecords = await prisma.student.findMany({
+        where: {
+          classNumber: secretary.classNumber,
+          grade: secretary.grade,
+          major: secretary.major,
+        },
+        select: {
+          id: true,
+          name: true,
+          attendances: {
+            where: {
+              date: {
+                gte: startOfDay,
+                lte: endOfDay,
+              },
+            },
+            select: {
+              date: true,
+              type: true,
+              description: true,
+            },
+          },
+        },
+        skip: data.page * OFFSET,
+        take: TAKE_RECORDS,
+        orderBy: {
+          name: data.sortOrder === "asc" ? "asc" : "desc",
+        },
+      });
+    } else {
+      studentAttendanceRecords = await prisma.student.findMany({
+        where: {
+          classNumber: secretary.classNumber,
+          grade: secretary.grade,
+          major: secretary.major,
+        },
+        select: {
+          id: true,
+          name: true,
+          attendances: {
+            where: {
+              date: {
+                gte: startOfDay,
+                lte: endOfDay,
+              },
+            },
+            select: {
+              date: true,
+              type: true,
+              description: true,
+            },
+            orderBy: {
+              type: data.sortOrder === "asc" ? "asc" : "desc",
+            },
+          },
+        },
+        skip: data.page * OFFSET,
+        take: TAKE_RECORDS,
+      });
+    }
 
     const totalStudents = await prisma.student.count({
       where: {
@@ -337,8 +402,6 @@ export async function GET(req: Request) {
       else if (stat.type === "ALPHA") stats.alpha = stat._count.type;
       else if (stat.type === "LATE") stats.late = stat._count.type;
     }
-
-    console.log(attendanceStats);
 
     return Response.json(
       {
