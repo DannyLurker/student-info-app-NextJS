@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { PlusCircle, ListChecks } from "lucide-react";
-import CreateProblemPointModal from "./CreateProblemPointModal";
-import ManageProblemPointModal from "./ManageProblemPointModal";
+import CreateProblemPointModal from "./create/CreateProblemPointModal";
+import ManageProblemPointModal from "./manage/ManageProblemPointModal";
 import { Session } from "@/lib/types/session";
 
 interface ProblemPointPageClientProps {

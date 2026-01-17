@@ -1,6 +1,6 @@
 "use client";
 import { GraduationCap, BookOpen, Calendar, AlertCircle } from "lucide-react";
-import { AttendanceChart } from "../../attendance/AttendanceChart";
+import { AttendanceChart } from "../attendance/AttendanceChart";
 import { ProblemPointChart } from "../problemPoint/ProblemPointChart";
 import { ProblemPointList } from "../problemPoint/ProblemPointList";
 import React, { useState, useEffect } from "react";
@@ -90,7 +90,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
             acc[type.toString().toLowerCase()].push(stat);
             return acc;
           },
-          { sick: [], permission: [], alpha: [], late: [] }
+          { sick: [], permission: [], alpha: [], late: [] },
         );
 
         const records = res.data.data.problemPointRecords;
@@ -98,7 +98,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
           (acc: any, record: ProblemPointData) => {
             return acc + record.point;
           },
-          0
+          0,
         );
 
         // Process Problem Point Chart Data
@@ -113,7 +113,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
             name: category.replace(/_/g, " "),
             value,
             color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
-          })
+          }),
         );
 
         setTotalProblemPoint(totalPoint);
@@ -280,7 +280,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
                             day: "numeric",
                           })}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -306,7 +306,7 @@ const StudentDashboard = ({ session }: DashboardProps) => {
                             day: "numeric",
                           })}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>

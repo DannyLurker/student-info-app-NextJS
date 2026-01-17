@@ -107,23 +107,25 @@ type ResetPasswordSchema = z.infer<typeof zodResetPassword>;
 
 // ATTENDANCE
 const bulkAttendance = z.object({
-  secretaryId: z.string({ message: "Must be filled" }),
+  recorderId: z.string({ message: "Must be filled" }),
   date: z.string({ message: "Must be filled" }),
   records: z.array(
     z.object({
       studentId: z.string({ message: "Must be filled" }),
       attendanceType: AttendanceTypesEnum,
       description: z.string().max(300).optional(),
-    })
+    }),
   ),
 });
 
 type BulkAttendanceSchema = z.infer<typeof bulkAttendance>;
 
 const queryStudentAttendances = z.object({
-  studentId: z.string({ message: "Must be filled" }),
-  dateParam: z.string({ message: "Must be filled" }).default(new Date().toISOString().split("T")[0]),
-  homeroomTeacherId: z.string({ message: "Must be filled" }),
+  id: z.string({ message: "Must be filled" }),
+  dateParam: z
+    .string({ message: "Must be filled" })
+    .default(new Date().toISOString().split("T")[0]),
+  homeroomTeacherId: z.string().optional(),
   page,
   sortBy: SortByEnum,
   sortOrder: SortOrderEnum,

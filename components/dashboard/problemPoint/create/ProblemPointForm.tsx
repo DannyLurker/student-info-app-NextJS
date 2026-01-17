@@ -111,8 +111,9 @@ export default function ProblemPointForm({
             page: currentPage,
           },
         });
+        console.log(res.data);
         if (res.data) {
-          setStudents(res.data.students || []);
+          setStudents(res.data.data.students || []);
           setTotalStudents(res.data.totalStudents || 0);
         }
       } catch (error) {
@@ -137,7 +138,7 @@ export default function ProblemPointForm({
     setSelectedStudentIds((prev) =>
       prev.includes(studentId)
         ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
+        : [...prev, studentId],
     );
   };
 
@@ -208,7 +209,7 @@ export default function ProblemPointForm({
         toast.success(
           mode === "create"
             ? "Problem points recorded successfully"
-            : "Problem point updated successfully"
+            : "Problem point updated successfully",
         );
         if (onSuccess) onSuccess();
 
@@ -329,7 +330,7 @@ export default function ProblemPointForm({
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-2 border rounded-md">
                     {students.map((student) => {
                       const isSelected = selectedStudentIds.includes(
-                        student.id
+                        student.id,
                       );
                       return (
                         <div
@@ -380,7 +381,7 @@ export default function ProblemPointForm({
                           size="sm"
                           onClick={() =>
                             setCurrentPage((prev) =>
-                              Math.min(totalPages - 1, prev + 1)
+                              Math.min(totalPages - 1, prev + 1),
                             )
                           }
                           disabled={

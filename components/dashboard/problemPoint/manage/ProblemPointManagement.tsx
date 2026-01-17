@@ -26,7 +26,7 @@ import {
 import { GRADES, MAJORS, CLASSNUMBERS } from "@/lib/constants/class";
 import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
 import { BadgeAlert, Clock, AlertTriangle, Trash2, Pencil } from "lucide-react";
-import ProblemPointForm from "../ProblemPointForm";
+import ProblemPointForm from "../create/ProblemPointForm";
 import { Session } from "@/lib/types/session";
 
 const CATEGORY_COLORS: Record<string, string> = {
