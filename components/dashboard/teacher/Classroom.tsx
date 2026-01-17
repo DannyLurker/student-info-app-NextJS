@@ -47,6 +47,7 @@ interface ClassroomData {
     sick: number;
     permission: number;
     alpha: number;
+    late: number;
   };
 }
 
@@ -92,7 +93,7 @@ const Classroom = ({ session }: ClassroomProps) => {
   // Stats from API response
   const stats = useMemo(() => {
     if (!data)
-      return { total: 0, present: 0, sick: 0, permission: 0, alpha: 0 };
+      return { total: 0, present: 0, sick: 0, permission: 0, alpha: 0, late: 0 };
 
     const { totalStudents, stats: apiStats } = data;
     return {
@@ -100,8 +101,9 @@ const Classroom = ({ session }: ClassroomProps) => {
       sick: apiStats.sick,
       permission: apiStats.permission,
       alpha: apiStats.alpha,
+      late: apiStats.late,
       present:
-        totalStudents - (apiStats.sick + apiStats.permission + apiStats.alpha),
+        totalStudents - (apiStats.sick + apiStats.permission + apiStats.alpha + apiStats.late),
     };
   }, [data]);
 
@@ -184,6 +186,13 @@ const Classroom = ({ session }: ClassroomProps) => {
           icon: XCircle,
           color: "text-red-700 bg-red-50 border-red-200",
         };
+      case "LATE":
+        return {
+          label: "Late",
+          type: "LATE",
+          icon: AlertCircle,
+          color: "text-orange-700 bg-orange-50 border-orange-200",
+        };
       default:
         return {
           label: "Present",
@@ -204,7 +213,7 @@ const Classroom = ({ session }: ClassroomProps) => {
   return (
     <div className="space-y-6 pb-8">
       {/* Header Section */}
-      <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-4 sm:p-6 lg:p-8 text-white shadow-lg">
+      <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-4 sm:p-6 lg:p-8 text-white shadow-lg pt-20 sm:pt-20 md:pt-20">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
@@ -221,7 +230,7 @@ const Classroom = ({ session }: ClassroomProps) => {
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
               <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
               <div className="text-xs sm:text-sm text-blue-100 mt-1">
@@ -248,9 +257,15 @@ const Classroom = ({ session }: ClassroomProps) => {
                 Permission
               </div>
             </div>
-            <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-red-400/30 col-span-2 sm:col-span-1">
+            <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-red-400/30">
               <div className="text-xl sm:text-2xl font-bold">{stats.alpha}</div>
               <div className="text-xs sm:text-sm text-red-100 mt-1">Alpha</div>
+            </div>
+            <div className="bg-orange-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-orange-400/30">
+              <div className="text-xl sm:text-2xl font-bold">{stats.late}</div>
+              <div className="text-xs sm:text-sm text-orange-100 mt-1">
+                Late
+              </div>
             </div>
           </div>
         </div>
@@ -284,11 +299,11 @@ const Classroom = ({ session }: ClassroomProps) => {
                   value={sortBy}
                   onValueChange={(value) => setSortBy(value as SortOption)}
                 >
-                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
+                  <SelectTrigger className="w-full sm:w-[180px] bg-white flex justify-start">
                     <ArrowUpDown className="w-4 h-4 mr-2" />
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent >
                     <SelectItem value="name-asc">Name (A-Z)</SelectItem>
                     <SelectItem value="name-desc">Name (Z-A)</SelectItem>
                     <SelectItem value="status">Status</SelectItem>

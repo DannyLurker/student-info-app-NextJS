@@ -412,15 +412,15 @@ const MarkManagement = ({ session }: Props) => {
 
   const columns =
     students.length > 0 &&
-    students[0]?.subjectMarks?.length > 0 &&
-    students[0].subjectMarks[0]?.marks?.length > 0
+      students[0]?.subjectMarks?.length > 0 &&
+      students[0].subjectMarks[0]?.marks?.length > 0
       ? students[0].subjectMarks[0].marks.sort(
-          (a, b) => a.assessmentNumber - b.assessmentNumber
-        )
+        (a, b) => a.assessmentNumber - b.assessmentNumber
+      )
       : [];
 
   return (
-    <div className="m-4 space-y-6 pb-8">
+    <div className="m-4 space-y-6 pb-8 mt-20 lg:mt-6">
       {/* Header */}
       <div className="bg-gradient-to-br from-indigo-900 to-blue-800 p-6 text-white shadow-lg rounded-b-xl rounded-xl">
         <div className="flex flex-col gap-4">

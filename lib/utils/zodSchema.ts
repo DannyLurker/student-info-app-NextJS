@@ -122,7 +122,7 @@ type BulkAttendanceSchema = z.infer<typeof bulkAttendance>;
 
 const queryStudentAttendances = z.object({
   studentId: z.string({ message: "Must be filled" }),
-  dateParam: z.string({ message: "Must be filled" }),
+  dateParam: z.string({ message: "Must be filled" }).default(new Date().toISOString().split("T")[0]),
   homeroomTeacherId: z.string({ message: "Must be filled" }),
   page,
   sortBy: SortByEnum,

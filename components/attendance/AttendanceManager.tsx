@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import axios from "axios";
@@ -54,25 +54,48 @@ interface AttendanceManagerProps {
   session: Session;
 }
 
-import React from "react";
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 const AttendanceManager = ({ session }: AttendanceManagerProps) => {
   const router = useRouter();
+
+  // Data State
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  // Filter/Sort State
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [attendanceMap, setAttendanceMap] = useState<
-    Record<string, AttendanceRecord>
-  >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "status">(
-    "name-asc"
-  );
+  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "status">("name-asc");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const effectiveSearchQuery =
+    debouncedSearchQuery.length >= 3 ? debouncedSearchQuery : "";
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalStudents, setTotalStudents] = useState(0);
+
+  // Attendance State
+  // serverAttendanceMap: records from DB for the CURRENT page
+  const [serverAttendanceMap, setServerAttendanceMap] = useState<Record<string, AttendanceRecord>>({});
+  // unsavedChanges: local edits that persist across pages
+  const [unsavedChanges, setUnsavedChanges] = useState<Record<string, AttendanceRecord>>({});
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [stats, setStats] = useState<AttendanceStats>({
     total: 0,
     present: 0,
@@ -88,130 +111,117 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
   const isFutureDate =
     new Date(selectedDate) > new Date(new Date().toISOString().split("T")[0]);
   const isValidDate = !isFutureDate;
-
-  // Calculate total pages
   const totalPages = Math.ceil(totalStudents / ITEMS_PER_PAGE);
 
-  const sortedAndFilteredStudents = useMemo(() => {
-    let result = [...students];
-
-    // Filter
-    if (searchQuery) {
-      result = result.filter((student) =>
-        student.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "status":
-          const recordA = attendanceMap[a.id]?.type || "PRESENT";
-          const recordB = attendanceMap[b.id]?.type || "PRESENT";
-          return recordA.localeCompare(recordB);
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [students, sortBy, searchQuery, attendanceMap]);
-
+  // Role check
   useEffect(() => {
     if (session?.role !== ROLES.CLASS_SECRETARY) {
       router.push(getRoleDashboard(session.role));
-      return;
     }
-    initializeData();
-  }, [session, selectedDate, currentPage]);
+  }, [session, router]);
 
-  const initializeData = async () => {
-    setLoading(true);
-    try {
-      if (!session?.homeroomTeacherId) {
-        toast.error("Homeroom teacher not found for this account.");
-        setLoading(false);
-        return;
-      }
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [effectiveSearchQuery, sortBy, selectedDate]);
 
-      // Fetch attendance data with pagination and stats
-      const attendanceRes = await axios.get(`/api/student/attendance`, {
-        params: {
-          date: selectedDate,
-          homeroomTeacherId: session.homeroomTeacherId,
-          studentId: session.id,
-          page: currentPage,
-        },
-      });
-
-      const {
-        studentAttendanceRecords,
-        totalStudents: total,
-        stats: apiStats,
-      } = attendanceRes.data.data;
-
-      // Transform students with their attendance
-      const studentList: Student[] = studentAttendanceRecords.map(
-        (record: any) => ({
-          id: record.id,
-          name: record.name,
-        })
-      );
-      setStudents(studentList);
-      setTotalStudents(total);
-
-      // Build attendance map from the response
-      const map: Record<string, AttendanceRecord> = {};
-      studentAttendanceRecords.forEach((record: any) => {
-        if (record.attendances && record.attendances.length > 0) {
-          const att = record.attendances[0];
-          map[record.id] = {
-            studentId: record.id,
-            type: att.type,
-            description: att.description || "",
-          };
+  // Fetch Data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (!session?.homeroomTeacherId) {
+          toast.error("Homeroom teacher not found for this account.");
+          return;
         }
-      });
-      setAttendanceMap(map);
 
-      // Update stats from API response
-      setStats({
-        total,
-        sick: apiStats.sick,
-        permission: apiStats.permission,
-        alpha: apiStats.alpha,
-        late: apiStats.late,
-        present:
-          total -
-          (apiStats.sick +
-            apiStats.permission +
-            apiStats.alpha +
-            apiStats.late),
-      });
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message || "Something went wrong.");
-      setStudents([]);
-      setAttendanceMap({});
-    } finally {
-      setLoading(false);
+        const apiSortBy = sortBy === "status" ? "status" : "name";
+        const apiSortOrder = sortBy === "name-desc" ? "desc" : "asc";
+
+        const attendanceRes = await axios.get(`/api/student/attendance`, {
+          params: {
+            date: selectedDate,
+            homeroomTeacherId: session.homeroomTeacherId,
+            studentId: session.id,
+            page: currentPage,
+            searchQuery: effectiveSearchQuery,
+            sortBy: apiSortBy,
+            sortOrder: apiSortOrder,
+          },
+        });
+
+        const {
+          studentAttendanceRecords,
+          totalStudents: total,
+          stats: apiStats,
+        } = attendanceRes.data.data;
+
+        // Transform to Student list
+        const studentList: Student[] = studentAttendanceRecords.map(
+          (record: any) => ({
+            id: record.id,
+            name: record.name,
+          })
+        );
+        setStudents(studentList);
+        setTotalStudents(total);
+
+        // Build server map
+        const map: Record<string, AttendanceRecord> = {};
+        studentAttendanceRecords.forEach((record: any) => {
+          if (record.attendances && record.attendances.length > 0) {
+            const att = record.attendances[0];
+            map[record.id] = {
+              studentId: record.id,
+              type: att.type,
+              description: att.description || "",
+            };
+          }
+        });
+        setServerAttendanceMap(map);
+
+        // Update stats
+        setStats({
+          total,
+          sick: apiStats.sick,
+          permission: apiStats.permission,
+          alpha: apiStats.alpha,
+          late: apiStats.late,
+          present:
+            total -
+            (apiStats.sick +
+              apiStats.permission +
+              apiStats.alpha +
+              apiStats.late),
+        });
+      } catch (error: any) {
+        console.error(error);
+        toast.error(error.response?.data?.message || "Something went wrong.");
+        setStudents([]);
+        setServerAttendanceMap({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (session?.role === ROLES.CLASS_SECRETARY) {
+      fetchData();
     }
-  };
+  }, [session, selectedDate, currentPage, effectiveSearchQuery, sortBy]);
 
   const handleAttendanceChange = (
     studentId: string,
     field: keyof AttendanceRecord,
     value: any
   ) => {
-    setAttendanceMap((prev) => {
-      const record = prev[studentId] || { studentId, type: "present" };
+    setUnsavedChanges((prev) => {
+      // Start with existing unsaved record, or server record, or default
+      const serverRecord = serverAttendanceMap[studentId];
+      const currentRecord = prev[studentId] || serverRecord || { studentId, type: "PRESENT" };
+
       return {
         ...prev,
-        [studentId]: { ...record, [field]: value },
+        [studentId]: { ...currentRecord, [field]: value },
       };
     });
   };
@@ -228,6 +238,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
         return "bg-red-50 text-red-700 border-red-200";
       case "LATE":
         return "bg-orange-50 text-orange-700 border-orange-200";
+      default:
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
     }
   };
 
@@ -236,24 +248,34 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     const toastId = toast.loading("Saving attendance...");
 
     try {
-      // Prepare bulk payload with all records
-      const records = Object.values(attendanceMap).map((record) => ({
+      // Prepare bulk payload with primarily unsaved changes
+      const recordsToSave = Object.values(unsavedChanges).map((record) => ({
         studentId: record.studentId,
         attendanceType: record.type,
         description: record.description,
       }));
 
-      // Single atomic bulk request
-      const response = await axios.post("/api/student/attendance", {
+      if (recordsToSave.length === 0) {
+        toast.success("No changes to save.", { id: toastId });
+        setIsSubmitting(false);
+        return;
+      }
+
+      await axios.post("/api/student/attendance", {
         secretaryId: session?.id,
         date: selectedDate,
-        records,
+        records: recordsToSave,
       });
 
-      toast.success(response.data.message || "Attendance saved successfully", {
+      toast.success("Attendance saved successfully", {
         id: toastId,
       });
+
+      // Clear unsaved changes and reload data
+      setUnsavedChanges({});
+      // We can reload the page to be safe and refresh everything, or just refetch
       window.location.reload();
+
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Something went wrong", {
         id: toastId,
@@ -263,9 +285,14 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     }
   };
 
-  if (loading) {
+  // derived count of unsaved changes for UI feedback (optional)
+  const unsavedCount = Object.keys(unsavedChanges).length;
+
+  if (loading && students.length === 0) {
+    // Only show skeleton on initial load or if no data
     return <AttendanceManagerSkeleton />;
   }
+
   return (
     <div className="space-y-6 pb-8">
       {/* Header Section */}
@@ -362,6 +389,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                   <SelectContent>
                     <SelectItem value="name-asc">Name (A-Z)</SelectItem>
                     <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                    {/* Status sorting might behave oddly if mixing server/local state, but passing to API is correct */}
                     <SelectItem value="status">Status</SelectItem>
                   </SelectContent>
                 </Select>
@@ -385,7 +413,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white w-full sm:w-40 font-semibold px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                     >
                       <Save className="w-4 h-4" />
-                      {isSubmitting ? "Saving..." : "Save Changes"}
+                      {isSubmitting ? "Saving..." : `Save Changes ${unsavedCount > 0 ? `(${unsavedCount})` : ''}`}
                     </Button>
                   ) : (
                     <div className="flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-200">
@@ -417,9 +445,14 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
-                {sortedAndFilteredStudents.map((student, index) => {
-                  const record = attendanceMap[student.id] || {
+                {students.map((student, index) => {
+                  // Merge: Unsaved > Server > Default
+                  const unsaved = unsavedChanges[student.id];
+                  const server = serverAttendanceMap[student.id];
+                  const record = unsaved || server || {
+                    studentId: student.id,
                     type: "PRESENT",
+                    description: ""
                   };
 
                   return (
@@ -430,12 +463,12 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       <td className="px-6 lg:px-8 py-5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[#3B82F6] text-white flex items-center justify-center font-semibold text-sm">
-                            {index + 1}
+                            {/* Adjust index for pagination */}
+                            {(currentPage * ITEMS_PER_PAGE) + index + 1}
                           </div>
                           <span className="font-semibold text-[#111827]">
-                            {student.name.split(" ").length > 0
-                              ? `${student.name.split(" ")[0]} ${student.name.split(" ")[1]?.[0] ?? ""}`
-                              : student.name}
+                            {student.name}
+                            {unsaved && <span className="ml-2 text-xs text-amber-600 font-normal">(Edited)</span>}
                           </span>
                         </div>
                       </td>
@@ -490,9 +523,9 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                       </td>
                       <td className="px-6 lg:px-8 py-5">
                         {isValidDate &&
-                        record.type !== "ALPHA" &&
-                        record.type !== "PRESENT" &&
-                        record.type !== "LATE" ? (
+                          record.type !== "ALPHA" &&
+                          record.type !== "PRESENT" &&
+                          record.type !== "LATE" ? (
                           <Input
                             placeholder="Add optional description..."
                             value={record.description || ""}
@@ -516,7 +549,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                     </tr>
                   );
                 })}
-                {students.length === 0 && (
+                {students.length === 0 && !loading && (
                   <tr>
                     <td colSpan={3} className="px-8 py-16">
                       <div className="text-center space-y-3">
@@ -537,8 +570,14 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
           {/* Mobile Card View */}
           <div className="sm:hidden divide-y divide-[#E5E7EB]">
-            {sortedAndFilteredStudents.map((student, index) => {
-              const record = attendanceMap[student.id] || { type: "PRESENT" };
+            {students.map((student, index) => {
+              const unsaved = unsavedChanges[student.id];
+              const server = serverAttendanceMap[student.id];
+              const record = unsaved || server || {
+                studentId: student.id,
+                type: "PRESENT",
+                description: ""
+              };
 
               return (
                 <div
@@ -548,11 +587,12 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-[#3B82F6] text-white flex items-center justify-center font-semibold text-xs">
-                        {index + 1}
+                        {(currentPage * ITEMS_PER_PAGE) + index + 1}
                       </div>
                       <span className="font-semibold text-[#111827] text-sm truncate">
                         {student.name}
                       </span>
+                      {unsaved && <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">Edited</span>}
                     </div>
 
                     {isValidDate && (
@@ -596,8 +636,8 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
                     <div className="col-span-2 pt-2">
                       {isValidDate &&
-                      record.type !== "ALPHA" &&
-                      record.type !== "PRESENT" ? (
+                        record.type !== "ALPHA" &&
+                        record.type !== "PRESENT" ? (
                         <Input
                           placeholder="Add note..."
                           value={record.description || ""}
@@ -621,7 +661,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
               );
             })}
 
-            {students.length === 0 && (
+            {students.length === 0 && !loading && (
               <div className="p-8">
                 <div className="text-center space-y-3">
                   <Users className="w-12 h-12 text-gray-300 mx-auto" />

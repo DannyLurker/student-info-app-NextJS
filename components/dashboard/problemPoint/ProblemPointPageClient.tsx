@@ -15,7 +15,7 @@ const ProblemPointPageClient = ({ session }: ProblemPointPageClientProps) => {
   const [manageModalOpen, setManageModalOpen] = useState(false);
 
   return (
-    <div className="min-h-[80vh] w-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[80vh] w-full flex flex-col items-center justify-center p-4 relative overflow-hidden mt-20 md:mt-0">
       {/* Content */}
       <div className="relative z-10 w-full max-w-4xl">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
