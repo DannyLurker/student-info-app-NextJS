@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { ClipboardList, BarChart3, Users } from "lucide-react";
-import AttendanceManagerModal from "./AttendanceManagerModal";
-import StudentAttendanceSummaryModal from "./StudentAttendanceSummaryModal";
+import AttendanceManagerModal from "../../attendance/AttendanceManagerModal";
+import AttendanceSummaryModal from "../../attendance/AttendanceSummaryModal";
 import { Session } from "@/lib/types/session";
 
 interface ClassroomContentProps {
@@ -81,7 +81,7 @@ const ClassroomContent = ({ session }: ClassroomContentProps) => {
         onOpenChange={setIsAttendanceModalOpen}
         session={session}
       />
-      <StudentAttendanceSummaryModal
+      <AttendanceSummaryModal
         isOpen={isSummaryModalOpen}
         onOpenChange={setIsSummaryModalOpen}
         session={session}

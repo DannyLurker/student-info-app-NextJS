@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import AttendanceManager from "../../attendance/AttendanceManager";
+import AttendanceManager from "./AttendanceManager";
 import { Button } from "@/components/ui/button";
 import { Session } from "@/lib/types/session";
 

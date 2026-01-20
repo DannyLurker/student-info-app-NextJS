@@ -1,23 +1,45 @@
-import { badRequest, handleError, notFound } from "@/lib/errors";
+import { badRequest, forbidden, handleError, notFound } from "@/lib/errors";
 import { prisma } from "@/prisma/prisma";
 import hashing from "@/lib/utils/hashing";
-import { zodStudentSignUp } from "@/lib/utils/zodSchema";
+import { studentSignUpSchema } from "@/lib/utils/zodSchema";
 import { subjects } from "@/lib/utils/subjects";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
+import { isStaffRole } from "@/lib/constants/roles";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const data = zodStudentSignUp.parse(body);
+    const data = studentSignUpSchema.parse(body);
 
-    let parentAccount;
+    let parentAccount: {
+      email: string;
+      password: string;
+    } = {
+      email: "",
+      password: "",
+    };
+
+    // Staff are users authorized to create student and teacher accounts.
+    // Valid staff roles: "PRINCIPAL" and "VICE_PRINCIPAL".
+    const staff = await prisma.teacher.findUnique({
+      where: {
+        id: data.creatorId,
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!staff) {
+      throw badRequest("User not found");
+    }
+
+    if (!isStaffRole(staff?.role)) {
+      throw forbidden("You're not allowed");
+    }
 
     await prisma.$transaction(async (tx) => {
-      if (data.password !== data.confirmPassword) {
-        throw badRequest("Passwords do not match");
-      }
-
       const existingStudent = await tx.student.findUnique({
         where: { email: data.email },
       });
@@ -26,13 +48,13 @@ export async function POST(req: Request) {
         throw badRequest("Email already registered");
       }
 
-      const hashedPassword = await hashing(data.password);
+      const hashedPassword = await hashing(data.PasswordSchema.password);
 
       const homeroomClass = await tx.homeroomClass.findFirst({
         where: {
-          grade: data.grade,
-          major: data.major,
-          classNumber: data.classNumber,
+          grade: data.ClassSchema.grade,
+          major: data.ClassSchema.major,
+          classNumber: data.ClassSchema.classNumber,
         },
         select: {
           teacherId: true,
@@ -48,9 +70,9 @@ export async function POST(req: Request) {
           name: data.username,
           email: data.email,
           password: hashedPassword,
-          grade: data.grade,
-          major: data.major,
-          classNumber: data.classNumber,
+          grade: data.ClassSchema.grade,
+          major: data.ClassSchema.major,
+          classNumber: data.ClassSchema.classNumber,
           isVerified: true,
           homeroomTeacherId: homeroomClass?.teacherId as string,
           role: data.role,
@@ -58,19 +80,16 @@ export async function POST(req: Request) {
         select: {
           id: true,
           name: true,
-          email: true,
-          grade: true,
-          major: true,
-          createdAt: true,
         },
       });
 
       // Get subject list based on grade and major
-      const subjectsList = subjects[data.grade]?.major?.[data.major] ?? [];
+      const subjectsList =
+        subjects[data.ClassSchema.grade]?.major?.[data.ClassSchema.major] ?? [];
 
       if (subjectsList.length === 0) {
         throw badRequest(
-          "Subject configuration not found for this grade and major"
+          "Subject configuration not found for this grade and major",
         );
       }
 
@@ -81,85 +100,76 @@ export async function POST(req: Request) {
             where: { subjectName },
             update: {},
             create: { subjectName },
+            select: {
+              id: true,
+            },
           });
           return subject;
-        })
+        }),
       );
 
-      // Connect subjects to student
+      //Upsert all subjectmMark
+      const today = new Date();
+      // We only have 2 semsesters. In DB we describe as "FIRST" and "SECOND"
+      const currentSemester = getSemester(today) === 1 ? "FIRST" : "SECOND";
+
+      const subjectMarkRecords = await Promise.all(
+        subjectsList.map(async (subjectName) => {
+          const subjectMark = await tx.subjectMark.createMany({
+            data: {
+              studentId: student.id,
+              subjectName: subjectName,
+              academicYear: String(new Date().getFullYear()),
+              semester: currentSemester,
+            },
+            skipDuplicates: true,
+          });
+          return subjectMark;
+        }),
+      );
+
+      const academicYear = String(new Date().getFullYear());
+
+      const createdMarks = await tx.subjectMark.findMany({
+        where: {
+          studentId: student.id,
+          academicYear,
+          semester: currentSemester,
+        },
+        select: { id: true },
+      });
+
+      // Connect subjectMark to student
       await tx.student.update({
         where: { id: student.id },
         data: {
           studentSubjects: {
             connect: subjectRecords.map((s) => ({ id: s.id })),
           },
-        },
-        include: {
-          studentSubjects: true,
-        },
-      });
-
-      //Upsert all subjectmMark
-      const today = new Date();
-      const currentSemester = getSemester(today);
-
-      const subjectMarkRecords = await Promise.all(
-        subjectsList.map(async (subjectName) => {
-          const subjectMark = await tx.subjectMark.upsert({
-            where: {
-              studentId_subjectName_academicYear_semester: {
-                studentId: student.id,
-                subjectName: subjectName,
-                academicYear: String(new Date().getFullYear()),
-                semester: currentSemester === 1 ? "FIRST" : "SECOND",
-              },
-            },
-            update: {},
-            create: {
-              studentId: student.id,
-              subjectName: subjectName,
-              academicYear: String(new Date().getFullYear()),
-              semester: currentSemester === 1 ? "FIRST" : "SECOND",
-            },
-          });
-          return subjectMark;
-        })
-      );
-
-      // Connect subjectMark to student
-      await tx.student.update({
-        where: { id: student.id },
-        data: {
           subjectMarks: {
-            connect: subjectMarkRecords.map((subjectMark) => ({
-              id: subjectMark.id,
-            })),
+            connect: createdMarks.map((m) => ({ id: m.id })),
           },
-        },
-        include: {
-          subjectMarks: true,
         },
       });
 
       const rawRandomPassword = crypto.randomBytes(8).toString("hex");
       const hashRandomPassword = await hashing(rawRandomPassword);
 
-      await tx.parent.upsert({
-        where: {
-          studentId: student.id,
-        },
-        update: {},
-        create: {
+      await tx.parent.create({
+        data: {
           email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
           name: `${student.name}'s Parents`,
           password: hashRandomPassword,
           role: "PARENT",
           studentId: student.id,
         },
+        select: {},
       });
 
+      const parentAccountEmail = `${student.name.trim().toLowerCase().replaceAll(" ", "")}${student.id.slice(0, 4)}parentaccount@gmail.com`;
+
       parentAccount = {
-        email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
+        email: parentAccountEmail,
         password: rawRandomPassword,
       };
     });
@@ -171,7 +181,7 @@ export async function POST(req: Request) {
           parentAccount: parentAccount,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("API_ERROR", {

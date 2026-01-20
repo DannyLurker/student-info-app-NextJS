@@ -48,25 +48,31 @@ const TeachingAssignmentInput = z.object({
   classNumber: ClassNumberEnum,
 });
 
-const ClassInfoSchema = z.object({
+const ClassSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
   classNumber: ClassNumberEnum,
 });
 
+const PasswordSchema = z
+  .object({
+    password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
+    confirmPassword: z
+      .string()
+      .min(8, { message: "Must be 8 characters at minimum" }),
+  })
+  .refine((data) => data.password !== data.confirmPassword, {
+    message: "Passwords don't match",
+  });
+
 // Main schemas
 // AUTH
-const zodStudentSignUp = z.object({
+const studentSignUpSchema = z.object({
+  creatorId: z.string({ message: "Must be 3 characters at minimum" }),
   username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
   email: z.string().email({ message: "Please input a correct format" }),
-  password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
-  confirmPassword: z
-    .string()
-    .min(8, { message: "Must be 8 characters at minimum" }),
-
-  grade: GradeEnum,
-  major: MajorEnum,
-  classNumber: ClassNumberEnum,
+  PasswordSchema,
+  ClassSchema,
   role: StudentRoleEnum,
 });
 
@@ -78,11 +84,11 @@ const zodTeacherSignUp = z.object({
     .string()
     .min(8, { message: "Must be 8 characters at minimum" }),
 
-  homeroomClass: ClassInfoSchema.optional(),
+  homeroomClass: ClassSchema.optional(),
 
   teachingAssignment: z.array(TeachingAssignmentInput).optional(),
 
-  teachingClasses: z.array(ClassInfoSchema).optional(),
+  teachingClasses: z.array(ClassSchema).optional(),
 });
 
 const zodForgotPassword = z.object({
@@ -100,7 +106,7 @@ const zodResetPassword = z.object({
     .min(8, { message: "Must be 8 characters at minimum" }),
 });
 
-type StudentSignUpInput = z.infer<typeof zodStudentSignUp>;
+type StudentSignUpSchema = z.infer<typeof studentSignUpSchema>;
 type TeacherSignUpInput = z.infer<typeof zodTeacherSignUp>;
 type EmailSchema = z.infer<typeof zodForgotPassword>;
 type ResetPasswordSchema = z.infer<typeof zodResetPassword>;
@@ -206,7 +212,7 @@ const DescriptionSchema = z.object({
 
 const markColumn = z.object({
   teacherId: z.string({ message: "Must be filled" }),
-  class: ClassInfoSchema,
+  class: ClassSchema,
   subjectId: z.number({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
   assessmentType: AssessmentType,
@@ -237,7 +243,7 @@ type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
   classParams,
-  zodStudentSignUp,
+  studentSignUpSchema,
   zodTeacherSignUp,
   zodForgotPassword,
   zodResetPassword,
@@ -252,7 +258,7 @@ export {
   updateProblemPoint,
   problemPointQuerySchema,
   type ClassParamsSchema,
-  type StudentSignUpInput,
+  type StudentSignUpSchema,
   type TeacherSignUpInput,
   type EmailSchema,
   type ResetPasswordSchema,

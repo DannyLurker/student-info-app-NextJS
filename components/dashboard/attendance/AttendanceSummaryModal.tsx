@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { BarChart3 } from "lucide-react";
-import AttendanceSummary from "../../attendance/AttendanceSummary";
+import AttendanceSummary from "./AttendanceSummary";
 import { Session } from "@/lib/types/session";
 import {
   formatClassNumber,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/utils/labels";
 import { ClassNumber } from "@/lib/constants/class";
 
-interface StudentAttendanceSummaryModalProps {
+interface AttendanceSummaryModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   session: Session;
@@ -26,11 +26,11 @@ interface StudentAttendanceSummaryModalProps {
 
 // Mock data for UI demonstration
 
-const StudentAttendanceSummaryModal = ({
+const AttendanceSummaryModal = ({
   isOpen,
   onOpenChange,
   session,
-}: StudentAttendanceSummaryModalProps) => {
+}: AttendanceSummaryModalProps) => {
   const [homeroomClass, setHomeroomClass] = useState({
     grade: "",
     major: "",
@@ -66,4 +66,4 @@ const StudentAttendanceSummaryModal = ({
   );
 };
 
-export default StudentAttendanceSummaryModal;
+export default AttendanceSummaryModal;

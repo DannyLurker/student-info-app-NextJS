@@ -96,7 +96,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
         {
           headers: { "Content-Type": "multipart/form-data" },
           responseType: "blob",
-        }
+        },
       );
 
       if (res.status === 200) {
@@ -139,14 +139,14 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
     try {
       const res = await axios.post(
         "/api/auth/account/single/student-account",
-        data
+        data,
       );
 
       if (res.status === 200) {
         console.log(res);
 
         toast.success(
-          "Student account created successfully. Check the parent account above."
+          "Student account created successfully. Check the parent account above.",
         );
 
         setIsSuccess(true);
@@ -179,7 +179,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Something went wrong. Try again."
+        err.response?.data?.message || "Something went wrong. Try again.",
       );
       toast.error("Something went wrong. Read the message above.");
     } finally {

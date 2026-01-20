@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
     if (ipRequestCount > IP_RATE_LIMIT) {
       throw tooManyRequest(
-        "Requested OTP too many times. Please try again later."
+        "Requested OTP too many times. Please try again later.",
       );
     }
 
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     if (!user) {
       return Response.json(
         { message: "If the email exists, an OTP has been sent." },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
 
     if (lastReset) {
       throw tooManyRequest(
-        "Too many password reset attempts. Please try again later."
+        "Too many password reset attempts. Please try again later.",
       );
     }
 
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
 
     if (otpRequestCount > OTP_RATE_LIMIT) {
       throw tooManyRequest(
-        "Requested OTP too many times. Please try again later."
+        "Requested OTP too many times. Please try again later.",
       );
     }
 
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
         resetToken: rawResetToken,
         currentYear: new Date().getFullYear(),
         currentTime: new Date(),
-      })
+      }),
     );
 
     await sendEmail({
@@ -138,12 +138,12 @@ export async function POST(req: Request) {
         userId: user.id,
         otpHash: hashedOtp,
       }),
-      { EX: TOKEN_TTL } // 15 menit
+      { EX: TOKEN_TTL }, // 15 menit
     );
 
     return Response.json(
       { message: "If the email exists, an OTP has been sent." },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("API_ERROR", {
