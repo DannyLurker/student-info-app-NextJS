@@ -10,51 +10,59 @@ generator client {
 
 // enum
 enum StaffRole {
-    teacher
-    vicePrincipal
-    principal
+    TEACHER
+    VICE_PRINCIPAL
+    PRINCIPAL
 }
 
 enum StudentRole {
-    student
+    STUDENT
+    CLASS_SECRETARY
+}
+
+enum Outsider {
+    PARENT
 }
 
 enum Grade {
-    tenth
-    eleventh
-    twelfth
+    TENTH
+    ELEVENTH
+    TWELFTH
 }
 
 enum Major {
-    accounting
-    softwareEngineering
+    ACCOUNTING
+    SOFTWARE_ENGINEERING
 }
 
 enum Semester {
-    first
-    second
+    FIRST
+    SECOND
 }
 
 enum AssessmentType {
-    schoolwork
-    homework
-    quiz
-    exam
-    project
-    group
+    SCHOOLWORK
+    HOMEWORK
+    QUIZ
+    EXAM
+    PROJECT
+    GROUP
 }
 
-enum problemPointCategory {
-    discipline
-    academic
-    social
-    other
+enum ProblemPointCategory {
+    LATE
+    INCOMPLETE_ATTRIBUTES
+    DISCIPLINE
+    ACADEMIC
+    SOCIAL
+    OTHER
 }
 
 enum AttendanceType {
-    absent
-    sick
-    permission
+    LATE
+    ALPHA
+    SICK
+    PERMISSION
 }
 
 // student model
@@ -66,13 +74,13 @@ model Student {
     emailVerified DateTime?
     isVerified    Boolean
     sessions      StudentSession[]
-    role          StudentRole      @default(student)
+    role          StudentRole      @default(STUDENT)
 
-    grade           Grade
-    major           Major
-    classNumber     String?
-    teacherId       String
-    homeroomTeacher Teacher @relation(fields: [teacherId], references: [id])
+    grade             Grade
+    major             Major
+    classNumber       String
+    homeroomTeacherId String
+    homeroomTeacher   Teacher @relation(fields: [homeroomTeacherId], references: [id])
 
     studentSubjects Subject[]           @relation("SubjectStudents")
     subjectMarks    SubjectMark[]
@@ -87,11 +95,15 @@ model Student {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    parent    Parent?
+
+    @@index([email])
 }
 
 model SubjectMark {
     id           Int      @id @default(autoincrement())
     subjectName  String
+    subject      Subject  @relation(fields: [subjectName], references: [subjectName])
     studentId    String
     student      Student  @relation(fields: [studentId], references: [id])
     academicYear String
@@ -100,6 +112,9 @@ model SubjectMark {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@unique([studentId, subjectName, academicYear, semester])
+    @@index([studentId])
 }
 
 model Mark {
@@ -107,20 +122,24 @@ model Mark {
     subjectMarkId Int
     subjectMark   SubjectMark @relation(fields: [subjectMarkId], references: [id])
 
-    type          AssessmentType
-    number        Int
-    descriptionId Int
-    description   MarkDescription @relation(fields: [descriptionId], references: [id])
+    type             AssessmentType
+    score            Int?
+    assessmentNumber Int
+    descriptionId    Int
+    description      MarkDescription @relation(fields: [descriptionId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@unique([subjectMarkId, assessmentNumber])
+    @@index([subjectMarkId])
 }
 
 model MarkDescription {
-    id          Int      @id @default(autoincrement())
-    givenAt     DateTime @default(now())
-    dueAt       DateTime
-    submittedAt DateTime
+    id      Int      @id @default(autoincrement())
+    givenAt DateTime @default(now())
+    dueAt   DateTime
+    detail  String
 
     marks Mark[]
 }
@@ -130,9 +149,12 @@ model StudentAttendance {
     studentId String
     student   Student @relation(fields: [studentId], references: [id])
 
-    date        DateTime
+    date        DateTime       @default(now())
     type        AttendanceType
     description String?
+
+    @@unique([studentId, date])
+    @@index([studentId])
 }
 
 model ProblemPoint {
@@ -141,22 +163,24 @@ model ProblemPoint {
     student   Student @relation(fields: [studentId], references: [id])
 
     point       Int
-    category    problemPointCategory
+    category    ProblemPointCategory
     description String
     recordedBy  String
     teacher     Teacher              @relation(fields: [recordedBy], references: [id])
-    date        DateTime
+    date        DateTime             @db.Date
+
+    @@index([studentId])
 }
 
 // teacher model
 
 model Teacher {
     id       String @id @default(cuid())
-    name     String @unique
+    name     String
     email    String @unique
     password String
 
-    role StaffRole
+    role StaffRole @default(TEACHER)
 
     homeroomClass HomeroomClass?
 
@@ -175,13 +199,15 @@ model Teacher {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([email])
 }
 
 model TeachingClass {
-    id          Int     @id @default(autoincrement())
+    id          Int    @id @default(autoincrement())
     grade       Grade
     major       Major
-    classNumber String?
+    classNumber String @default("none")
 
     teachers Teacher[]
 
@@ -192,7 +218,7 @@ model HomeroomClass {
     id          Int     @id @default(autoincrement())
     grade       Grade
     major       Major
-    classNumber String?
+    classNumber String  @default("none")
     teacherId   String  @unique
     teacher     Teacher @relation(fields: [teacherId], references: [id])
 
@@ -208,11 +234,24 @@ model TeachingAssignment {
     subject   Subject @relation(fields: [subjectId], references: [id])
     subjectId Int
 
-    grade       Grade
-    major       Major
-    classNumber String?
+    grade                    Grade
+    major                    Major
+    classNumber              String @default("none")
+    totalAssignmentsAssigned Int    @default(0)
 
     @@unique([teacherId, subjectId, grade, major, classNumber])
+    @@index([teacherId])
+}
+
+// Parent model
+model Parent {
+    id        String   @id @default(cuid())
+    email     String   @unique
+    password  String
+    name      String
+    role      Outsider @default(PARENT)
+    studentId String   @unique
+    student   Student  @relation(fields: [studentId], references: [id])
 }
 
 // General
@@ -244,6 +283,7 @@ model Subject {
     students Student[] @relation("SubjectStudents")
 
     teachingAssignments TeachingAssignment[]
+    subjectMarks        SubjectMark[]
 }
 
 model VerificationToken {

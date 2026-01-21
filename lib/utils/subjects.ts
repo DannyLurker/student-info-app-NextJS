@@ -1,8 +1,8 @@
-const subjects = {
-  tenth: {
+export const subjects = {
+  TENTH: {
     major: {
-      accounting: [
-        "fundamentals_of_fluency",
+      ACCOUNTING: [
+        "fundamentals_of_fluency_accounting",
         "english",
         "civic_education",
         "math",
@@ -16,11 +16,11 @@ const subjects = {
         "fundamentals_of_science_and_social",
         "mandarin",
       ],
-      softwareEngineering: [
+      SOFTWARE_ENGINEERING: [
         "math",
         "english",
         "mandarin",
-        "fundamentals_of_fluency",
+        "fundamentals_of_fluency_swe",
         "civic_education",
         "physical_education",
         "religion",
@@ -33,12 +33,12 @@ const subjects = {
       ],
     },
   },
-  eleventh: {
+  ELEVENTH: {
     major: {
-      accounting: [
+      ACCOUNTING: [
         "indonesian",
         "ap",
-        "creative_entrepreneurial_products",
+        "creative_entrepreneurial_products_accounting",
         "english",
         "physical_education",
         "history",
@@ -54,7 +54,7 @@ const subjects = {
         "microsoft",
         "taxation",
       ],
-      softwareEngineering: [
+      SOFTWARE_ENGINEERING: [
         "math",
         "english",
         "mandarin",
@@ -68,14 +68,14 @@ const subjects = {
         "history",
         "conversation",
         "indonesian",
-        "creative_entrepreneurial_products",
+        "creative_entrepreneurial_products_swe",
         "microsoft",
       ],
     },
   },
-  twelfth: {
+  TWELFTH: {
     major: {
-      accounting: [
+      ACCOUNTING: [
         "ap",
         "computerized_accounting",
         "indonesian",
@@ -89,8 +89,8 @@ const subjects = {
         "math",
         "religion",
       ],
-      softwareEngineering: [
-        "creative_entrepreneurial_products",
+      SOFTWARE_ENGINEERING: [
+        "creative_entrepreneurial_products_swe",
         "oop",
         "database",
         "web",
@@ -106,4 +106,24 @@ const subjects = {
   },
 };
 
-export default subjects;
+export const subjectCategories = {
+  SOFTWARE_ENGINEERING: [
+    "web",
+    "database",
+    "oop",
+    "mobile",
+    "fundamentals_of_fluency_swe",
+    "creative_entrepreneurial_products_swe",
+  ],
+
+  ACCOUNTING: [
+    "ap",
+    "computerized_accounting",
+    "financial_accounting",
+    "banking",
+    "taxation",
+    "fundamentals_of_fluency_accounting",
+    "creative_entrepreneurial_products_accounting",
+    "pal",
+  ],
+};

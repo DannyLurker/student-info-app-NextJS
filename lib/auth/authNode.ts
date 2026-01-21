@@ -2,11 +2,13 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
+import { isStudentRole, isTeacherRole, Role } from "@/lib/constants/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  debug: false,
   pages: {
     signIn: "/sign-in",
   },
@@ -25,19 +27,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         let user;
+        let isHomeroomClassTeacher;
 
         user = await prisma.student.findUnique({
           where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            homeroomTeacherId: true,
+            password: true,
+          },
         });
 
         if (!user) {
           user = await prisma.teacher.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              password: true,
+            },
+          });
+        }
+
+        if (!user) {
+          user = await prisma.parent.findUnique({
             where: { email },
           });
         }
 
         if (!user) {
           throw new Error("User not found");
+        }
+
+        if (user.role === "TEACHER") {
+          isHomeroomClassTeacher = await prisma.homeroomClass.findUnique({
+            where: {
+              teacherId: user.id,
+            },
+            select: {
+              teacherId: true,
+            },
+          });
         }
 
         // cek password
@@ -48,9 +83,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         return {
+          id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          homeroomTeacherId: isStudentRole(user.role)
+            ? (user as { homeroomTeacherId: string }).homeroomTeacherId
+            : null,
+          isHomeroomClassTeacher: isHomeroomClassTeacher ? true : false,
         };
       },
     }),
@@ -59,14 +99,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Callback JWT - menambahkan role ke token
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
+
+        if (isStudentRole(user.role)) {
+          token.homeroomTeacherId = user.homeroomTeacherId;
+        }
+
+        if (isTeacherRole(user.role)) {
+          token.isHomeroomClassTeacher = user.isHomeroomClassTeacher;
+        }
       }
+
       return token;
     },
-    // Callback Session - menambahkan role ke session
+    // Callback Session - menambahkan property ke session
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role as string;
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+      }
+      if (isStudentRole(session.user.role)) {
+        session.user.homeroomTeacherId = token.homeroomTeacherId as string;
+      } else {
+        session.user.homeroomTeacherId = null;
+      }
+
+      if (isTeacherRole(session.user.role)) {
+        session.user.isHomeroomClassTeacher =
+          token.isHomeroomClassTeacher as boolean;
       }
       return session;
     },

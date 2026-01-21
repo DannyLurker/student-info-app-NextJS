@@ -4,42 +4,119 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("YOUR_SUPER_SECRET_PASSWORD", 12);
+  const passwordHash = await bcrypt.hash("Test@12345", 12);
 
-  await prisma.teacher.upsert({
-    where: { email: "anothergoat@gmail.com" },
+  console.log("Starting database seeding...");
+
+  // 1. Create Principal
+  const principal = await prisma.teacher.upsert({
+    where: { email: "principal@test.com" },
     update: {},
     create: {
-      name: "WhoIsHer",
-      email: "anothergoat@gmail.com",
+      name: "Test Principal",
+      email: "principal@test.com",
       password: passwordHash,
-      role: "teacher",
+      role: "PRINCIPAL",
+    },
+  });
+  console.log("✓ Created Principal:", principal.email);
+
+  // 2. Create Vice Principal
+  const vicePrincipal = await prisma.teacher.upsert({
+    where: { email: "viceprincipal@test.com" },
+    update: {},
+    create: {
+      name: "Test Vice Principal",
+      email: "viceprincipal@test.com",
+      password: passwordHash,
+      role: "VICE_PRINCIPAL",
+    },
+  });
+  console.log("✓ Created Vice Principal:", vicePrincipal.email);
+
+  // 3. Create Teacher with Homeroom Class
+  const teacher = await prisma.teacher.upsert({
+    where: { email: "teacher@test.com" },
+    update: {},
+    create: {
+      name: "Test Teacher",
+      email: "teacher@test.com",
+      password: passwordHash,
+      role: "TEACHER",
       homeroomClass: {
         create: {
-          grade: "eleventh",
-          major: "softwareEngineering",
-          classNumber: null,
+          grade: "ELEVENTH",
+          major: "SOFTWARE_ENGINEERING",
+          classNumber: "none",
         },
       },
     },
   });
+  console.log("✓ Created Teacher:", teacher.email);
 
-  await prisma.student.upsert({
-    where: { email: "thegoat@gmail.com" },
+  // 4. Create Class Secretary (Student with special role)
+  const secretary = await prisma.student.upsert({
+    where: { email: "secretary@test.com" },
     update: {},
     create: {
-      name: "WhoIsHim?",
-      email: "thegoat@gmail.com",
+      name: "Test Class Secretary",
+      email: "secretary@test.com",
       password: passwordHash,
-      role: "student",
-      grade: "eleventh",
-      major: "softwareEngineering",
+      role: "CLASS_SECRETARY",
+      grade: "ELEVENTH",
+      major: "SOFTWARE_ENGINEERING",
+      classNumber: "none",
       isVerified: true,
-      teacherId: "cmiit3zb70000uqy06lc8kdmt",
+      homeroomTeacherId: teacher.id,
     },
   });
+  console.log("✓ Created Class Secretary:", secretary.email);
 
-  console.log("Succesfully seeded");
+  // 5. Create Regular Student
+  const student = await prisma.student.upsert({
+    where: { email: "student@test.com" },
+    update: {},
+    create: {
+      name: "Test Student",
+      email: "student@test.com",
+      password: passwordHash,
+      role: "STUDENT",
+      grade: "ELEVENTH",
+      major: "SOFTWARE_ENGINEERING",
+      classNumber: "none",
+      isVerified: true,
+      homeroomTeacherId: teacher.id,
+    },
+  });
+  console.log("✓ Created Student:", student.email);
+
+  //6. Create parent Parent account
+
+  const parent = await prisma.parent.upsert({
+    where: { studentId: student.id },
+    update: {},
+    create: {
+      name: `${student.name}'s parents`,
+      role: "PARENT",
+      password: passwordHash,
+      email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@test.com`,
+      studentId: student.id,
+    },
+  });
+  console.log("✓ Created Parent:", parent.email);
+
+  console.log("\n Successfully seeded database!");
+  0;
+
+  console.log("\n Test Accounts (Password: Test@12345):");
+  console.log("   - Principal: principal@test.com");
+  console.log("   - Vice Principal: viceprincipal@test.com");
+  console.log("   - Teacher: teacher@test.com");
+  console.log("   - Class Secretary: secretary@test.com");
+  console.log("   - Student: student@test.com");
+  console.log(
+    `   - Parent: ${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@test.com`
+  );
 }
 
 main()
