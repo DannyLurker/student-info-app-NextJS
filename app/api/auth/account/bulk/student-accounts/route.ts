@@ -1,11 +1,15 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { subjects } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";
 import { Grade, GRADES, Major, MAJORS } from "@/lib/constants/class";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
+import {
+  ALLOWED_EXTENSIONS,
+  AllowedExtensions,
+} from "@/lib/constants/allowedExtensions";
 interface StudentRow {
   username: string;
   email: string;
@@ -27,6 +31,15 @@ export async function POST(req: Request) {
 
     if (!file) {
       throw badRequest("No file uploaded");
+    }
+
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
+    if (
+      !extension ||
+      !ALLOWED_EXTENSIONS.includes(extension as AllowedExtensions)
+    ) {
+      throw badRequest("Please upload an Excel file (.xlsx or .xls)");
     }
 
     // Read Excel file
@@ -88,7 +101,7 @@ export async function POST(req: Request) {
               classNumber: row.classNumber,
             },
             select: {
-              teacherId: true,
+              id: true,
             },
           });
 
@@ -106,7 +119,7 @@ export async function POST(req: Request) {
               major: row.major,
               classNumber: row.classNumber as string,
               isVerified: true,
-              homeroomTeacherId: homeroomClass.teacherId,
+              homeroomClassId: homeroomClass.id,
             },
             select: {
               id: true,

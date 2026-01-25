@@ -1,5 +1,5 @@
 import { badRequest, handleError } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { zodTeacherSignUp, TeacherSignUpInput } from "@/lib/utils/zodSchema";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
           const classNumber = formatClassNumber(data.homeroomClass.classNumber);
 
           throw badRequest(
-            `There is already a homeroom teacher in ${grade}-${major} ${classNumber}`
+            `There is already a homeroom teacher in ${grade}-${major} ${classNumber}`,
           );
         }
 
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
             (tc) =>
               tc.grade === ta.grade &&
               tc.major === ta.major &&
-              tc.classNumber === ta.classNumber
+              tc.classNumber === ta.classNumber,
           );
 
           if (!matchingClass) {
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
             const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
-              `Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
+              `Teaching Assignment mismatch! You have an assignment for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`,
             );
           }
         }
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
             (ta) =>
               ta.major === tc.major &&
               ta.grade === tc.grade &&
-              ta.classNumber === tc.classNumber
+              ta.classNumber === tc.classNumber,
           );
 
           if (!matchingAssignments) {
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
             const classNumber = formatClassNumber(tc.classNumber);
 
             throw badRequest(
-              `Teaching Classes mismatch! You have a teaching class for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assignments list. Please add it to Teaching Assignments also.`
+              `Teaching Classes mismatch! You have a teaching class for ${grade}-${major} ${classNumber}, but this class is not in your Teaching Assignments list. Please add it to Teaching Assignments also.`,
             );
           }
         }
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
             const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
-              `Subject mismatch! The subject "${ta.subjectName}" is not available for ${grade}-${major} ${classNumber}. Please check the curriculum.`
+              `Subject mismatch! The subject "${ta.subjectName}" is not available for ${grade}-${major} ${classNumber}. Please check the curriculum.`,
             );
           }
         }
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
             const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
-              `Duplicate assignment detected! You cannot teach "${ta.subjectName}" more than once in ${grade}-${major} ${classNumber}.`
+              `Duplicate assignment detected! You cannot teach "${ta.subjectName}" more than once in ${grade}-${major} ${classNumber}.`,
             );
           }
           assignmentKeys.add(key);
@@ -177,7 +177,7 @@ export async function POST(req: Request) {
             const classNumber = formatClassNumber(ta.classNumber);
 
             throw badRequest(
-              `Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${ta.subjectName}" in ${grade}-${major} ${classNumber}.`
+              `Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${ta.subjectName}" in ${grade}-${major} ${classNumber}.`,
             );
           }
         }
@@ -200,7 +200,7 @@ export async function POST(req: Request) {
                 classNumber: teachingClass.classNumber,
               },
             });
-          })
+          }),
         );
 
         await tx.teacher.update({
@@ -224,7 +224,7 @@ export async function POST(req: Request) {
               update: {},
               create: { subjectName: assignment.subjectName },
             });
-          })
+          }),
         );
 
         await Promise.all(
@@ -239,7 +239,7 @@ export async function POST(req: Request) {
                 totalAssignmentsAssigned: 0,
               },
             });
-          })
+          }),
         );
       }
     });
@@ -248,7 +248,7 @@ export async function POST(req: Request) {
       {
         message: "Successfully created teacher account",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("API_ERROR", {

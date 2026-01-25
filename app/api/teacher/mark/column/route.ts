@@ -7,7 +7,7 @@ import {
   SUBJECT_DISPLAY_MAP,
 } from "@/lib/utils/labels";
 import { markColumn } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 
 export async function POST(req: Request) {
   try {
@@ -111,4 +111,4 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE(req: Request) {}
+export async function DELETE(req: Request) { }

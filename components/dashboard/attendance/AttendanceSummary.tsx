@@ -20,7 +20,7 @@ import {
 import { abbreviateName } from "@/lib/utils/nameFormatter";
 import { Session } from "@/lib/types/session";
 import axios from "axios";
-import { AttendanceType } from "@/prisma/prisma/src/generated/prisma/enums";
+import { AttendanceType } from "@/db/prisma/src/generated/prisma/enums";
 import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
 import { SortOrder } from "@/lib/constants/sortingAndFilltering";
 

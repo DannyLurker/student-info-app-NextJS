@@ -1,6 +1,6 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
 import { classParams } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import * as XLSX from "xlsx";
 
 export async function GET(req: Request) {

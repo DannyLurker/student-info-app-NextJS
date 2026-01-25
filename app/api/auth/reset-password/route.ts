@@ -3,7 +3,7 @@ import redis from "@/lib/redis";
 import hashing from "@/lib/utils/hashing";
 import { hashResetToken } from "@/lib/utils/hashToken";
 import { ResetPasswordSchema, zodResetPassword } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {

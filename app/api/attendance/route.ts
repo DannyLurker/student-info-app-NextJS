@@ -1,5 +1,5 @@
 import { badRequest, forbidden, handleError, notFound } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
       const semesterNum = getSemester(today);
       throw badRequest(
         `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-          `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
+        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
       );
     }
 

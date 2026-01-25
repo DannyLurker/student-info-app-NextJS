@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/authNode";
 import { getRoleDashboard, isStudentRole } from "@/lib/constants/roles";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import { redirect } from "next/navigation";
 import React from "react";
 import StudentMarkView from "@/components/dashboard/student/mark/StudentMarkView";

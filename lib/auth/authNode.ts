@@ -1,8 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { prisma } from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
 import { isStudentRole, isTeacherRole, Role } from "@/lib/constants/roles";
+import { prisma } from "@/db/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
@@ -36,7 +36,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: true,
             name: true,
             role: true,
-            homeroomTeacherId: true,
             password: true,
           },
         });
@@ -87,9 +86,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          homeroomTeacherId: isStudentRole(user.role)
-            ? (user as { homeroomTeacherId: string }).homeroomTeacherId
-            : null,
           isHomeroomClassTeacher: isHomeroomClassTeacher ? true : false,
         };
       },
@@ -101,10 +97,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
-
-        if (isStudentRole(user.role)) {
-          token.homeroomTeacherId = user.homeroomTeacherId;
-        }
 
         if (isTeacherRole(user.role)) {
           token.isHomeroomClassTeacher = user.isHomeroomClassTeacher;
@@ -118,11 +110,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
-      }
-      if (isStudentRole(session.user.role)) {
-        session.user.homeroomTeacherId = token.homeroomTeacherId as string;
-      } else {
-        session.user.homeroomTeacherId = null;
       }
 
       if (isTeacherRole(session.user.role)) {

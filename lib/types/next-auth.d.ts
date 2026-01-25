@@ -8,7 +8,6 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: Role;
-      homeroomTeacherId: string | null;
       isHomeroomClassTeacher: boolean;
     } & DefaultSession["user"];
   }
@@ -17,7 +16,6 @@ declare module "next-auth" {
     id: string;
     email: string;
     role: Role;
-    homeroomTeacherId: string | null;
     isHomeroomClassTeacher: boolean;
   }
 }
@@ -27,7 +25,6 @@ declare module "next-auth/jwt" {
     id: string;
     email: string;
     role: Role;
-    homeroomTeacherId: string | null;
     isHomeroomClassTeacher: boolean;
   }
 }

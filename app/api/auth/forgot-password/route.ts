@@ -1,6 +1,6 @@
 import { handleError, tooManyRequest } from "@/lib/errors";
 import { zodForgotPassword } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import redis from "@/lib/redis";
 import { sendEmail } from "@/lib/emails/nodeMailer";
 import { render } from "@react-email/render";

@@ -5,7 +5,7 @@ import {
   TAKE_RECORDS,
 } from "@/lib/constants/pagination";
 import { attendanceSummaryQueries } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 
 export async function GET(req: Request) {
   try {

@@ -1,5 +1,5 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 
 export async function GET(req: Request) {
   try {

@@ -21,14 +21,27 @@ import { Upload, UserPlus, FileSpreadsheet, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "../../ui/spinner";
 import { Eye, EyeOff } from "lucide-react";
-
-import { GRADES, CLASSNUMBERS, MAJORS } from "@/lib/constants/class";
+import {
+  GRADES,
+  CLASSNUMBERS,
+  MAJORS,
+  Grade,
+  ClassNumber,
+} from "@/lib/constants/class";
 import {
   MAJOR_DISPLAY_MAP,
   GRADE_DISPLAY_MAP,
   STUDENT_ROLES_MAP,
 } from "@/lib/utils/labels";
-import { STUDENT_ROLES } from "@/lib/constants/roles";
+import { STUDENT_ROLES, StudentRole } from "@/lib/constants/roles";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { StudentSignUpSchema } from "@/lib/utils/zodSchema";
+import { Major } from "@/db/prisma/src/generated/prisma/enums";
+import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import {
+  ALLOWED_EXTENSIONS,
+  AllowedExtensions,
+} from "@/lib/constants/allowedExtensions";
 
 interface StudentFormModalProps {
   open: boolean;
@@ -36,9 +49,7 @@ interface StudentFormModalProps {
 }
 
 const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<string>("");
+  // For handle change
   const [data, setData] = useState({
     username: "",
     email: "",
@@ -49,15 +60,99 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
     classNumber: "",
     studentRole: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [uploadLoading, setUploadLoading] = useState(false);
   const [parentAccountData, setparentAccountData] = useState({
     email: "",
     password: "",
   });
-  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadedFile, setUploadedFile] = useState<string>("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const queryClient = useQueryClient();
+  const singleMutation = useMutation({
+    mutationFn: (studentData: StudentSignUpSchema) => {
+      return axios.post(
+        "/api/auth/account/single/student-account",
+        studentData,
+      );
+    },
+
+    onSuccess: (res) => {
+      toast.success(
+        "Student account created successfully! Check the parent account above",
+      );
+      setparentAccountData({
+        email: res.data.data.parentAccount.email,
+        password: res.data.data.parentAccount.password,
+      });
+
+      // automatic refresh students table in background
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+
+      setData({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        grade: "",
+        major: "",
+        classNumber: "",
+        studentRole: "",
+      });
+    },
+
+    onError: async (err: any) => {
+      const message = await getErrorMessage(err); // Tunggu proses konversi Blob
+      setErrorMessage(message);
+      toast.error("Registration failed. Read the message above");
+    },
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(
+        "/api/auth/account/bulk/student-accounts",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          responseType: "blob", // It's important to get excel file as a response for parent accounts
+        },
+      );
+      return res.data;
+    },
+    onSuccess: (blobData) => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+
+      const url = window.URL.createObjectURL(new Blob([blobData]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "parent-accounts.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Bulk import success! Parent accounts downloaded.");
+
+      setUploadedFile("");
+      if (fileRef.current) fileRef.current.value = "";
+    },
+    onError: async (err) => {
+      const message = await getErrorMessage(err);
+      setErrorMessage(message);
+      toast.error("Registration failed. Read the message above");
+      setUploadedFile("");
+      if (fileRef.current) fileRef.current.value = "";
+    },
+  });
 
   // Reset form when modal closes
   useEffect(() => {
@@ -72,151 +167,64 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
         classNumber: "",
         studentRole: "",
       });
-      setError("");
       setShowPassword(false);
       setShowConfirmPassword(false);
+      singleMutation.reset();
     }
   }, [open]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadedFile(file.name);
-    setUploadLoading(true);
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await axios.post(
-        "/api/auth/account/bulk/student-accounts",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          responseType: "blob",
-        },
-      );
-
-      if (res.status === 200) {
-        // Create a download link and trigger it
-        const blob = new Blob([res.data], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "parent-accounts.xlsx";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        toast.success("Successfully imported students data");
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || "Failed to upload file";
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setUploadLoading(false);
-      if (fileRef.current) fileRef.current.value = "";
-      setUploadedFile("");
-    }
-  };
-
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
-    if (error) setError("");
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
 
-    try {
-      const parseData = {
-        username: data.username,
-        email: data.email,
-        passwordSchema: {
-          password: data.password,
-          confirmPassword: data.confirmPassword,
-        },
-        classSchema: {
-          grade: data.grade,
-          major: data.major,
-          classNumber: data.classNumber,
-        },
-        studentRole: data.studentRole,
-      };
+    const formattedData = {
+      username: data.username,
+      email: data.email,
+      passwordSchema: {
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+      },
+      classSchema: {
+        grade: data.grade as Grade,
+        major: data.major as Major,
+        classNumber: data.classNumber as ClassNumber,
+      },
+      studentRole: data.studentRole as StudentRole,
+    };
 
-      const res = await axios.post(
-        "/api/auth/account/single/student-account",
-        parseData,
-      );
+    singleMutation.mutate(formattedData);
+  };
 
-      console.log(res);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      if (res.status === 200) {
-        console.log(res);
+    const extension = file.name.split(".").pop()?.toLowerCase();
 
-        toast.success(
-          "Student account created successfully. Check the parent account above.",
-        );
-
-        setIsSuccess(true);
-
-        setparentAccountData({
-          email: res.data.data.parentAccount.email,
-          password: res.data.data.parentAccount.password,
-        });
-
-        setTimeout(() => {
-          setparentAccountData({ email: "", password: "" });
-          setIsSuccess(false);
-        }, 60 * 1000);
-
-        setTimeout(() => {
-          setData({
-            username: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-            grade: "",
-            major: "",
-            classNumber: "",
-            studentRole: "",
-          });
-          setError("");
-          setShowPassword(false);
-          setShowConfirmPassword(false);
-        }, 5000);
-      }
-    } catch (err: any) {
-      if (err.response.data.message == "Validation failed") {
-        setError(err.response.data.errors[0].message);
-      } else {
-        setError(
-          err.response?.data?.message || "Something went wrong. Try again.",
-        );
-      }
-      toast.error("Something went wrong. Read the message above.");
-    } finally {
-      setLoading(false);
+    if (
+      !extension ||
+      !ALLOWED_EXTENSIONS.includes(extension as AllowedExtensions)
+    ) {
+      toast.error("Please upload an Excel file (.xlsx or .xls)");
+      return;
     }
+
+    setUploadedFile(file.name);
+    bulkMutation.mutate(file);
   };
 
   return (
     <>
-      {loading && (
+      {singleMutation.isPending && (
         <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
           <Spinner />
         </div>
       )}
 
-      {uploadLoading && (
+      {bulkMutation.isPending && (
         <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
           <Spinner />
         </div>
@@ -231,7 +239,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
             </DialogTitle>
           </DialogHeader>
 
-          {error && (
+          {errorMessage && (
             <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
               <div className="flex items-center">
                 <svg
@@ -245,12 +253,12 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="font-medium">{error}</span>
+                <span className="font-medium">{errorMessage}</span>
               </div>
             </div>
           )}
 
-          {isSuccess && (
+          {singleMutation.isSuccess && (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-md overflow-hidden">
               <div className="bg-green-600 px-6 py-3">
                 <h3 className="text-white font-semibold text-lg flex items-center gap-2">
@@ -422,7 +430,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                     accept=".xlsx, .xls"
                     className="hidden"
                     onChange={handleFileUpload}
-                    disabled={uploadLoading}
+                    disabled={bulkMutation.isPending}
                   />
                 </div>
               </div>
@@ -460,7 +468,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                     type="text"
                     minLength={3}
                     required
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                     onChange={handleChange}
                     value={data.username}
                     className="h-11"
@@ -476,7 +484,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                     placeholder="your.email@example.com"
                     type="email"
                     required
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                     onChange={handleChange}
                     value={data.email}
                     className="h-11"
@@ -490,7 +498,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                   <Select
                     onValueChange={(v) => setData({ ...data, grade: v })}
                     value={data.grade}
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select grade" />
@@ -512,7 +520,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                   <Select
                     onValueChange={(v) => setData({ ...data, major: v })}
                     value={data.major}
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select major" />
@@ -534,7 +542,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                   <Select
                     onValueChange={(v) => setData({ ...data, classNumber: v })}
                     value={data.classNumber}
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select class" />
@@ -556,7 +564,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                   <Select
                     onValueChange={(v) => setData({ ...data, studentRole: v })}
                     value={data.studentRole}
-                    disabled={loading}
+                    disabled={singleMutation.isPending}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select role" />
@@ -582,7 +590,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                       type={showPassword ? "text" : "password"}
                       minLength={8}
                       required
-                      disabled={loading}
+                      disabled={singleMutation.isPending}
                       onChange={handleChange}
                       value={data.password}
                       className="h-11 pr-12"
@@ -612,7 +620,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                       type={showConfirmPassword ? "text" : "password"}
                       minLength={8}
                       required
-                      disabled={loading}
+                      disabled={singleMutation.isPending}
                       onChange={handleChange}
                       value={data.confirmPassword}
                       className="h-11 pr-12"
@@ -636,9 +644,9 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
               <Button
                 className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-lg rounded-xl shadow-lg"
                 type="submit"
-                disabled={loading}
+                disabled={singleMutation.isPending}
               >
-                {loading ? (
+                {singleMutation.isPending ? (
                   <span className="flex items-center justify-center">
                     <svg
                       className="animate-spin h-5 w-5 mr-3"

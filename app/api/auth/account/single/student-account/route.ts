@@ -5,7 +5,7 @@ import {
   notFound,
   unauthorized,
 } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { studentSignUpSchema } from "@/lib/utils/zodSchema";
 import { subjects } from "@/lib/utils/subjects";

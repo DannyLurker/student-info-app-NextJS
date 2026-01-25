@@ -1,6 +1,6 @@
 // app/api/auth/bulk-create-teachers/route.ts
 import { badRequest, handleError } from "@/lib/errors";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { subjects as subjectsData } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";

@@ -1,7 +1,7 @@
 import { handleError, notFound } from "@/lib/errors";
 import { getSemester } from "@/lib/utils/date";
 import { markRecords } from "@/lib/utils/zodSchema";
-import { prisma } from "@/prisma/prisma";
+import { prisma } from "@/db/prisma";
 
 export async function PATCH(req: Request) {
   try {

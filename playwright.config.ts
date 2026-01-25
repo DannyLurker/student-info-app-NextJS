@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { STAFF_STATE } from "./tests/auth.constants";
 
 export default defineConfig({
   testDir: "./tests",
@@ -9,24 +10,34 @@ export default defineConfig({
   reporter: "html",
   use: {
     trace: "on-first-retry",
-    baseURL: "http://localhost:3000", // Your Next.js dev server URL
+    baseURL: "http://localhost:3000",
   },
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "authentication",
+      testMatch: /global\.setup\.ts/,
     },
     {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
+      name: "chromium staff test",
+      use: { ...devices["Desktop Chrome"], storageState: STAFF_STATE },
+      dependencies: ["authentication"],
+      testMatch: /staff\.spec\.ts/,
     },
     {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
+      name: "firefox staff test",
+      use: { ...devices["Desktop Firefox"], storageState: STAFF_STATE },
+      dependencies: ["authentication"],
+      testMatch: /staff\.spec\.ts/,
+    },
+    {
+      name: "webkit staff test",
+      use: { ...devices["Desktop Safari"], storageState: STAFF_STATE },
+      dependencies: ["authentication"],
+      testMatch: /staff\.spec\.ts/,
     },
   ],
   webServer: {
-    command: "npm run dev", // Command to start your Next.js dev server
+    command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
