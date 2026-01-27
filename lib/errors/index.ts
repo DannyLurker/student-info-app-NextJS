@@ -12,5 +12,6 @@ export const unauthorized = (msg: string | "Unauthorized") =>
 export const forbidden = (msg: string | "Forbidden") => new AppError(msg, 403);
 export const tooManyRequest = (msg: string | "Too many requests") =>
   new AppError(msg, 429);
-export const interalServerError = () =>
-  new AppError("Something went wrong. Try it again later", 500);
+export const internalServerError = (
+  msg: string | "Something went wrong. Try it again later",
+) => new AppError(msg, 500);

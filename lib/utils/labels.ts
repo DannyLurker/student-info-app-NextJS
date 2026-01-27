@@ -66,3 +66,11 @@ export function getGradeNumber(grade: Grade): string {
 export function formatClassNumber(classNumber: ClassNumber): string {
   return classNumber === "none" ? "" : classNumber;
 }
+
+export function getFullClassLabel(
+  grade: Grade,
+  major: Major,
+  classNumber: ClassNumber,
+) {
+  return `${getGradeNumber(grade)}-${getMajorDisplayName(major)} ${formatClassNumber(classNumber)}`;
+}

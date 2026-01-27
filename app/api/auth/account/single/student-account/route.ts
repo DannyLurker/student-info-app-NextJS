@@ -7,7 +7,10 @@ import {
 } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
-import { studentSignUpSchema } from "@/lib/utils/zodSchema";
+import {
+  StudentSignUpSchema,
+  studentSignUpSchema,
+} from "@/lib/utils/zodSchema";
 import { subjects } from "@/lib/utils/subjects";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
@@ -23,8 +26,9 @@ export async function POST(req: Request) {
       throw unauthorized("You haven't logged in yet");
     }
 
-    const body = await req.json();
-    const data = studentSignUpSchema.parse(body);
+    const rawData: StudentSignUpSchema = await req.json();
+
+    const data = studentSignUpSchema.parse(rawData);
 
     let parentAccount: {
       email: string;

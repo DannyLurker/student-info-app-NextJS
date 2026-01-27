@@ -24,14 +24,6 @@ const AssessmentType = z.enum([
   "GROUP",
 ]);
 
-const classParams = z.object({
-  grade: GradeEnum,
-  major: MajorEnum,
-  classNumber: ClassNumberEnum,
-});
-
-type ClassParamsSchema = z.infer<typeof classParams>;
-
 const page = z
   .string()
   .default("0")
@@ -41,18 +33,22 @@ const page = z
   });
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
-const TeachingAssignmentInput = z.object({
+const teachingAssignmentInput = z.object({
   subjectName: z.string({ message: "Must be filled" }),
   grade: GradeEnum,
   major: MajorEnum,
   classNumber: ClassNumberEnum,
 });
 
+type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
+
 const classSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
   classNumber: ClassNumberEnum,
 });
+
+type ClassSchema = z.infer<typeof classSchema>;
 
 const passwordSchema = z
   .object({
@@ -75,17 +71,13 @@ const studentSignUpSchema = z.object({
   studentRole: StudentRoleEnum,
 });
 
-const zodTeacherSignUp = z.object({
+const teacherSignUpSchema = z.object({
   username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
   email: z.string().email({ message: "Please input a correct format" }),
-  password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
-  confirmPassword: z
-    .string()
-    .min(8, { message: "Must be 8 characters at minimum" }),
-
+  passwordSchema,
   homeroomClass: classSchema.optional(),
 
-  teachingAssignment: z.array(TeachingAssignmentInput).optional(),
+  teachingAssignment: z.array(teachingAssignmentInput).optional(),
 
   teachingClasses: z.array(classSchema).optional(),
 });
@@ -106,7 +98,7 @@ const zodResetPassword = z.object({
 });
 
 type StudentSignUpSchema = z.infer<typeof studentSignUpSchema>;
-type TeacherSignUpInput = z.infer<typeof zodTeacherSignUp>;
+type TeacherSignUpSchema = z.infer<typeof teacherSignUpSchema>;
 type EmailSchema = z.infer<typeof zodForgotPassword>;
 type ResetPasswordSchema = z.infer<typeof zodResetPassword>;
 
@@ -241,9 +233,8 @@ const markRecords = z.object({
 type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
-  classParams,
   studentSignUpSchema,
-  zodTeacherSignUp,
+  teacherSignUpSchema,
   zodForgotPassword,
   zodResetPassword,
   homeroomClassStudent,
@@ -256,9 +247,10 @@ export {
   markRecords,
   updateProblemPoint,
   problemPointQuerySchema,
-  type ClassParamsSchema,
+  classSchema,
+  type ClassSchema,
   type StudentSignUpSchema,
-  type TeacherSignUpInput,
+  type TeacherSignUpSchema,
   type EmailSchema,
   type ResetPasswordSchema,
   type HomeroomClassStudentSchema,
@@ -270,4 +262,5 @@ export {
   type MarkColumnSchema,
   type MarkRecordSchema,
   type UpadateProblemPointSchema,
+  type TeachingAssignmentInput,
 };
