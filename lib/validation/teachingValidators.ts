@@ -3,6 +3,14 @@ import { getFullClassLabel } from "../utils/labels";
 import { subjects } from "../utils/subjects";
 import { ClassSchema, TeachingAssignmentInput } from "../utils/zodSchema";
 
+export function validateTeachingStructure(
+  teachingClasses: ClassSchema[],
+  teachingAssignment: TeachingAssignmentInput[],
+) {
+  isTeachingClassesValid(teachingClasses, teachingAssignment);
+  isTeachingAssignmentsValid(teachingClasses, teachingAssignment);
+}
+
 export function isTeachingClassesValid(
   teachingClasses: ClassSchema[],
   teachingAssignment: TeachingAssignmentInput[],
@@ -33,6 +41,7 @@ export function isTeachingAssignmentsValid(
   const classesKeys = new Set(
     teachingClasses.map((tc) => `${tc.grade}-${tc.major}-${tc.classNumber}`),
   );
+  const assignmentKeys = new Set<string>();
 
   // Check if every teaching assignment matches one of the teaching classes
   for (const ta of teachingAssignment) {
@@ -63,7 +72,6 @@ export function isTeachingAssignmentsValid(
   }
 
   // Check for duplicate assignments (same subject in same class)
-  const assignmentKeys = new Set<string>();
   for (const ta of teachingAssignment) {
     const key = `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subjectName}`;
     if (assignmentKeys.has(key)) {

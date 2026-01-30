@@ -1,4 +1,4 @@
-import { badRequest, handleError, notFound } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { subjects } from "@/lib/utils/subjects";

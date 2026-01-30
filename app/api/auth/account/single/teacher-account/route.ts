@@ -8,19 +8,10 @@ import {
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
-import { subjects as subjectsData } from "@/lib/utils/subjects";
-import {
-  formatClassNumber,
-  getFullClassLabel,
-  getGradeNumber,
-  getMajorDisplayName,
-} from "@/lib/utils/labels";
+import { getFullClassLabel } from "@/lib/utils/labels";
 import { auth } from "@/lib/auth/authNode";
 import { isStaffRole } from "@/lib/constants/roles";
-import {
-  isTeachingAssignmentsValid,
-  isTeachingClassesValid,
-} from "@/lib/validation/teachingValidators";
+import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
 
 export async function POST(req: Request) {
@@ -71,33 +62,20 @@ export async function POST(req: Request) {
         Array.isArray(data.teachingAssignment) &&
         data.teachingAssignment.length > 0
       ) {
-        // TODO LIST:
-        /* 
-          1. Change the teaching classes and teaching assignment into one function, "validateTeachingStructure"
-          2. Work on add subject feature for better UX
-        */
-
-        // VALIDATION 1: Check if every teaching class matches one of the teaching assignments
-        isTeachingClassesValid(data.teachingClasses, data.teachingAssignment);
-
         /* VALIDATION 2: 
+          - Check if every teaching class matches one of the teaching assignments
           - Check if every teaching assignment matches one of the teaching classes
           - Check if the subject is valid for that specific class
           - Check for duplicate assignments (same subject in same class)
         */
-        isTeachingAssignmentsValid(
+        validateTeachingStructure(
           data.teachingClasses,
           data.teachingAssignment,
         );
 
-        // VALIDATION 3: Check if another teacher already teaches this subject in this class (For teaching assignment)
         const assignmentStrings = data.teachingAssignment.map(
           (ta) => `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subjectName}`,
         );
-
-        const assignmentUniqueKeys = new Set(assignmentStrings);
-
-        const filteredAssignments = Array.from(assignmentUniqueKeys);
 
         // for create or connect teaching classes data to teacher account
         const teachingClassesData = data.teachingClasses.map((tc) => ({
@@ -115,6 +93,53 @@ export async function POST(req: Request) {
           },
         }));
 
+        // Handle Teaching Assignments
+        const subjects = await Promise.all(
+          data.teachingAssignment.map(async (assignment) => {
+            return await tx.subject.upsert({
+              where: {
+                subjectName: assignment.subjectName,
+              },
+              update: {},
+              create: { subjectName: assignment.subjectName },
+            });
+          }),
+        );
+
+        const subjectMap = new Map(subjects.map((s) => [s.subjectName, s.id]));
+
+        const assignmentUniqueKeys = new Set(assignmentStrings);
+
+        const filteredAssignments = Array.from(assignmentUniqueKeys);
+
+        const teachingAssignmentData = filteredAssignments.map((assignment) => {
+          const [grade, major, classNumber, subjectName] =
+            assignment.split("-");
+
+          const subjectId = subjectMap.get(subjectName);
+
+          if (!subjectId) {
+            throw internalServerError("Subject mapping failed");
+          }
+
+          return {
+            where: {
+              subjectId_grade_major_classNumber: {
+                subjectId: subjectId,
+                grade: grade as Grade,
+                major: major as Major,
+                classNumber: classNumber as ClassNumber,
+              },
+            },
+            create: {
+              subjectId: subjectId,
+              grade: grade as Grade,
+              major: major as Major,
+              classNumber: classNumber as ClassNumber,
+            },
+          };
+        });
+
         // create teacher account
         const teacher = await tx.teacher.create({
           data: {
@@ -125,6 +150,10 @@ export async function POST(req: Request) {
 
             teachingClasses: {
               connectOrCreate: teachingClassesData,
+            },
+
+            teachingAssignments: {
+              connectOrCreate: teachingAssignmentData,
             },
           },
           select: {
@@ -147,14 +176,14 @@ export async function POST(req: Request) {
           });
 
           if (existingHomeroomClass) {
-            const grade = getGradeNumber(data.homeroomClass.grade);
-            const major = getMajorDisplayName(data.homeroomClass.major);
-            const classNumber = formatClassNumber(
+            const classLabel = getFullClassLabel(
+              data.homeroomClass.grade,
+              data.homeroomClass.major,
               data.homeroomClass.classNumber,
             );
 
             throw badRequest(
-              `There is already a homeroom teacher in ${grade}-${major} ${classNumber}`,
+              `There is already a homeroom teacher in ${classLabel}`,
             );
           }
 
@@ -167,45 +196,6 @@ export async function POST(req: Request) {
             },
           });
         }
-
-        // Handle Teaching Assignments
-        const subjects = await Promise.all(
-          data.teachingAssignment.map(async (assignment) => {
-            return await tx.subject.upsert({
-              where: {
-                subjectName: assignment.subjectName,
-              },
-              update: {},
-              create: { subjectName: assignment.subjectName },
-            });
-          }),
-        );
-
-        const subjectMap = new Map(subjects.map((s) => [s.subjectName, s.id]));
-
-        await Promise.all(
-          filteredAssignments.map(async (assignment: string, i) => {
-            const [grade, major, classNumber, subjectName] =
-              assignment.split("-");
-
-            const subjectId = subjectMap.get(subjectName);
-
-            if (!subjectId) {
-              throw internalServerError("Subject mapping failed");
-            }
-
-            return await tx.teachingAssignment.create({
-              data: {
-                teacherId: teacher.id,
-                subjectId: subjects[i].id,
-                grade: grade as Grade,
-                major: major as Major,
-                classNumber: classNumber as ClassNumber,
-                totalAssignmentsAssigned: 0,
-              },
-            });
-          }),
-        );
       }
     });
 

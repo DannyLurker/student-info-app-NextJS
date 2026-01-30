@@ -129,6 +129,8 @@ model Mark {
     assessmentNumber Int
     descriptionId    Int
     description      MarkDescription @relation(fields: [descriptionId], references: [id])
+    teacher          Teacher         @relation(fields: [recordedBy], references: [id])
+    recordedBy       String
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -201,6 +203,7 @@ model Teacher {
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     students  Student[]
+    marks     Mark[]
 
     @@index([email])
 }
@@ -231,8 +234,7 @@ model HomeroomClass {
 model TeachingAssignment {
     id Int @id @default(autoincrement())
 
-    teacher   Teacher @relation(fields: [teacherId], references: [id])
-    teacherId String
+    teacher Teacher[]
 
     subject   Subject @relation(fields: [subjectId], references: [id])
     subjectId Int
@@ -242,8 +244,7 @@ model TeachingAssignment {
     classNumber              String @default("none")
     totalAssignmentsAssigned Int    @default(0)
 
-    @@unique([teacherId, subjectId, grade, major, classNumber])
-    @@index([teacherId])
+    @@unique([subjectId, grade, major, classNumber])
 }
 
 // Parent model

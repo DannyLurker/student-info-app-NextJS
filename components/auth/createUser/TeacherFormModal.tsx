@@ -239,8 +239,10 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
       const payload = {
         username: data.username,
         email: data.email,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
+        passwordSchema: {
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+        },
         homeroomClass:
           homeroomClass.grade && homeroomClass.major
             ? homeroomClass

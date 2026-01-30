@@ -90,7 +90,7 @@ async function main() {
   });
   console.log("✓ Created Student:", student.email);
 
-  //6. Create parent Parent account
+  // 6. Create parent Parent account
 
   const parent = await prisma.parent.upsert({
     where: { studentId: student.id },
@@ -114,6 +114,9 @@ async function main() {
   console.log("   - Teacher: teacher@test.com");
   console.log("   - Class Secretary: secretary@test.com");
   console.log("   - Student: student@test.com");
+  console.log(
+    `   - parent: ${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@test.com`,
+  );
   console.log(
     `   - Parent: ${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@test.com`,
   );
