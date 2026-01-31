@@ -1,5 +1,5 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
-import { classParams } from "@/lib/utils/zodSchema";
+import { classSchema } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import * as XLSX from "xlsx";
 
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 
     const staffIdParam = searchParams.get("staffId");
 
-    const data = classParams.parse({
+    const data = classSchema.parse({
       grade: searchParams.get("grade"),
       major: searchParams.get("major"),
       classNumber: searchParams.get("classNumber"),
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     XLSX.utils.book_append_sheet(
       studentWorkbook,
       studentsWorksheet,
-      "Student Data"
+      "Student Data",
     );
 
     const studentBuffer = XLSX.write(studentWorkbook, {
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("API_ERROR", {
-      route: "/api/student",
+      route: "/api/staff/student",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);

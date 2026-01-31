@@ -1,45 +1,15 @@
-import {
-  badRequest,
-  forbidden,
-  handleError,
-  internalServerError,
-  unauthorized,
-} from "@/lib/errors";
+import { badRequest, handleError, internalServerError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
 import { getFullClassLabel } from "@/lib/utils/labels";
-import { auth } from "@/lib/auth/authNode";
-import { isStaffRole } from "@/lib/constants/roles";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 import { ClassNumber, Grade, Major } from "@/lib/constants/class";
+import { validateStaffSession } from "@/lib/validation/guards";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (!session) {
-      throw unauthorized("You haven't logged in yet");
-    }
-
-    // Staff are users authorized to create student and teacher accounts.
-    // Valid staff roles: "PRINCIPAL" and "VICE_PRINCIPAL".
-    const staff = await prisma.teacher.findUnique({
-      where: {
-        id: session.user.id,
-      },
-      select: {
-        role: true,
-      },
-    });
-
-    if (!staff) {
-      throw badRequest("User not found");
-    }
-
-    if (!isStaffRole(staff?.role)) {
-      throw forbidden("You're not allowed");
-    }
+    await validateStaffSession();
 
     const rawData = await req.json();
 

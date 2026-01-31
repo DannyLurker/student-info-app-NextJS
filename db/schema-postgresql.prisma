@@ -281,13 +281,23 @@ model TeacherSession {
 }
 
 model Subject {
-    id          Int    @id @default(autoincrement())
-    subjectName String @unique
+    id              Int           @id @default(autoincrement())
+    subjectName     String        @unique
+    subjectConfigId Int
+    subjectConfig   SubjectConfig @relation(fields: [subjectConfigId], references: [id])
 
     students Student[] @relation("SubjectStudents")
 
     teachingAssignments TeachingAssignment[]
     subjectMarks        SubjectMark[]
+}
+
+model SubjectConfig {
+    id    Int     @id @default(autoincrement())
+    major Major[]
+    grade Grade[]
+
+    subjects Subject[]
 }
 
 model VerificationToken {

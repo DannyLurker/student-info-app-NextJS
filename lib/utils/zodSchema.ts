@@ -32,6 +32,25 @@ const page = z
     message: "page must be a non-negative integer",
   });
 
+// Schema for subject
+const subjectConfig = z.object({
+  grade: z.array(GradeEnum),
+  major: z.array(MajorEnum),
+});
+
+const subjectSchema = z.object({
+  subjectRecords: z.array(
+    z.object({
+      subjectName: z
+        .string()
+        .min(3, { message: "At least must be 3 Characters" }),
+      subjectConfig,
+    }),
+  ),
+});
+
+type SubjectSchema = z.infer<typeof subjectSchema>;
+
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const teachingAssignmentInput = z.object({
   subjectName: z.string({ message: "Must be filled" }),
@@ -233,6 +252,7 @@ const markRecords = z.object({
 type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
+  subjectSchema,
   studentSignUpSchema,
   teacherSignUpSchema,
   zodForgotPassword,
@@ -248,6 +268,7 @@ export {
   updateProblemPoint,
   problemPointQuerySchema,
   classSchema,
+  type SubjectSchema,
   type ClassSchema,
   type StudentSignUpSchema,
   type TeacherSignUpSchema,
