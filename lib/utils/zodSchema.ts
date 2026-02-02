@@ -68,7 +68,7 @@ const getSubjectQueriesSchema = z.object({
 const patchSubjectSchema = z.object({
   subjectId: z.number(),
   subjectName: z.string().min(3).optional(),
-  subjectConfig: subjectConfig.optional(),
+  subjectConfig: subjectConfig.partial().optional(),
 });
 
 type CreateSubjectInput = z.infer<typeof createSubjectSchema>;

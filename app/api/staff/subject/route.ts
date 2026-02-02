@@ -16,6 +16,7 @@ import {
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
+  patchSubjectSchema,
 } from "@/lib/utils/zodSchema";
 import { validateStaffSession } from "@/lib/validation/guards";
 
@@ -270,4 +271,94 @@ export async function DELETE(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {}
+export async function PATCH(req: Request) {
+  try {
+    validateStaffSession();
+
+    const rawData = await req.json();
+
+    const data = patchSubjectSchema.parse(rawData);
+
+    const subject = await prisma.subject.findUnique({
+      where: {
+        id: data.subjectId,
+      },
+      select: {
+        subjectName: true,
+        subjectConfig: {
+          select: {
+            grade: true,
+            major: true,
+            subjectType: true,
+          },
+        },
+      },
+    });
+
+    if (!subject) {
+      throw notFound("Subject not found");
+    }
+
+    // validate subject config
+    let isSubjectConfigExact;
+
+    if (!data.subjectConfig) {
+      isSubjectConfigExact = true;
+    } else {
+      const checkGradeLength: boolean =
+        subject.subjectConfig.grade.length ===
+        data.subjectConfig?.grade?.length;
+
+      /* TODO:
+        1. Create a function to check whether subjectConfig has changed
+        2. Identify which fields changed, then update the data in the database
+      */
+
+      const checkGradeData: boolean = subject.subjectConfig.grade.every(
+        (serverGrade) => {
+          // data.subjectConfig comes from the client side
+          data.subjectConfig?.grade?.includes(serverGrade);
+        },
+      );
+
+      const isGradeChange = checkGradeLength && checkGradeData;
+
+      const checkMajorLength: boolean =
+        subject.subjectConfig.major.length === data.subjectConfig.major?.length;
+
+      const checkMajorData: boolean = subject.subjectConfig.major.every(
+        (serverMajor) => {
+          // data.subjectConfig comes from the client side
+          data.subjectConfig?.major?.includes(serverMajor);
+        },
+      );
+
+      const isMajorChange = checkMajorLength && checkMajorData;
+
+      const isSubjectTypeChange =
+        subject.subjectConfig.subjectType === data.subjectConfig.subjectType;
+
+      isSubjectConfigExact =
+        isGradeChange && isMajorChange && isSubjectTypeChange;
+    }
+
+    const isSubjectNameExact = subject.subjectName === data.subjectName;
+
+    const isSubjectExact = isSubjectNameExact && isSubjectConfigExact;
+
+    if (isSubjectExact) {
+      return Response.json(
+        {
+          message: "No data was edited",
+        },
+        { status: 200 },
+      );
+    }
+  } catch (error) {
+    console.error("API_ERROR", {
+      route: "/api/staff/subject",
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return handleError(error);
+  }
+}
