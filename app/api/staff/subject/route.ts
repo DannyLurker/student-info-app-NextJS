@@ -16,6 +16,7 @@ import {
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
+  patchSubjectSchema,
 } from "@/lib/utils/zodSchema";
 import { validateStaffSession } from "@/lib/validation/guards";
 
@@ -270,4 +271,55 @@ export async function DELETE(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {}
+export async function PATCH(req: Request) {
+  try {
+    validateStaffSession();
+
+    const rawData = await req.json();
+
+    const data = patchSubjectSchema.parse(rawData);
+
+    const subject = await prisma.subject.findUnique({
+      where: {
+        id: data.subjectId,
+      },
+      select: {
+        subjectName: true,
+        subjectConfig: {
+          select: {
+            grade: true,
+            major: true,
+            subjectType: true,
+          },
+        },
+      },
+    });
+
+    if (!subject) {
+      throw notFound("Subject not found");
+    }
+
+    const isSubjectConfigExact =
+      subject.subjectConfig.grade === data.subjectConfig?.grade &&
+      subject.subjectConfig.major === data.subjectConfig.major &&
+      subject.subjectConfig.subjectType === data.subjectConfig.subjectType;
+
+    const isSubjectExact =
+      subject.subjectName === data.subjectName && isSubjectConfigExact;
+
+    if (isSubjectExact) {
+      return Response.json(
+        {
+          message: "No data was edited",
+        },
+        { status: 200 },
+      );
+    }
+  } catch (error) {
+    console.error("API_ERROR", {
+      route: "/api/staff/subject",
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return handleError(error);
+  }
+}

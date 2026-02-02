@@ -10,11 +10,11 @@ async function main() {
 
   // 1. Create Principal
   const principal = await prisma.teacher.upsert({
-    where: { email: "dannycode992@gmail.com" },
+    where: { email: "principal@gmail.com" },
     update: {},
     create: {
-      name: "Admin",
-      email: "dannycode992@gmail.com",
+      name: "Principal",
+      email: "principal@gmail.com",
       password: passwordHash,
       role: "PRINCIPAL",
     },
