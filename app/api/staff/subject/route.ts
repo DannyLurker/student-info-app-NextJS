@@ -13,14 +13,14 @@ import {
   internalServerError,
   notFound,
 } from "@/lib/errors";
+import { SubjectConfig } from "@/lib/types/subjectType";
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
   patchSubjectSchema,
 } from "@/lib/utils/zodSchema";
 import { validateStaffSession } from "@/lib/validation/guards";
-import { hasSubjectConfigChanged } from "@/lib/validation/subjectValidators";
-import { boolean } from "zod";
+import { compareSubjectConfig } from "@/lib/validation/subjectValidators";
 
 export async function POST(req: Request) {
   try {
@@ -212,7 +212,7 @@ export async function GET(req: Request) {
 
     return Response.json(
       {
-        message: "Sucessfully retrieved subjects data",
+        message: "Successfully retrieved subjects data",
         subjects: subjectRecords,
         totalSubject: totalSubject,
       },
@@ -260,7 +260,7 @@ export async function DELETE(req: Request) {
 
     return Response.json(
       {
-        message: "Succesfully deleted subject",
+        message: "Successfully deleted subject",
       },
       { status: 200 },
     );
@@ -276,67 +276,65 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   try {
     validateStaffSession();
-
     const rawData = await req.json();
-
     const data = patchSubjectSchema.parse(rawData);
 
-    const subject = await prisma.subject.findUnique({
-      where: {
-        id: data.subjectId,
-      },
-      select: {
-        subjectName: true,
-        subjectConfig: {
-          select: {
-            grade: true,
-            major: true,
-            subjectType: true,
-          },
-        },
-      },
+    const currentSubject = await prisma.subject.findUnique({
+      where: { id: data.subjectId },
+      include: { subjectConfig: true },
     });
 
-    if (!subject) {
-      throw notFound("Subject not found");
-    }
+    if (!currentSubject) throw notFound("Subject not found");
 
-    // validate subject config
-    const configResult = hasSubjectConfigChanged(data, subject);
-    const subjectConfigChanges = {
-      hasChanged: configResult ? configResult.hasChanged : false,
-      changedData: configResult ? configResult.changedData : {},
-    };
-    const isSubjectNameExact =
-      !data.subjectName || subject.subjectName === data.subjectName;
+    const configChanged = compareSubjectConfig(data, currentSubject);
+    const nameChanged =
+      data.subjectName && data.subjectName !== currentSubject.subjectName;
 
-    if (isSubjectNameExact && !subjectConfigChanges.hasChanged) {
+    if (!configChanged && !nameChanged) {
       return Response.json({ message: "No data was edited" }, { status: 200 });
     }
 
-    const updatePayload: any = {};
+    const updateData: any = {};
 
-    if (!isSubjectNameExact) {
-      updatePayload.subjectName = data.subjectName;
+    if (nameChanged) {
+      updateData.subjectName = data.subjectName;
     }
 
-    if (subjectConfigChanges.hasChanged) {
-      updatePayload.subjectConfig = {
-        update: subjectConfigChanges.changedData,
+    if (configChanged) {
+      const targetConfig = {
+        major: data.subjectConfig?.major ?? currentSubject.subjectConfig.major,
+        grade: data.subjectConfig?.grade ?? currentSubject.subjectConfig.grade,
+        subjectType:
+          data.subjectConfig?.subjectType ??
+          currentSubject.subjectConfig.subjectType,
       };
-    }
 
-    /* 
-      TODO: 
-      1. If the subjectConfig data that user send doesn't match any subject config data in db, create a new one and connect
-    */
+      let config = await prisma.subjectConfig.findFirst({
+        where: {
+          major: { equals: targetConfig.major },
+          grade: { equals: targetConfig.grade },
+          subjectType: targetConfig.subjectType,
+        },
+      });
+
+      if (!config) {
+        config = await prisma.subjectConfig.create({
+          data: targetConfig,
+        });
+      }
+
+      updateData.subjectConfigId = config.id;
+    }
 
     await prisma.subject.update({
-      where: {
-        id: data.subjectId,
-      },
-      data: updatePayload,
+      where: { id: data.subjectId },
+      data: updateData,
     });
+
+    return Response.json(
+      { message: "Successfully updated subject data" },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("API_ERROR", {
       route: "/api/staff/subject",

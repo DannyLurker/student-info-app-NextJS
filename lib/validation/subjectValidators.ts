@@ -25,39 +25,26 @@ function areArraysIdentical(serverArr: string[], clientArr?: string[]) {
   return serverArr.every((item) => clientArr.includes(item as any));
 }
 
-export function hasSubjectConfigChanged(
+export function compareSubjectConfig(
   subjectClient: SubjectClient,
   subjectServer: SubjectServer,
 ) {
-  // variable config gets data from client
   const config = subjectClient.subjectConfig;
-
-  if (!config) return false;
-
-  const changedData: any = {};
+  if (!config) return { hasChanged: false, changedData: {} };
 
   const isGradeChanged = !areArraysIdentical(
     subjectServer.subjectConfig.grade,
     config.grade,
   );
 
-  changedData.grade = config.grade ? config.grade : {};
-
   const isMajorChanged = !areArraysIdentical(
     subjectServer.subjectConfig.major,
     config.major,
   );
 
-  changedData.major = isMajorChanged ? config.major : {};
-
   const isTypeChanged =
     config.subjectType !== undefined &&
     subjectServer.subjectConfig.subjectType !== config.subjectType;
 
-  changedData.subjectType = isTypeChanged ? config.subjectType : {};
-
-  return {
-    hasChanged: isGradeChanged || isMajorChanged || isTypeChanged,
-    changedData,
-  };
+  return isGradeChanged || isMajorChanged || isTypeChanged;
 }

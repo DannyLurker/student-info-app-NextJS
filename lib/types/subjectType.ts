@@ -1,8 +1,15 @@
-type Subject = {
+import { Grade, Major } from "../constants/class";
+import { SubjectType } from "../constants/subject";
+
+export type Subject = {
   id?: number;
   subjectName: string;
   students?: [];
   teachingAssignment?: [];
 };
 
-export default Subject;
+export type SubjectConfig = {
+  grade: Grade[];
+  major: Major[];
+  subjectType: SubjectType;
+};
