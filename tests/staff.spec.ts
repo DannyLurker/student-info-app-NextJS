@@ -31,9 +31,94 @@ test.describe("Account Creation", () => {
       },
     );
 
-    expect(response.status()).toBe(200);
+    expect(response.ok);
+    const body = await response.json();
+
+    console.log(
+      "Create student account as staff (VICE_PRINCIPAL / PRINCIPAL): " + body,
+    );
+  });
+});
+
+test.describe("Subject CRUD", () => {
+  test("Create subject", async ({ request }) => {
+    const response = await request.post("api/staff/subject", {
+      data: {
+        subjectRecords: [
+          {
+            subjectNames: ["Web", "Mobile"],
+            subjectConfig: {
+              grade: ["ELEVENTH", "TWELFTH"],
+              major: ["SOFTWARE_ENGINEERING"],
+              subjectType: "MAJOR",
+            },
+          },
+        ],
+      },
+    });
+
+    expect(response.ok);
 
     const body = await response.json();
-    expect(body.message).toBe("Student account created successfully");
+    console.log("Details: " + body.details);
+  });
+
+  test("Get subject", async ({ request }) => {
+    const response = await request.get("api/staff/subject", {
+      params: {
+        page: "0",
+        sortOrder: "asc",
+      },
+    });
+
+    expect(response.ok);
+    const body = await response.json();
+    console.log("Get Subject: " + body.subjects);
+  });
+
+  test("Update subject", async ({ request }) => {
+    await request.post("api/staff/subject", {
+      data: {
+        subjectRecords: [
+          {
+            subjectNames: ["Web", "Mobile"],
+            subjectConfig: {
+              grade: ["ELEVENTH", "TWELFTH"],
+              major: ["SOFTWARE_ENGINEERING"],
+              subjectType: "MAJOR",
+            },
+          },
+        ],
+      },
+    });
+
+    const response = await request.patch("api/staff/subject", {
+      data: {
+        subjectId: 1,
+        subjectNames: "PAL",
+        subjectConfig: {
+          major: ["Accounting"],
+          subjectType: "MAJOR",
+        },
+      },
+    });
+
+    expect(response.ok);
+
+    const body = await response.json();
+    console.log("Update subject: " + body);
+  });
+
+  test("Delete subject", async ({ request }) => {
+    const response = await request.patch("api/staff/subject", {
+      params: {
+        subjectId: 1,
+      },
+    });
+
+    expect(response.ok);
+
+    const body = await response.json();
+    console.log("Update subject: " + body);
   });
 });

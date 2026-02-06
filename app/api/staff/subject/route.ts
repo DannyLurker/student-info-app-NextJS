@@ -13,7 +13,6 @@ import {
   internalServerError,
   notFound,
 } from "@/lib/errors";
-import { SubjectConfig } from "@/lib/types/subjectType";
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
@@ -62,14 +61,14 @@ export async function POST(req: Request) {
     });
 
     const uniqueSubjectsArray = Array.from(uniqueSubjects);
-    const uniqueSubjectName = uniqueSubjectsArray.map(
+    const uniqueSubjectNames = uniqueSubjectsArray.map(
       (subject: any) => subject.split("-")[0],
     );
 
     const existingSubjects = await prisma.subject.findMany({
       where: {
         subjectName: {
-          in: uniqueSubjectName,
+          in: uniqueSubjectNames,
         },
       },
       select: {
@@ -77,24 +76,19 @@ export async function POST(req: Request) {
       },
     });
 
+    if (existingSubjects.length === uniqueSubjectNames.length) {
+      throw badRequest(
+        "All subjects in your request are already present in the database.",
+      );
+    }
+
     const existingSubjectNames = existingSubjects.map(
       (subject) => subject.subjectName,
     );
 
-    const missingSubjectNames = uniqueSubjectName.filter(
+    const missingSubjectNames = uniqueSubjectNames.filter(
       (subjectName) => !existingSubjectNames.includes(subjectName),
     );
-
-    if (missingSubjectNames.length === 0) {
-      return Response.json(
-        {
-          message: "No new subjects were created.",
-          details:
-            "All subjects in your request are already present in the database.",
-        },
-        { status: 200 },
-      );
-    }
 
     await prisma.$transaction(async (tx) => {
       for (const subjectName of missingSubjectNames) {
@@ -286,6 +280,17 @@ export async function PATCH(req: Request) {
 
     if (!currentSubject) throw notFound("Subject not found");
 
+    const findDuplicate = await prisma.subject.findUnique({
+      where: { subjectName: data.subjectName },
+      select: {
+        id: true,
+      },
+    });
+
+    if (findDuplicate) {
+      throw badRequest("A subject with this name already exists.");
+    }
+
     const configChanged = compareSubjectConfig(data, currentSubject);
     const nameChanged =
       data.subjectName && data.subjectName !== currentSubject.subjectName;
@@ -301,7 +306,7 @@ export async function PATCH(req: Request) {
     }
 
     if (configChanged) {
-      const targetConfig = {
+      const subjectConfig = {
         major: data.subjectConfig?.major ?? currentSubject.subjectConfig.major,
         grade: data.subjectConfig?.grade ?? currentSubject.subjectConfig.grade,
         subjectType:
@@ -309,21 +314,28 @@ export async function PATCH(req: Request) {
           currentSubject.subjectConfig.subjectType,
       };
 
-      let config = await prisma.subjectConfig.findFirst({
+      const potentialConfig = await prisma.subjectConfig.findMany({
         where: {
-          major: { equals: targetConfig.major },
-          grade: { equals: targetConfig.grade },
-          subjectType: targetConfig.subjectType,
+          major: { hasEvery: subjectConfig.major },
+          grade: { hasEvery: subjectConfig.grade },
+          subjectType: subjectConfig.subjectType,
         },
       });
 
-      if (!config) {
-        config = await prisma.subjectConfig.create({
-          data: targetConfig,
+      let targetConfig = potentialConfig.find(
+        (config) =>
+          subjectConfig.subjectType === config.subjectType &&
+          subjectConfig.grade.length === config.grade.length &&
+          subjectConfig.major.length === config.major.length,
+      );
+
+      if (!targetConfig) {
+        targetConfig = await prisma.subjectConfig.create({
+          data: subjectConfig,
         });
       }
 
-      updateData.subjectConfigId = config.id;
+      updateData.subjectConfigId = targetConfig.id;
     }
 
     await prisma.subject.update({

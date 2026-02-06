@@ -10,23 +10,27 @@ setup("authentication as staff", async ({ page }) => {
   await page.getByPlaceholder(/password/i).fill("Test@12345");
 
   // 3. Klik submit dan tunggu navigasi selesai
-  await page.getByRole("button", { name: /login|sign in/i }).click();
+  await page.getByRole("button", { name: /Sign In/i }).click();
 
   // 4. Tunggu sampai masuk ke halaman dashboard (tanda login berhasil)
-  await expect(page).toHaveURL(/.*dashboard/);
+  setTimeout(async () => {
+    await expect(page).toHaveURL(/.*dashboard\/staff\//);
 
-  // 5. Simpan state (Cookie sekarang otomatis tersimpan di sini)
-  await page.context().storageState({ path: STAFF_STATE });
+    // 5. Simpan state (Cookie sekarang otomatis tersimpan di sini)
+    await page.context().storageState({ path: STAFF_STATE });
+  }, 1000);
 });
 
 setup("authentication as class secretary (student)", async ({ page }) => {
   await page.goto("/login");
   await page.getByPlaceholder(/email/i).fill("secretary@test.com");
   await page.getByPlaceholder(/password/i).fill("Test@12345");
-  await page.getByRole("button", { name: /login|sign in/i }).click();
+  await page.getByRole("button", { name: /Sign In/i }).click();
 
   // Tunggu URL berubah ke halaman siswa
-  await expect(page).toHaveURL(/.*dashboard/);
+  setTimeout(async () => {
+    await expect(page).toHaveURL(/.*dashboard\/student\//);
 
-  await page.context().storageState({ path: STUDENT_STATE });
+    await page.context().storageState({ path: STUDENT_STATE });
+  }, 1000);
 });

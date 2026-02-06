@@ -20,6 +20,7 @@ export default defineConfig({
     {
       name: "chromium staff test",
       use: { ...devices["Desktop Chrome"], storageState: STAFF_STATE },
+      // Dependencies are a list of projects that need to run before the tests in another project run.
       dependencies: ["authentication"],
       testMatch: /staff\.spec\.ts/,
     },
