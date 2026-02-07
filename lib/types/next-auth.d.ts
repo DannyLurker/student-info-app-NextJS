@@ -20,10 +20,8 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    email: string;
+declare module "@auth/core/adapters" {
+  interface AdapterUser {
     role: Role;
     isHomeroomClassTeacher: boolean;
   }

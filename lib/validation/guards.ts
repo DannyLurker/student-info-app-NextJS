@@ -6,6 +6,8 @@ import { isStaffRole } from "@/lib/constants/roles";
 export async function validateStaffSession() {
   const session = await auth();
 
+  console.log(session);
+
   if (!session?.user?.id) {
     throw unauthorized("You haven't logged in yet");
   }

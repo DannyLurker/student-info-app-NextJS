@@ -1,118 +1,92 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { isStudentRole, isTeacherRole, Role } from "@/lib/constants/roles";
 import { prisma } from "@/db/prisma";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Tetap gunakan JWT agar kompatibel dengan Credentials
   },
-  debug: false,
   pages: {
     signIn: "/sign-in",
   },
   providers: [
     Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
+      name: "Credentials",
       async authorize(credentials) {
-        const email = credentials?.email as string;
-        const password = credentials?.password as string;
+        if (!credentials?.email || !credentials?.password) return null;
 
-        if (!email || !password) {
-          throw new Error("Email and password are required");
+        const email = credentials.email as string;
+        const password = credentials.password as string;
+
+        // 1. Cari user di tabel profil
+        const [student, teacher, parent] = await Promise.all([
+          prisma.student.findUnique({ where: { email } }),
+          prisma.teacher.findUnique({ where: { email } }),
+          prisma.parent.findUnique({ where: { email } }),
+        ]);
+
+        const dbUser = student || teacher || parent;
+        if (!dbUser || !dbUser.password) return null;
+
+        // 2. Validasi Password
+        const isValid = await bcrypt.compare(password, dbUser.password);
+        if (!isValid) return null;
+
+        // 3. Cek Wali Kelas
+        let isHomeroom = false;
+        if (teacher) {
+          const homeroom = await prisma.homeroomClass.findUnique({
+            where: { teacherId: teacher.id },
+          });
+          isHomeroom = !!homeroom;
         }
 
-        let user;
-        let isHomeroomClassTeacher;
-
-        user = await prisma.student.findUnique({
-          where: { email },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            password: true,
+        // 4. UPDATE TABEL USER DI SINI (PENGGANTI SIGNIN CALLBACK)
+        await prisma.user.upsert({
+          where: { email: dbUser.email },
+          update: {
+            name: dbUser.name,
+            role: dbUser.role,
+            isHomeroomClassTeacher: isHomeroom,
+          },
+          create: {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role,
+            isHomeroomClassTeacher: isHomeroom,
           },
         });
 
-        if (!user) {
-          user = await prisma.teacher.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true,
-              password: true,
-            },
-          });
-        }
-
-        if (!user) {
-          user = await prisma.parent.findUnique({
-            where: { email },
-          });
-        }
-
-        if (!user) {
-          throw new Error("User not found");
-        }
-
-        if (user.role === "TEACHER") {
-          isHomeroomClassTeacher = await prisma.homeroomClass.findUnique({
-            where: {
-              teacherId: user.id,
-            },
-            select: {
-              teacherId: true,
-            },
-          });
-        }
-
-        // cek password
-        const isValid = await bcrypt.compare(password, user.password as string);
-
-        if (!isValid) {
-          throw new Error("Invalid email or password");
-        }
-
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          isHomeroomClassTeacher: isHomeroomClassTeacher ? true : false,
+          id: dbUser.id,
+          email: dbUser.email,
+          name: dbUser.name,
+          role: dbUser.role,
+          isHomeroomClassTeacher: isHomeroom,
         };
       },
     }),
   ],
   callbacks: {
-    // Callback JWT - menambahkan role ke token
     async jwt({ token, user }) {
+      // Saat login pertama kali, 'user' akan tersedia
       if (user) {
         token.id = user.id;
-        token.role = user.role;
-
-        if (isTeacherRole(user.role)) {
-          token.isHomeroomClassTeacher = user.isHomeroomClassTeacher;
-        }
+        token.role = (user as any).role;
+        token.isHomeroomClassTeacher = (user as any).isHomeroomClassTeacher;
       }
-
       return token;
     },
-    // Callback Session - menambahkan property ke session
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
-      }
 
-      if (isTeacherRole(session.user.role)) {
+    async session({ session, token }) {
+      // Pindahkan data dari token ke session agar bisa diakses di UI
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as any;
         session.user.isHomeroomClassTeacher =
           token.isHomeroomClassTeacher as boolean;
       }

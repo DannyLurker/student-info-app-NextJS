@@ -72,14 +72,14 @@ enum SubjectType {
 
 // student model
 model Student {
-    id            String           @id @default(cuid())
+    id            String      @id @default(cuid())
     name          String
-    email         String           @unique
+    email         String      @unique
     password      String?
     emailVerified DateTime?
     isVerified    Boolean
-    sessions      StudentSession[]
-    role          StudentRole      @default(STUDENT)
+    sessions      Session[]
+    role          StudentRole @default(STUDENT)
 
     grade           Grade
     major           Major
@@ -87,10 +87,10 @@ model Student {
     homeroomClassId Int
     homeroomClass   HomeroomClass? @relation(fields: [homeroomClassId], references: [id])
 
-    studentSubjects Subject[]           @relation("SubjectStudents")
-    subjectMarks    SubjectMark[]
-    attendances     StudentAttendance[]
-    problemPoints   ProblemPoint[]
+    studentSubjects    Subject[]           @relation("SubjectStudents")
+    subjectMarks       SubjectMark[]
+    attendances        StudentAttendance[]
+    DisciplinaryPoints DisciplinaryPoint[]
 
     otp             String?
     otpExpiresAt    DateTime?
@@ -103,6 +103,7 @@ model Student {
     parent    Parent?
     teacher   Teacher? @relation(fields: [teacherId], references: [id])
     teacherId String?
+    users     User[]
 
     @@index([email])
 }
@@ -166,7 +167,7 @@ model StudentAttendance {
     @@index([studentId])
 }
 
-model ProblemPoint {
+model DisciplinaryPoint {
     id        Int     @id @default(autoincrement())
     studentId String
     student   Student @relation(fields: [studentId], references: [id])
@@ -197,18 +198,19 @@ model Teacher {
 
     teachingClasses TeachingClass[]
 
-    sessions        TeacherSession[]
-    problemPoints   ProblemPoint[]
-    otp             String?
-    otpExpiresAt    DateTime?
-    otpRequestCount Int              @default(0)
-    otpResetAt      DateTime?
-    otpAttemptCount Int              @default(0)
+    sessions           Session[]
+    DisciplinaryPoints DisciplinaryPoint[]
+    otp                String?
+    otpExpiresAt       DateTime?
+    otpRequestCount    Int                 @default(0)
+    otpResetAt         DateTime?
+    otpAttemptCount    Int                 @default(0)
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     students  Student[]
     marks     Mark[]
+    users     User[]
 
     @@index([email])
 }
@@ -264,25 +266,33 @@ model Parent {
 }
 
 // General
+model User {
+    id                     String  @id @default(cuid())
+    name                   String?
+    email                  String? @unique
+    password               String?
+    role                   String
+    isHomeroomClassTeacher Boolean @default(false)
 
-model StudentSession {
-    sessionToken String  @unique
-    studentId    String
-    student      Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+    studentProfile Student? @relation(fields: [studentId], references: [id])
+    teacherProfile Teacher? @relation(fields: [teacherId], references: [id])
 
-    expires   DateTime
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    sessions  Session[]
+    studentId String?
+    teacherId String?
 }
 
-model TeacherSession {
-    sessionToken String  @unique
-    teacherId    String
-    teacher      Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-
-    expires   DateTime
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// 2. Tabel Session tunggal (WAJIB untuk NextAuth)
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    student      Student? @relation(fields: [studentId], references: [id])
+    studentId    String?
+    teacher      Teacher? @relation(fields: [teacherId], references: [id])
+    teacherId    String?
 }
 
 model Subject {
