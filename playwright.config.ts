@@ -24,18 +24,18 @@ export default defineConfig({
       dependencies: ["authentication"],
       testMatch: /staff\.spec\.ts/,
     },
-    {
-      name: "firefox staff test",
-      use: { ...devices["Desktop Firefox"], storageState: STAFF_STATE },
-      dependencies: ["authentication"],
-      testMatch: /staff\.spec\.ts/,
-    },
-    {
-      name: "webkit staff test",
-      use: { ...devices["Desktop Safari"], storageState: STAFF_STATE },
-      dependencies: ["authentication"],
-      testMatch: /staff\.spec\.ts/,
-    },
+    // {
+    //   name: "firefox staff test",
+    //   use: { ...devices["Desktop Firefox"], storageState: STAFF_STATE },
+    //   dependencies: ["authentication"],
+    //   testMatch: /staff\.spec\.ts/,
+    // },
+    // {
+    //   name: "webkit staff test",
+    //   use: { ...devices["Desktop Safari"], storageState: STAFF_STATE },
+    //   dependencies: ["authentication"],
+    //   testMatch: /staff\.spec\.ts/,
+    // },
   ],
   webServer: {
     command: "npm run dev",

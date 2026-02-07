@@ -12,6 +12,7 @@ import {
   handleError,
   internalServerError,
   notFound,
+  unprocessableEntity,
 } from "@/lib/errors";
 import {
   createSubjectSchema,
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         record.subjectConfig.subjectType === "MAJOR" &&
         record.subjectConfig.major.length > 1
       ) {
-        throw badRequest(
+        throw unprocessableEntity(
           `Row ${index + 1}: Multiple majors are not allowed for MAJOR type subjects.`,
         );
       }
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
         const uniqueSubjectKey = `${subjectName}-${record.subjectConfig.subjectType}-${record.subjectConfig.grade.join("-")}-${record.subjectConfig.major.join("-")}`;
 
         if (uniqueSubjects.has(uniqueSubjectKey)) {
-          throw badRequest(
+          throw unprocessableEntity(
             `Duplicate subject: ${subjectName}. Configuration: ${record.subjectConfig.subjectType}-${record.subjectConfig.grade.join("-")}-${record.subjectConfig.major.join("-")}, already exists`,
           );
         }
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     });
 
     if (existingSubjects.length === uniqueSubjectNames.length) {
-      throw badRequest(
+      throw unprocessableEntity(
         "All subjects in your request are already present in the database.",
       );
     }
@@ -288,7 +289,7 @@ export async function PATCH(req: Request) {
     });
 
     if (findDuplicate) {
-      throw badRequest("A subject with this name already exists.");
+      throw unprocessableEntity("A subject with this name already exists.");
     }
 
     const configChanged = compareSubjectConfig(data, currentSubject);
