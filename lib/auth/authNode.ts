@@ -21,7 +21,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        // 1. Cari user di tabel profil
         const [student, teacher, parent] = await Promise.all([
           prisma.student.findUnique({ where: { email } }),
           prisma.teacher.findUnique({ where: { email } }),
@@ -31,11 +30,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const dbUser = student || teacher || parent;
         if (!dbUser || !dbUser.password) return null;
 
-        // 2. Validasi Password
         const isValid = await bcrypt.compare(password, dbUser.password);
         if (!isValid) return null;
 
-        // 3. Cek Wali Kelas
         let isHomeroom = false;
         if (teacher) {
           const homeroom = await prisma.homeroomClass.findUnique({
@@ -44,7 +41,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           isHomeroom = !!homeroom;
         }
 
-        // 4. UPDATE TABEL USER DI SINI (PENGGANTI SIGNIN CALLBACK)
         await prisma.user.upsert({
           where: { email: dbUser.email },
           update: {
@@ -73,22 +69,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Saat login pertama kali, 'user' akan tersedia
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.isHomeroomClassTeacher = (user as any).isHomeroomClassTeacher;
+        token.name = user.name;
+        token.email = user.email;
       }
       return token;
     },
 
     async session({ session, token }) {
-      // Pindahkan data dari token ke session agar bisa diakses di UI
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;
         session.user.role = token.role as any;
         session.user.isHomeroomClassTeacher =
           token.isHomeroomClassTeacher as boolean;
+        session.user.email = token.email as string;
       }
       return session;
     },

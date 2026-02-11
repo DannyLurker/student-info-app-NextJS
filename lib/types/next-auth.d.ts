@@ -14,6 +14,7 @@ declare module "next-auth" {
 
   interface User {
     id: string;
+    name: string;
     email: string;
     role: Role;
     isHomeroomClassTeacher: boolean;
@@ -22,6 +23,9 @@ declare module "next-auth" {
 
 declare module "@auth/core/adapters" {
   interface AdapterUser {
+    id: string;
+    name: string;
+    email: string;
     role: Role;
     isHomeroomClassTeacher: boolean;
   }

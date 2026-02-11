@@ -149,7 +149,7 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     console.error("API_ERROR", {
-      route: "/api/staff/subject",
+      route: "(POST) /api/staff/subject",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);
@@ -215,7 +215,7 @@ export async function GET(req: Request) {
     );
   } catch (error) {
     console.error("API_ERROR", {
-      route: "/api/staff/subject",
+      route: "(GET) /api/staff/subject",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);
@@ -227,44 +227,38 @@ export async function DELETE(req: Request) {
     await validateStaffSession();
 
     const { searchParams } = new URL(req.url);
+    const idParam = searchParams.get("subjectId");
+    const subjectId = idParam ? parseInt(idParam, 10) : null;
 
-    const subjectId = Number(searchParams.get("subjectId"));
-
-    if (!subjectId) {
-      throw badRequest("Subject id is missing");
+    // Explicit check for NaN or null
+    if (!subjectId || isNaN(subjectId)) {
+      throw badRequest("Valid Subject ID is required");
     }
 
-    const subject = await prisma.subject.findUnique({
-      where: {
-        id: subjectId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!subject) {
-      return notFound("Subject not found");
-    }
-
+    // Atomic Delete: Don't findUnique first. Just try to delete it.
     await prisma.subject.delete({
-      where: {
-        id: subject.id,
-      },
+      where: { id: subjectId },
     });
 
     return Response.json(
-      {
-        message: "Successfully deleted subject",
-      },
+      { message: "Successfully deleted subject" },
       { status: 200 },
     );
   } catch (error) {
+    // Prisma error code P2025 means "Record to delete does not exist."
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return Response.json({ message: "Subject not found" }, { status: 404 });
+    }
+
     console.error("API_ERROR", {
-      route: "/api/staff/subject",
+      route: "(DELETE) /api/staff/subject",
       message: error instanceof Error ? error.message : String(error),
     });
-    return handleError(error);
+
+    return Response.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -281,15 +275,16 @@ export async function PATCH(req: Request) {
 
     if (!currentSubject) throw notFound("Subject not found");
 
-    const findDuplicate = await prisma.subject.findUnique({
-      where: { subjectName: data.subjectName },
-      select: {
-        id: true,
-      },
-    });
+    if (data.subjectName) {
+      const findDuplicate = await prisma.subject.findUnique({
+        where: { subjectName: data.subjectName },
+        select: { id: true },
+      });
 
-    if (findDuplicate) {
-      throw unprocessableEntity("A subject with this name already exists.");
+      // Ensure the duplicate found isn't the current record itself
+      if (findDuplicate && findDuplicate.id !== data.subjectId) {
+        throw unprocessableEntity("A subject with this name already exists.");
+      }
     }
 
     const configChanged = compareSubjectConfig(data, currentSubject);
@@ -350,7 +345,7 @@ export async function PATCH(req: Request) {
     );
   } catch (error) {
     console.error("API_ERROR", {
-      route: "/api/staff/subject",
+      route: "(PATCH) /api/staff/subject",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);

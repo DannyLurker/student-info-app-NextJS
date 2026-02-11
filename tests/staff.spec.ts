@@ -41,7 +41,7 @@ test.describe("Account Creation", () => {
   });
 });
 
-test.describe("Subject CRUD", () => {
+test.describe("Subject CRUD feature (Success)", () => {
   const staffCookies = getStaffCookies();
 
   test("Create subject", async ({ request }) => {
@@ -61,45 +61,8 @@ test.describe("Subject CRUD", () => {
       },
     });
 
-    expect(response.ok);
+    expect(response.ok());
   });
-
-  // test("Fail to create subject due to the duplication", async ({ page }) => {
-  //   await page.request.post("/api/staff/subject", {
-  //     data: {
-  //       headers: { Cookie: staffCookies },
-  //       subjectRecords: [
-  //         {
-  //           subjectNames: ["Web", "Mobile"],
-  //           subjectConfig: {
-  //             grade: ["ELEVENTH", "TWELFTH"],
-  //             major: ["SOFTWARE_ENGINEERING"],
-  //             subjectType: "MAJOR",
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   });
-
-  //   const response = await page.request.post("/api/staff/subject", {
-  //     data: {
-  //       headers: { Cookie: staffCookies },
-  //       subjectRecords: [
-  //         {
-  //           subjectNames: ["Web", "Mobile"],
-  //           subjectConfig: {
-  //             grade: ["ELEVENTH", "TWELFTH"],
-  //             major: ["SOFTWARE_ENGINEERING"],
-  //             subjectType: "MAJOR",
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   });
-  //   console.log(response);
-
-  //   expect(response.status()).toBe(422);
-  // });
 
   test("Get subject", async ({ request }) => {
     await request.post("/api/staff/subject", {
@@ -125,7 +88,7 @@ test.describe("Subject CRUD", () => {
       },
     });
 
-    expect(response.ok);
+    expect(response.ok());
   });
 
   test("Update subject", async ({ request }) => {
@@ -150,48 +113,14 @@ test.describe("Subject CRUD", () => {
         subjectId: 1,
         subjectNames: "PAL",
         subjectConfig: {
-          major: ["Accounting"],
+          major: ["ACCOUNTING"],
           subjectType: "MAJOR",
         },
       },
     });
 
-    expect(response.ok);
+    expect(response.ok());
   });
-
-  // test("Fail to update subject due to the duplication subject", async ({
-  //   page,
-  // }) => {
-  //   await page.request.post("/api/staff/subject", {
-  //     data: {
-  //       headers: { Cookie: staffCookies },
-  //       subjectRecords: [
-  //         {
-  //           subjectNames: ["Web", "Mobile"],
-  //           subjectConfig: {
-  //             grade: ["ELEVENTH", "TWELFTH"],
-  //             major: ["SOFTWARE_ENGINEERING"],
-  //             subjectType: "MAJOR",
-  //           },
-  //         },
-  //       ],
-  //     },
-  //   });
-
-  //   const response = await page.request.patch("/api/staff/subject", {
-  //     data: {
-  //       headers: { Cookie: staffCookies },
-  //       subjectId: 2,
-  //       subjectNames: "Web",
-  //       subjectConfig: {
-  //         major: ["SOFTWARE_ENGINEERING"],
-  //         subjectType: "MAJOR",
-  //       },
-  //     },
-  //   });
-
-  //   expect(response.status()).toBe(422);
-  // });
 
   test("Delete subject", async ({ request }) => {
     await request.post("/api/staff/subject", {
@@ -217,15 +146,14 @@ test.describe("Subject CRUD", () => {
       },
     });
 
-    expect(response.ok);
+    expect(response.ok());
   });
+});
 
-  test("Fail to delete subject due to the missing subject", async ({
-    request,
-  }) => {
-    await request.post("/api/staff/subject", {
+test.describe("Subject CRUD feature (Fail)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.request.post("/api/staff/subject", {
       data: {
-        headers: { Cookie: staffCookies },
         subjectRecords: [
           {
             subjectNames: ["Web", "Mobile"],
@@ -238,11 +166,46 @@ test.describe("Subject CRUD", () => {
         ],
       },
     });
+  });
 
-    const response = await request.delete("/api/staff/subject", {
-      headers: { Cookie: staffCookies },
+  test("Fail to create subject due to the duplication", async ({ page }) => {
+    const response = await page.request.post("/api/staff/subject", {
+      data: {
+        subjectRecords: [
+          {
+            subjectNames: ["Web", "Mobile"],
+            subjectConfig: {
+              grade: ["ELEVENTH", "TWELFTH"],
+              major: ["SOFTWARE_ENGINEERING"],
+              subjectType: "MAJOR",
+            },
+          },
+        ],
+      },
+    });
+    expect(response.status()).toBe(422);
+  });
+
+  test("Fail to update subject due to the duplication subject", async ({
+    page,
+  }) => {
+    const response = await page.request.patch("/api/staff/subject", {
+      data: {
+        subjectId: Number(2),
+        subjectName: "Web",
+        subjectConfig: {},
+      },
+    });
+
+    expect(response.status()).toBe(422);
+  });
+
+  test("Fail to delete subject due to the missing subject", async ({
+    page,
+  }) => {
+    const response = await page.request.delete("/api/staff/subject", {
       params: {
-        subjectId: 10,
+        subjectId: "999999",
       },
     });
 
