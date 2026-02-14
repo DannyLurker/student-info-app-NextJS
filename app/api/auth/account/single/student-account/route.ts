@@ -8,8 +8,9 @@ import {
 import { subjects } from "@/lib/utils/subjects";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
-import { Semester } from "@/lib/constants/class";
+import { ClassSection, Grade, Semester } from "@/lib/constants/class";
 import { validateStaffSession } from "@/lib/validation/guards";
+import { Major } from "@/db/prisma/src/generated/prisma/enums";
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     };
 
     await prisma.$transaction(async (tx) => {
-      const existingStudent = await tx.student.findUnique({
+      const existingStudent = await tx.user.findUnique({
         where: { email: data.email },
       });
 
@@ -38,11 +39,19 @@ export async function POST(req: Request) {
 
       const hashedPassword = await hashing(data.passwordSchema.password);
 
-      const homeroomClass = await tx.homeroomClass.findFirst({
+      const homeroomClass = await tx.classroom.upsert({
         where: {
+          grade_major_section: {
+            grade: data.classSchema.grade as Grade,
+            major: data.classSchema.major as Major,
+            section: data.classSchema.section as ClassSection,
+          },
+        },
+        update: {},
+        create: {
           grade: data.classSchema.grade,
           major: data.classSchema.major,
-          classNumber: data.classSchema.classNumber,
+          section: data.classSchema.section,
         },
         select: {
           id: true,
@@ -53,17 +62,18 @@ export async function POST(req: Request) {
         throw notFound("Homeroom class not found");
       }
 
-      const student = await tx.student.create({
+      const student = await tx.user.create({
         data: {
           name: data.username,
           email: data.email,
           password: hashedPassword,
-          grade: data.classSchema.grade,
-          major: data.classSchema.major,
-          classNumber: data.classSchema.classNumber,
-          isVerified: true,
-          homeroomClassId: homeroomClass.id,
-          role: data.studentRole,
+          role: "STUDENT",
+          studentProfile: {
+            create: {
+              classId: homeroomClass.id,
+              studentRole: data.studentRole,
+            },
+          },
         },
         select: {
           id: true,
@@ -71,96 +81,63 @@ export async function POST(req: Request) {
         },
       });
 
-      // Get subject list based on grade and major
-      const subjectsList =
-        subjects[data.classSchema.grade]?.major?.[data.classSchema.major] ?? [];
-
-      if (subjectsList.length === 0) {
-        throw badRequest(
-          "Subject configuration not found for this grade and major",
-        );
-      }
-
       const existingSubjects = await tx.subject.findMany({
         where: {
-          subjectName: {
-            in: subjectsList,
+          config: {
+            allowedGrades: {
+              has: data.classSchema.grade,
+            },
+            allowedMajors: {
+              has: data.classSchema.major,
+            },
           },
         },
         select: {
           id: true,
-          subjectName: true,
+          name: true,
         },
       });
 
-      const existingSubjectNames = existingSubjects.map((s) => s.subjectName);
-
-      const missingSubjects = subjectsList.filter(
-        (name) => !existingSubjectNames.includes(name),
-      );
-
-      if (missingSubjects.length > 0) {
-        await tx.subject.createMany({
-          data: missingSubjects.map((name) => ({ subjectName: name })),
-          skipDuplicates: true,
-        });
-      }
-
-      let allSubjects = await tx.subject.findMany({
-        where: {
-          subjectName: {
-            in: subjectsList,
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      const subjectRecordIds = allSubjects.map((s) => s.id);
+      const subjectRecordIds = existingSubjects.map((s) => s.id);
 
       //Upsert all subjectmMark
       const today = new Date();
       // We only have 2 semsesters. In DB we describe as "FIRST" and "SECOND"
       const currentSemester = getSemester(today) === 1 ? "FIRST" : "SECOND";
 
-      const subjectMarkRecords = await Promise.all(
-        subjectsList.map(async (subjectName) => {
+      const gradebookRecords = await Promise.all(
+        existingSubjects.map(async (subject) => {
           return {
             studentId: student.id,
-            subjectName: subjectName,
+            subjectName: subject.name,
+            subjectId: subject.id,
             academicYear: String(new Date().getFullYear()),
             semester: currentSemester as Semester,
           };
         }),
       );
 
-      await tx.subjectMark.createMany({
-        data: subjectMarkRecords,
+      await tx.gradebook.createMany({
+        data: gradebookRecords,
       });
 
-      const createdMarks = await tx.subjectMark.findMany({
-        where: {
-          studentId: student.id,
-          academicYear: String(new Date().getFullYear()),
-          semester: currentSemester as Semester,
-        },
-        select: {
-          id: true,
-        },
-      });
+      // const createdGradebook = await tx.gradebook.findMany({
+      //   where: {
+      //     studentId: student.id,
+      //     academicYear: String(new Date().getFullYear()),
+      //     semester: currentSemester as Semester,
+      //   },
+      //   select: {
+      //     id: true,
+      //   },
+      // });
 
       // Connect subjectMark to student
       await tx.student.update({
         where: { id: student.id },
         data: {
-          studentSubjects: {
-            connect: subjectRecordIds.map((subjectId) => ({ id: subjectId })),
-          },
-          subjectMarks: {
-            connect: createdMarks.map((mark) => ({
-              id: mark.id,
-            })),
+          gradebooks: {
+            connect: existingSubjects.map((subject) => ({ id: subject.id })),
           },
         },
       });
@@ -168,13 +145,17 @@ export async function POST(req: Request) {
       const rawRandomPassword = crypto.randomBytes(8).toString("hex");
       const hashRandomPassword = await hashing(rawRandomPassword);
 
-      await tx.parent.create({
+      await tx.user.create({
         data: {
           email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
           name: `${student.name}'s Parents`,
           password: hashRandomPassword,
           role: "PARENT",
-          studentId: student.id,
+          parentProfile: {
+            create: {
+              studentId: student.id,
+            },
+          },
         },
         select: {
           role: true,

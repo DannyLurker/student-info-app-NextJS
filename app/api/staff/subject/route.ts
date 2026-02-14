@@ -33,7 +33,9 @@ export async function POST(req: Request) {
     const uniqueSubjects = new Set();
     const subjectMap = new Map();
 
+    //Validation
     data.subjectRecords.map((record, index) => {
+      // Multiple majors are not allowed for subjects with type 'MAJOR'.
       if (
         record.subjectConfig.subjectType === "MAJOR" &&
         record.subjectConfig.major.length > 1
@@ -43,7 +45,28 @@ export async function POST(req: Request) {
         );
       }
 
-      record.subjectNames.map((subjectName) => {
+      record.subjectNames.forEach((subjectName) => {
+        const uniqueGrade = new Set();
+        const uniqueMajor = new Set();
+
+        // Can't be duplicted
+        record.subjectConfig.grade.forEach((grade) => {
+          if (uniqueGrade.has(grade)) {
+            throw badRequest(`row ${index + 1}: Grade ${grade} is duplicated`);
+          }
+
+          uniqueGrade.add(grade);
+        });
+
+        // Can't be duplicted
+        record.subjectConfig.major.forEach((major) => {
+          if (uniqueMajor.has(major)) {
+            throw badRequest(`row ${index + 1}: Major ${major} is duplicated`);
+          }
+
+          uniqueMajor.add(major);
+        });
+
         const uniqueSubjectKey = `${subjectName}-${record.subjectConfig.subjectType}-${record.subjectConfig.grade.join("-")}-${record.subjectConfig.major.join("-")}`;
 
         if (uniqueSubjects.has(uniqueSubjectKey)) {
@@ -70,11 +93,27 @@ export async function POST(req: Request) {
       where: {
         subjectName: {
           in: uniqueSubjectNames,
+          mode: "insensitive",
         },
       },
       select: {
         subjectName: true,
       },
+    });
+
+    uniqueSubjectNames.forEach((name) => {
+      console.log(name);
+      existingSubjects.forEach((existingName) => {
+        console.log(existingName);
+        if (
+          existingName.subjectName.toLocaleLowerCase() ===
+          name.toLocaleLowerCase()
+        ) {
+          throw unprocessableEntity(
+            `Subject can't be duplicated. ${name} is duplicated `,
+          );
+        }
+      });
     });
 
     if (existingSubjects.length === uniqueSubjectNames.length) {
@@ -94,8 +133,6 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       for (const subjectName of missingSubjectNames) {
         const subjectConfig = subjectMap.get(subjectName);
-
-        console.log(subjectConfig);
 
         if (!subjectConfig) {
           throw internalServerError(
@@ -171,13 +208,14 @@ export async function GET(req: Request) {
         contains: data.subjectName,
         mode: "insensitive",
       };
-    } else if (data.subjectConfig) {
-      const { grade, major, subjectType } = data.subjectConfig;
+    } else if (data.grade || data.major || data.subjectType) {
       whereCondition.subjectConfig = {
         AND: [
-          grade ? { grade: { hasSome: grade as Grade[] } } : {},
-          major ? { major: { hasSome: major as Major[] } } : {},
-          subjectType ? { subjectType: subjectType as SubjectType } : {},
+          data.grade ? { grade: { hasSome: [data.grade] as Grade[] } } : {},
+          data.major ? { major: { hasSome: [data.major] as Major[] } } : {},
+          data.subjectType
+            ? { subjectType: data.subjectType as SubjectType }
+            : {},
         ],
       };
     }
@@ -186,6 +224,7 @@ export async function GET(req: Request) {
       where: whereCondition,
       select: {
         id: true,
+        subjectName: true,
         subjectConfig: {
           select: {
             grade: true,

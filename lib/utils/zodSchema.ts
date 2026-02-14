@@ -4,7 +4,7 @@ const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const AttendanceTypesEnum = z.enum(["ALPHA", "SICK", "PERMISSION", "LATE"]);
-const ClassNumberEnum = z.enum(["none", "1", "2"]);
+const ClassSectionEnum = z.enum(["none", "1", "2"]);
 const SortByEnum = z.enum(["name", "status"]);
 const SortOrderEnum = z.enum(["asc", "desc"]);
 const ProblemPointCategoryEnum = z.enum([
@@ -35,8 +35,8 @@ const page = z
 
 // Schema for subject
 const subjectConfig = z.object({
-  grade: z.array(GradeEnum).min(1),
-  major: z.array(MajorEnum).min(1),
+  grade: z.array(GradeEnum).min(1, "At least one grade required"),
+  major: z.array(MajorEnum).min(1, "At least one major required"),
   subjectType: SubjectTypeEnum,
 });
 
@@ -58,16 +58,21 @@ const createSubjectSchema = z.object({
 const getSubjectQueriesSchema = z.object({
   page,
   sortOrder: SortOrderEnum,
-  subjectConfig: subjectConfig.optional(),
   subjectName: z
     .string()
     .min(3, { message: "At least must be 3 characters" })
     .optional(),
+  grade: GradeEnum.optional(),
+  major: MajorEnum.optional(),
+  subjectType: SubjectTypeEnum.optional(),
 });
 
 const patchSubjectSchema = z.object({
   subjectId: z.number(),
-  subjectName: z.string().min(3).optional(),
+  subjectName: z
+    .string()
+    .min(3, "Must be at least 3 characters long.")
+    .optional(),
   subjectConfig: subjectConfig.partial().optional(),
 });
 
@@ -80,7 +85,7 @@ const teachingAssignmentInput = z.object({
   subjectName: z.string({ message: "Must be filled" }),
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: ClassNumberEnum,
+  classNumber: ClassSectionEnum,
 });
 
 type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
@@ -88,7 +93,7 @@ type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
 const classSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: ClassNumberEnum,
+  section: ClassSectionEnum,
 });
 
 type ClassSchema = z.infer<typeof classSchema>;
@@ -195,7 +200,7 @@ type HomeroomClassStudentSchema = z.infer<typeof homeroomClassStudent>;
 const problemPointQuerySchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: ClassNumberEnum,
+  classNumber: ClassSectionEnum,
   recordedBy: z.string({ message: "Must be filled" }),
 });
 

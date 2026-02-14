@@ -42,6 +42,7 @@ import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
 } from "@/lib/constants/allowedExtensions";
+import { createPortal } from "react-dom";
 
 interface StudentFormModalProps {
   open: boolean;
@@ -218,17 +219,21 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
 
   return (
     <>
-      {singleMutation.isPending && (
-        <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {singleMutation.isPending &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
+            <Spinner />
+          </div>,
+          document.body,
+        )}
 
-      {bulkMutation.isPending && (
-        <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {bulkMutation.isPending &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
+            <Spinner />
+          </div>,
+          document.body,
+        )}
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

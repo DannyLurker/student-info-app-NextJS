@@ -8,7 +8,15 @@ generator client {
     output   = "prisma/src/generated/prisma"
 }
 
-// enum
+// --- Enums ---
+
+enum Role {
+    ADMIN
+    STAFF
+    STUDENT
+    PARENT
+}
+
 enum StaffRole {
     TEACHER
     VICE_PRINCIPAL
@@ -20,11 +28,7 @@ enum StudentRole {
     CLASS_SECRETARY
 }
 
-enum Outsider {
-    PARENT
-}
-
-enum Grade {
+enum GradeLevel {
     TENTH
     ELEVENTH
     TWELFTH
@@ -41,28 +45,28 @@ enum Semester {
 }
 
 enum AssessmentType {
-    SCHOOLWORK
     HOMEWORK
     QUIZ
     EXAM
     PROJECT
-    GROUP
+    GROUP_WORK
 }
 
-enum ProblemPointCategory {
+enum AttendanceType {
+    PRESENT
     LATE
-    INCOMPLETE_ATTRIBUTES
+    ABSENT
+    SICK
+    PERMISSION
+}
+
+enum InfractionCategory {
+    LATE
+    UNIFORM
     DISCIPLINE
     ACADEMIC
     SOCIAL
     OTHER
-}
-
-enum AttendanceType {
-    LATE
-    ALPHA
-    SICK
-    PERMISSION
 }
 
 enum SubjectType {
@@ -70,250 +74,193 @@ enum SubjectType {
     MAJOR
 }
 
-// student model
-model Student {
-    id            String      @id @default(cuid())
+// --- Auth & Identity ---
+
+model User {
+    id            String    @id @default(cuid())
     name          String
-    email         String      @unique
+    email         String    @unique
     password      String?
     emailVerified DateTime?
-    isVerified    Boolean
-    sessions      Session[]
-    role          StudentRole @default(STUDENT)
+    role          Role      @default(STUDENT)
 
-    grade           Grade
-    major           Major
-    classNumber     String
-    homeroomClassId Int
-    homeroomClass   HomeroomClass? @relation(fields: [homeroomClassId], references: [id])
-
-    studentSubjects    Subject[]           @relation("SubjectStudents")
-    subjectMarks       SubjectMark[]
-    attendances        StudentAttendance[]
-    DisciplinaryPoints DisciplinaryPoint[]
-
-    otp             String?
-    otpExpiresAt    DateTime?
-    otpRequestCount Int       @default(0)
-    otpResetAt      DateTime?
-    otpAttemptCount Int       @default(0)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    parent    Parent?
-    teacher   Teacher? @relation(fields: [teacherId], references: [id])
-    teacherId String?
-    users     User[]
-
-    @@index([email])
-}
-
-model SubjectMark {
-    id           Int      @id @default(autoincrement())
-    subjectName  String
-    subject      Subject  @relation(fields: [subjectName], references: [subjectName])
-    studentId    String
-    student      Student  @relation(fields: [studentId], references: [id])
-    academicYear String
-    semester     Semester
-    marks        Mark[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([studentId, subjectName, academicYear, semester])
-    @@index([studentId])
-}
-
-model Mark {
-    id            Int         @id @default(autoincrement())
-    subjectMarkId Int
-    subjectMark   SubjectMark @relation(fields: [subjectMarkId], references: [id])
-
-    type             AssessmentType
-    score            Int?
-    assessmentNumber Int
-    descriptionId    Int
-    description      MarkDescription @relation(fields: [descriptionId], references: [id])
-    teacher          Teacher         @relation(fields: [recordedBy], references: [id])
-    recordedBy       String
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([subjectMarkId, assessmentNumber])
-    @@index([subjectMarkId])
-}
-
-model MarkDescription {
-    id      Int      @id @default(autoincrement())
-    givenAt DateTime @default(now())
-    dueAt   DateTime
-    detail  String
-
-    marks Mark[]
-}
-
-model StudentAttendance {
-    id        Int     @id @default(autoincrement())
-    studentId String
-    student   Student @relation(fields: [studentId], references: [id])
-
-    date        DateTime       @default(now())
-    type        AttendanceType
-    description String?
-
-    @@unique([studentId, date])
-    @@index([studentId])
-}
-
-model DisciplinaryPoint {
-    id        Int     @id @default(autoincrement())
-    studentId String
-    student   Student @relation(fields: [studentId], references: [id])
-
-    point       Int
-    category    ProblemPointCategory
-    description String
-    recordedBy  String
-    teacher     Teacher              @relation(fields: [recordedBy], references: [id])
-    date        DateTime             @db.Date
-
-    @@index([studentId])
-}
-
-// teacher model
-
-model Teacher {
-    id       String @id @default(cuid())
-    name     String
-    email    String @unique
-    password String
-
-    role StaffRole @default(TEACHER)
-
-    homeroomClass HomeroomClass?
-
-    teachingAssignments TeachingAssignment[]
-
-    teachingClasses TeachingClass[]
-
-    sessions           Session[]
-    DisciplinaryPoints DisciplinaryPoint[]
-    otp                String?
-    otpExpiresAt       DateTime?
-    otpRequestCount    Int                 @default(0)
-    otpResetAt         DateTime?
-    otpAttemptCount    Int                 @default(0)
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    students  Student[]
-    marks     Mark[]
-    users     User[]
-
-    @@index([email])
-}
-
-model TeachingClass {
-    id          Int    @id @default(autoincrement())
-    grade       Grade
-    major       Major
-    classNumber String @default("none")
-
-    teachers Teacher[]
-
-    @@unique([grade, major, classNumber])
-}
-
-model HomeroomClass {
-    id          Int       @id @default(autoincrement())
-    grade       Grade
-    major       Major
-    classNumber String    @default("none")
-    teacherId   String    @unique
-    teacher     Teacher   @relation(fields: [teacherId], references: [id])
-    students    Student[]
-
-    @@unique([grade, major, classNumber])
-}
-
-model TeachingAssignment {
-    id Int @id @default(autoincrement())
-
-    teacher Teacher[]
-
-    subject   Subject @relation(fields: [subjectId], references: [id])
-    subjectId Int
-
-    grade                    Grade
-    major                    Major
-    classNumber              String @default("none")
-    totalAssignmentsAssigned Int    @default(0)
-
-    @@unique([subjectId, grade, major, classNumber])
-}
-
-// Parent model
-model Parent {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    password  String
-    name      String
-    role      Outsider @default(PARENT)
-    studentId String   @unique
-    student   Student  @relation(fields: [studentId], references: [id])
-}
-
-// General
-model User {
-    id                     String  @id @default(cuid())
-    name                   String?
-    email                  String? @unique
-    password               String?
-    role                   String
-    isHomeroomClassTeacher Boolean @default(false)
-
-    studentProfile Student? @relation(fields: [studentId], references: [id])
-    teacherProfile Teacher? @relation(fields: [teacherId], references: [id])
+    // Profile Relations
+    studentProfile Student?
+    teacherProfile Teacher?
+    parentProfile  Parent?
 
     sessions  Session[]
-    studentId String?
-    teacherId String?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    @@index([email])
 }
 
-// 2. Tabel Session tunggal (WAJIB untuk NextAuth)
 model Session {
     id           String   @id @default(cuid())
     sessionToken String   @unique
     userId       String
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    student      Student? @relation(fields: [studentId], references: [id])
-    studentId    String?
-    teacher      Teacher? @relation(fields: [teacherId], references: [id])
-    teacherId    String?
+}
+
+// --- Academic Structure ---
+
+model Classroom {
+    id      Int        @id @default(autoincrement())
+    grade   GradeLevel
+    major   Major
+    section String // e.g., "A", "B", "1"
+
+    // One class has one Homeroom Teacher
+    homeroomTeacherId String?  @unique
+    homeroomTeacher   Teacher? @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
+
+    students    Student[]
+    assignments TeachingAssignment[]
+
+    @@unique([grade, major, section])
 }
 
 model Subject {
-    id              Int           @id @default(autoincrement())
-    subjectName     String        @unique
-    subjectConfigId Int
-    subjectConfig   SubjectConfig @relation(fields: [subjectConfigId], references: [id])
+    id   Int         @id @default(autoincrement())
+    name String      @unique
+    type SubjectType
 
-    students Student[] @relation("SubjectStudents")
+    configId Int
+    config   SubjectConfig @relation(fields: [configId], references: [id])
 
-    teachingAssignments TeachingAssignment[]
-    subjectMarks        SubjectMark[]
+    assignments TeachingAssignment[]
+    gradebooks  Gradebook[]
 }
 
 model SubjectConfig {
-    id          Int         @id @default(autoincrement())
-    major       Major[]
-    grade       Grade[]
-    subjectType SubjectType
+    id            Int          @id @default(autoincrement())
+    allowedMajors Major[]
+    allowedGrades GradeLevel[]
+    type          SubjectType
 
     subjects Subject[]
+}
+
+// --- Profiles ---
+
+model Student {
+    id     String @id @default(cuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    studentRole StudentRole @default(STUDENT)
+
+    classId Int
+    class   Classroom @relation(fields: [classId], references: [id])
+
+    attendance Attendance[]
+    demerits   DemeritPoint[]
+    gradebooks Gradebook[]
+    parent     Parent?
+}
+
+model Teacher {
+    id     String @id @default(cuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    staffRole StaffRole @default(TEACHER)
+
+    // Relation as Homeroom Teacher
+    homeroom Classroom? @relation("HomeroomTeacher")
+
+    // Relation as Subject Teacher
+    assignments    TeachingAssignment[]
+    scoresRecorded AssessmentScore[]
+    demeritPoints  DemeritPoint[]
+}
+
+model Parent {
+    id     String @id @default(cuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    studentId String  @unique
+    student   Student @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+// --- Teaching & Grading ---
+
+model TeachingAssignment {
+    id Int @id @default(autoincrement())
+
+    teacherId String
+    teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+    subjectId Int
+    subject   Subject @relation(fields: [subjectId], references: [id])
+
+    classId Int
+    class   Classroom @relation(fields: [classId], references: [id])
+
+    academicYear String // e.g., "2025/2026"
+
+    @@unique([teacherId, subjectId, classId, academicYear])
+}
+
+model Gradebook {
+    id        Int     @id @default(autoincrement())
+    studentId String
+    student   Student @relation(fields: [studentId], references: [id])
+    subjectId Int
+    subject   Subject @relation(fields: [subjectId], references: [id])
+
+    semester     Semester
+    academicYear String
+
+    scores AssessmentScore[]
+
+    @@unique([studentId, subjectId, semester, academicYear])
+}
+
+model AssessmentScore {
+    id          Int       @id @default(autoincrement())
+    gradebookId Int
+    gradebook   Gradebook @relation(fields: [gradebookId], references: [id])
+
+    type        AssessmentType
+    score       Int?
+    description String?
+
+    recordedById String
+    teacher      Teacher @relation(fields: [recordedById], references: [id])
+
+    createdAt DateTime @default(now())
+}
+
+// --- Discipline & Attendance ---
+
+model Attendance {
+    id        Int     @id @default(autoincrement())
+    studentId String
+    student   Student @relation(fields: [studentId], references: [id])
+
+    date DateTime       @default(now()) @db.Date
+    type AttendanceType
+    note String?
+
+    @@unique([studentId, date])
+}
+
+model DemeritPoint {
+    id        Int     @id @default(autoincrement())
+    studentId String
+    student   Student @relation(fields: [studentId], references: [id])
+
+    points      Int
+    category    InfractionCategory
+    description String
+    date        DateTime           @db.Date
+
+    recordedById String
+    teacher      Teacher @relation(fields: [recordedById], references: [id])
 }
 
 model VerificationToken {

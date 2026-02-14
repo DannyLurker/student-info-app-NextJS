@@ -15,6 +15,7 @@ import {
   BookX,
   ChartNoAxesCombined,
   FileSpreadsheet,
+  SquareLibrary,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -114,6 +115,11 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             href: "/dashboard/problem-point",
             icon: BookX,
             label: "Problem Point",
+          },
+          {
+            href: "/dashboard/staff/subject",
+            icon: SquareLibrary,
+            label: "Subject Management",
           },
           ...commonItems,
         ];
