@@ -38,12 +38,7 @@ import {
   SUBJECT_DISPLAY_MAP,
 } from "@/lib/utils/labels";
 
-import {
-  GRADES,
-  MAJORS,
-  ClassNumber,
-  CLASSNUMBERS,
-} from "@/lib/constants/class";
+import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
 
 // Get all unique subjects from the subjects config
 const getAllSubjects = () => {
@@ -588,7 +583,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CLASSNUMBERS.map((num) => (
+                      {CLASS_SECTION.map((num) => (
                         <SelectItem key={num} value={num}>
                           {num === "none" ? "None" : `Class ${num}`}
                         </SelectItem>
@@ -685,7 +680,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                             <SelectValue placeholder="Select class" />
                           </SelectTrigger>
                           <SelectContent>
-                            {CLASSNUMBERS.map((num) => (
+                            {CLASS_SECTION.map((num) => (
                               <SelectItem key={num} value={num}>
                                 {num === "none" ? "None" : `Class ${num}`}
                               </SelectItem>
@@ -832,7 +827,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                               <SelectValue placeholder="Select class" />
                             </SelectTrigger>
                             <SelectContent>
-                              {CLASSNUMBERS.map((num) => (
+                              {CLASS_SECTION.map((num) => (
                                 <SelectItem key={num} value={num}>
                                   {num === "none" ? "None" : `Class ${num}`}
                                 </SelectItem>

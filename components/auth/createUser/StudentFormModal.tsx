@@ -23,17 +23,16 @@ import { Spinner } from "../../ui/spinner";
 import { Eye, EyeOff } from "lucide-react";
 import {
   GRADES,
-  CLASSNUMBERS,
   MAJORS,
   Grade,
-  ClassNumber,
+  CLASS_SECTION,
+  ClassSection,
 } from "@/lib/constants/class";
 import {
   MAJOR_DISPLAY_MAP,
   GRADE_DISPLAY_MAP,
   STUDENT_ROLES_MAP,
 } from "@/lib/utils/labels";
-import { STUDENT_ROLES, StudentRole } from "@/lib/constants/roles";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { StudentSignUpSchema } from "@/lib/utils/zodSchema";
 import { Major } from "@/db/prisma/src/generated/prisma/enums";
@@ -43,6 +42,10 @@ import {
   AllowedExtensions,
 } from "@/lib/constants/allowedExtensions";
 import { createPortal } from "react-dom";
+import {
+  STUDENT_POSITIONS_ARRAY,
+  StudentPosition,
+} from "@/lib/constants/roles";
 
 interface StudentFormModalProps {
   open: boolean;
@@ -191,9 +194,9 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
       classSchema: {
         grade: data.grade as Grade,
         major: data.major as Major,
-        classNumber: data.classNumber as ClassNumber,
+        section: data.classNumber as ClassSection,
       },
-      studentRole: data.studentRole as StudentRole,
+      studentRole: data.studentRole as StudentPosition,
     };
 
     singleMutation.mutate(formattedData);
@@ -553,7 +556,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CLASSNUMBERS.map((num) => (
+                      {CLASS_SECTION.map((num) => (
                         <SelectItem key={num} value={num}>
                           {num === "none" ? "None" : `Class ${num}`}
                         </SelectItem>
@@ -575,7 +578,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STUDENT_ROLES.map((role) => (
+                      {STUDENT_POSITIONS_ARRAY.map((role) => (
                         <SelectItem key={role} value={role}>
                           {STUDENT_ROLES_MAP[role]}
                         </SelectItem>

@@ -1,4 +1,4 @@
-import { ClassNumber, Grade, Major } from "../constants/class";
+import { ClassSection, Grade, Major } from "../constants/class";
 
 export const SUBJECT_DISPLAY_MAP: Record<string, string> = {
   fundamentals_of_fluency_swe: "Fundamentals of Fluency SWE",
@@ -63,14 +63,14 @@ export function getGradeNumber(grade: Grade): string {
   }
 }
 
-export function formatClassNumber(classNumber: ClassNumber): string {
-  return classNumber === "none" ? "" : classNumber;
+export function formatClassNumber(classSection: ClassSection): string {
+  return classSection === "none" ? "" : classSection;
 }
 
 export function getFullClassLabel(
   grade: Grade,
   major: Major,
-  classNumber: ClassNumber,
+  classSection: ClassSection,
 ) {
-  return `${getGradeNumber(grade)}-${getMajorDisplayName(major)} ${formatClassNumber(classNumber)}`;
+  return `${getGradeNumber(grade)}-${getMajorDisplayName(major)} ${formatClassNumber(classSection)}`;
 }

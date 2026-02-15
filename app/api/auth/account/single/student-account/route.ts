@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
       const hashedPassword = await hashing(data.passwordSchema.password);
 
-      const homeroomClass = await tx.classroom.upsert({
+      const classroom = await tx.classroom.upsert({
         where: {
           grade_major_section: {
             grade: data.classSchema.grade as Grade,
@@ -80,8 +80,8 @@ export async function POST(req: Request) {
         },
       });
 
-      if (!homeroomClass) {
-        throw notFound("Homeroom class not found");
+      if (!classroom) {
+        throw notFound("Classroom not found");
       }
 
       const student = await tx.user.create({
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
           role: "STUDENT",
           studentProfile: {
             create: {
-              classId: homeroomClass.id,
+              classId: classroom.id,
               studentRole: data.studentRole,
             },
           },
@@ -103,8 +103,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // const subjectRecordIds = existingSubjects.map((s) => s.id);
-
       const today = new Date();
       // We only have 2 semsesters. In DB we describe as "FIRST" and "SECOND"
       const currentSemester = getSemester(today) === 1 ? "FIRST" : "SECOND";
@@ -113,7 +111,6 @@ export async function POST(req: Request) {
         existingSubjects.map(async (subject) => {
           return {
             studentId: student.id,
-            subjectName: subject.name,
             subjectId: subject.id,
             academicYear: String(new Date().getFullYear()),
             semester: currentSemester as Semester,
@@ -125,33 +122,14 @@ export async function POST(req: Request) {
         data: gradebookRecords,
       });
 
-      // const createdGradebook = await tx.gradebook.findMany({
-      //   where: {
-      //     studentId: student.id,
-      //     academicYear: String(new Date().getFullYear()),
-      //     semester: currentSemester as Semester,
-      //   },
-      //   select: {
-      //     id: true,
-      //   },
-      // });
-
-      // Connect subjectMark to student
-      await tx.student.update({
-        where: { id: student.id },
-        data: {
-          gradebooks: {
-            connect: existingSubjects.map((subject) => ({ id: subject.id })),
-          },
-        },
-      });
-
       const rawRandomPassword = crypto.randomBytes(8).toString("hex");
       const hashRandomPassword = await hashing(rawRandomPassword);
 
+      const parentAccountEmail = `${student.name.trim().toLowerCase().replaceAll(" ", "")}${student.id.slice(0, 4)}parentaccount@gmail.com`;
+
       await tx.user.create({
         data: {
-          email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
+          email: parentAccountEmail,
           name: `${student.name}'s Parents`,
           password: hashRandomPassword,
           role: "PARENT",
@@ -165,8 +143,6 @@ export async function POST(req: Request) {
           role: true,
         },
       });
-
-      const parentAccountEmail = `${student.name.trim().toLowerCase().replaceAll(" ", "")}${student.id.slice(0, 4)}parentaccount@gmail.com`;
 
       parentAccount = {
         email: parentAccountEmail,

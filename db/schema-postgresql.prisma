@@ -191,7 +191,7 @@ model TeachingAssignment {
     id Int @id @default(autoincrement())
 
     teacherId String
-    teacher   Teacher @relation(fields: [teacherId], references: [id])
+    teacher   Teacher @relation(fields: [teacherId], references: [userId])
 
     subjectId Int
     subject   Subject @relation(fields: [subjectId], references: [id])
@@ -207,7 +207,7 @@ model TeachingAssignment {
 model Gradebook {
     id        Int     @id @default(autoincrement())
     studentId String
-    student   Student @relation(fields: [studentId], references: [id])
+    student   Student @relation(fields: [studentId], references: [userId])
     subjectId Int
     subject   Subject @relation(fields: [subjectId], references: [id])
 

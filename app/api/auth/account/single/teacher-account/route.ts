@@ -3,9 +3,15 @@ import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
 import { getFullClassLabel } from "@/lib/utils/labels";
-import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
-import { ClassNumber, Grade, Major } from "@/lib/constants/class";
 import { validateStaffSession } from "@/lib/validation/guards";
+import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
+
+type ResolvedTeachingAssignments = {
+  teacherId: string;
+  subjectId: number;
+  academicYear: string;
+  classId: number;
+};
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +21,7 @@ export async function POST(req: Request) {
 
     const data = teacherSignUpSchema.parse(rawData);
 
-    const existingTeacher = await prisma.teacher.findUnique({
+    const existingTeacher = await prisma.user.findUnique({
       where: { email: data.email },
     });
 
@@ -26,146 +32,139 @@ export async function POST(req: Request) {
     const hashedPassword = await hashing(data.passwordSchema.password);
 
     await prisma.$transaction(async (tx) => {
-      if (
-        Array.isArray(data.teachingClasses) &&
-        data.teachingClasses.length > 0 &&
-        Array.isArray(data.teachingAssignment) &&
-        data.teachingAssignment.length > 0
-      ) {
-        /* VALIDATION 2: 
-          - Check if every teaching class matches one of the teaching assignments
-          - Check if every teaching assignment matches one of the teaching classes
-          - Check if the subject is valid for that specific class
+      // create teacher account
+      const teacher = await tx.user.create({
+        data: {
+          role: "STAFF",
+          name: data.username,
+          email: data.email,
+          password: hashedPassword,
+
+          teacherProfile: {
+            create: {
+              staffRole: "TEACHER",
+            },
+          },
+        },
+        select: {
+          name: true,
+          email: true,
+          id: true,
+        },
+      });
+
+      let resolvedTeachingAssignments: ResolvedTeachingAssignments[] = [];
+
+      if (Array.isArray(data.assignments) && data.assignments.length > 0) {
+        /* VALIDATION: 
           - Check for duplicate assignments (same subject in same class)
         */
-        validateTeachingStructure(
-          data.teachingClasses,
-          data.teachingAssignment,
-        );
+        validateTeachingStructure(data.assignments);
 
-        const assignmentStrings = data.teachingAssignment.map(
-          (ta) => `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subjectName}`,
-        );
-
-        // for create or connect teaching classes data to teacher account
-        const teachingClassesData = data.teachingClasses.map((tc) => ({
-          where: {
-            grade_major_classNumber: {
-              grade: tc.grade,
-              major: tc.major,
-              classNumber: tc.classNumber,
-            },
-          },
-          create: {
-            grade: tc.grade,
-            major: tc.major,
-            classNumber: tc.classNumber,
-          },
-        }));
-
-        // Handle Teaching Assignments
-        const subjects = await Promise.all(
-          data.teachingAssignment.map(async (assignment) => {
-            return await tx.subject.upsert({
+        // Resolve classroom IDs and validate existence for each assignment
+        resolvedTeachingAssignments = await Promise.all(
+          data.assignments.map(async (assignment) => {
+            const classroom = await tx.classroom.findUnique({
               where: {
-                subjectName: assignment.subjectName,
+                grade_major_section: {
+                  grade: assignment.grade,
+                  major: assignment.major,
+                  section: assignment.section,
+                },
               },
-              update: {},
-              create: { subjectName: assignment.subjectName },
+              select: { id: true },
             });
+
+            // Validate is classroom found
+            if (!classroom) {
+              throw badRequest(
+                `Assignment Error (${assignment.subjectName}): Class ${getFullClassLabel(
+                  assignment.grade,
+                  assignment.major,
+                  assignment.section,
+                )}does not exist.`,
+              );
+            }
+
+            const findSubject = await tx.subject.findUnique({
+              where: {
+                id: assignment.subjectId,
+              },
+              select: {
+                config: {
+                  select: {
+                    allowedGrades: true,
+                    allowedMajors: true,
+                  },
+                },
+              },
+            });
+
+            if (!findSubject) {
+              throw badRequest("Subject was not found");
+            }
+
+            const isGradeInclude = findSubject.config.allowedGrades.includes(
+              assignment.grade,
+            );
+
+            const isMajorInclude = findSubject.config.allowedMajors.includes(
+              assignment.major,
+            );
+
+            if (!(isGradeInclude && isMajorInclude)) {
+              throw badRequest(`${assignment.subjectName}: Config miss match`);
+            }
+
+            return {
+              teacherId: teacher.id,
+              subjectId: assignment.subjectId,
+              academicYear: String(new Date().getFullYear()),
+              classId: classroom.id,
+            };
           }),
         );
+      }
 
-        const subjectMap = new Map(subjects.map((s) => [s.subjectName, s.id]));
-
-        const assignmentUniqueKeys = new Set(assignmentStrings);
-
-        const filteredAssignments = Array.from(assignmentUniqueKeys);
-
-        const teachingAssignmentData = filteredAssignments.map((assignment) => {
-          const [grade, major, classNumber, subjectName] =
-            assignment.split("-");
-
-          const subjectId = subjectMap.get(subjectName);
-
-          if (!subjectId) {
-            throw internalServerError("Subject mapping failed");
-          }
-
-          return {
-            where: {
-              subjectId_grade_major_classNumber: {
-                subjectId: subjectId,
-                grade: grade as Grade,
-                major: major as Major,
-                classNumber: classNumber as ClassNumber,
-              },
-            },
-            create: {
-              subjectId: subjectId,
-              grade: grade as Grade,
-              major: major as Major,
-              classNumber: classNumber as ClassNumber,
-            },
-          };
+      // Create many teaching assignments
+      if (resolvedTeachingAssignments?.length)
+        await tx.teachingAssignment.createMany({
+          data: resolvedTeachingAssignments,
+          skipDuplicates: true,
         });
 
-        // create teacher account
-        const teacher = await tx.teacher.create({
-          data: {
-            role: "TEACHER",
-            name: data.username,
-            email: data.email,
-            password: hashedPassword,
-
-            teachingClasses: {
-              connectOrCreate: teachingClassesData,
-            },
-
-            teachingAssignments: {
-              connectOrCreate: teachingAssignmentData,
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        });
-
-        // Handle homeroom class
-        if (data.homeroomClass?.grade && data.homeroomClass.major) {
-          const existingHomeroomClass = await tx.homeroomClass.findUnique({
-            where: {
-              grade_major_classNumber: {
-                grade: data.homeroomClass.grade,
-                major: data.homeroomClass.major,
-                classNumber: data.homeroomClass.classNumber,
-              },
-            },
-          });
-
-          if (existingHomeroomClass) {
-            const classLabel = getFullClassLabel(
-              data.homeroomClass.grade,
-              data.homeroomClass.major,
-              data.homeroomClass.classNumber,
-            );
-
-            throw badRequest(
-              `There is already a homeroom teacher in ${classLabel}`,
-            );
-          }
-
-          await tx.homeroomClass.create({
-            data: {
+      // Handle homeroom class
+      if (data.homeroomClass?.grade && data.homeroomClass.major) {
+        const existingHomeroomClass = await tx.classroom.findUnique({
+          where: {
+            grade_major_section: {
               grade: data.homeroomClass.grade,
               major: data.homeroomClass.major,
-              classNumber: data.homeroomClass.classNumber,
-              teacherId: teacher.id,
+              section: data.homeroomClass.section,
             },
-          });
+          },
+        });
+
+        if (existingHomeroomClass) {
+          const classLabel = getFullClassLabel(
+            data.homeroomClass.grade,
+            data.homeroomClass.major,
+            data.homeroomClass.section,
+          );
+
+          throw badRequest(
+            `There is already a homeroom teacher in ${classLabel}`,
+          );
         }
+
+        await tx.classroom.create({
+          data: {
+            grade: data.homeroomClass.grade,
+            major: data.homeroomClass.major,
+            section: data.homeroomClass.section,
+            homeroomTeacherId: teacher.id,
+          },
+        });
       }
     });
 

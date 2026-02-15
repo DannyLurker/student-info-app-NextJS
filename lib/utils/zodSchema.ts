@@ -82,10 +82,11 @@ type PatchSubjectInput = z.infer<typeof patchSubjectSchema>;
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
 const teachingAssignmentInput = z.object({
+  subjectId: z.number({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: ClassSectionEnum,
+  section: ClassSectionEnum,
 });
 
 type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
@@ -124,10 +125,7 @@ const teacherSignUpSchema = z.object({
   email: z.string().email({ message: "Please input a correct format" }),
   passwordSchema,
   homeroomClass: classSchema.optional(),
-
-  teachingAssignment: z.array(teachingAssignmentInput).optional(),
-
-  teachingClasses: z.array(classSchema).optional(),
+  assignments: z.array(teachingAssignmentInput).optional(),
 });
 
 const zodForgotPassword = z.object({

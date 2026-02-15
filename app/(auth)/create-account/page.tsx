@@ -1,7 +1,7 @@
 import CreateAccountPage from "@/components/auth/createUser/CreateAccountPage";
 import { auth } from "@/lib/auth/authNode";
 import { redirect } from "next/navigation";
-import { isStaffRole, getRoleDashboard } from "@/lib/constants/roles";
+import { getRoleDashboard, hasManagementAccess } from "@/lib/constants/roles";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 
 const Page = async () => {
@@ -9,9 +9,9 @@ const Page = async () => {
 
   if (!session) return redirect("/sign-in");
 
-  const isStaff = isStaffRole(session.user.role);
+  const canAcessManagement = hasManagementAccess(session.user.role);
 
-  if (!isStaff) {
+  if (!canAcessManagement) {
     return redirect(getRoleDashboard(session.user.role));
   }
 
