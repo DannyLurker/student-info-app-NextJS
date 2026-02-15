@@ -6,74 +6,98 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash("Test@12345", 12);
 
-  console.log("Starting database seeding...");
-
   // 1. Create Principal
-  const principal = await prisma.teacher.upsert({
+  const principal = await prisma.user.upsert({
     where: { email: "principal@test.com" },
     update: {},
     create: {
-      name: "Admin",
+      name: "Test Principal",
       email: "principal@test.com",
       password: passwordHash,
-      role: "PRINCIPAL",
+      role: "STAFF",
+      teacherProfile: {
+        create: {
+          staffRole: "PRINCIPAL",
+        },
+      },
     },
   });
   console.log("✓ Created Principal:", principal.email);
 
   // 2. Create Vice Principal
-  const vicePrincipal = await prisma.teacher.upsert({
+  const vicePrincipal = await prisma.user.upsert({
     where: { email: "viceprincipal@test.com" },
     update: {},
     create: {
       name: "Test Vice Principal",
       email: "viceprincipal@test.com",
       password: passwordHash,
-      role: "VICE_PRINCIPAL",
+      role: "STAFF",
+      teacherProfile: {
+        create: {
+          staffRole: "VICE_PRINCIPAL",
+        },
+      },
     },
   });
   console.log("✓ Created Vice Principal:", vicePrincipal.email);
 
   // 3. Create Teacher with Homeroom Class
-  const teacher = await prisma.teacher.upsert({
+  const teacher = await prisma.user.upsert({
     where: { email: "teacher@test.com" },
     update: {},
     create: {
       name: "Test Teacher",
       email: "teacher@test.com",
       password: passwordHash,
-      role: "TEACHER",
-      homeroomClass: {
+      role: "STAFF",
+      teacherProfile: {
         create: {
-          grade: "ELEVENTH",
-          major: "SOFTWARE_ENGINEERING",
-          classNumber: "none",
+          staffRole: "TEACHER",
         },
       },
     },
   });
   console.log("✓ Created Teacher:", teacher.email);
 
+  const classroom = await prisma.classroom.upsert({
+    where: {
+      grade_major_section: {
+        grade: "ELEVENTH",
+        major: "SOFTWARE_ENGINEERING",
+        section: "none",
+      },
+    },
+    update: {},
+    create: {
+      grade: "ELEVENTH",
+      major: "SOFTWARE_ENGINEERING",
+      section: "none",
+      homeroomTeacherId: teacher.id,
+    },
+  });
+
   // 4. Create Class Secretary (Student with special role)
-  const secretary = await prisma.student.upsert({
+  const secretary = await prisma.user.upsert({
     where: { email: "secretary@test.com" },
     update: {},
     create: {
       name: "Test Class Secretary",
       email: "secretary@test.com",
       password: passwordHash,
-      role: "CLASS_SECRETARY",
-      grade: "ELEVENTH",
-      major: "SOFTWARE_ENGINEERING",
-      classNumber: "none",
-      isVerified: true,
-      homeroomClassId: 1,
+      role: "STUDENT",
+      studentProfile: {
+        create: {
+          studentRole: "CLASS_SECRETARY",
+          classId: classroom.id,
+        },
+      },
     },
   });
   console.log("✓ Created Class Secretary:", secretary.email);
 
   // 5. Create Regular Student
-  const student = await prisma.student.upsert({
+  const student = await prisma.user.upsert({
     where: { email: "student@test.com" },
     update: {},
     create: {
@@ -81,32 +105,33 @@ async function main() {
       email: "student@test.com",
       password: passwordHash,
       role: "STUDENT",
-      grade: "ELEVENTH",
-      major: "SOFTWARE_ENGINEERING",
-      classNumber: "none",
-      isVerified: true,
-      homeroomClassId: 1,
+      studentProfile: {
+        create: {
+          classId: classroom.id,
+          studentRole: "STUDENT",
+        },
+      },
     },
   });
   console.log("✓ Created Student:", student.email);
 
   // 6. Create parent Parent account
-  const parent = await prisma.parent.upsert({
-    where: { studentId: student.id },
-    update: {},
-    create: {
+  const parent = await prisma.user.create({
+    data: {
       name: `${student.name}'s parents`,
       role: "PARENT",
       password: passwordHash,
       email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@test.com`,
-      studentId: student.id,
+      parentProfile: {
+        create: {
+          studentId: student.id,
+        },
+      },
     },
   });
   console.log("✓ Created Parent:", parent.email);
 
   console.log("\n Successfully seeded database!");
-  0;
-
   console.log("\n Test Accounts (Password: Test@12345):");
   console.log("   - Principal: principal@test.com");
   console.log("   - Vice Principal: viceprincipal@test.com");

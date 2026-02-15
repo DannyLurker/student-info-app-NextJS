@@ -35,9 +35,9 @@ const page = z
 
 // Schema for subject
 const subjectConfig = z.object({
-  grade: z.array(GradeEnum).min(1, "At least one grade required"),
-  major: z.array(MajorEnum).min(1, "At least one major required"),
-  subjectType: SubjectTypeEnum,
+  allowedGrades: z.array(GradeEnum).min(1, "At least one grade required"),
+  allowedMajors: z.array(MajorEnum).min(1, "At least one major required"),
+  type: SubjectTypeEnum,
 });
 
 const createSubjectSchema = z.object({

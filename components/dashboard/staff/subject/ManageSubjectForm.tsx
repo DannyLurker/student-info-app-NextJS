@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CreateSubjectInput,
   PatchSubjectInput,
   SubjectQueriesSchema,
 } from "@/lib/utils/zodSchema";
@@ -23,14 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { GRADES, MAJORS } from "@/lib/constants/class";
 import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
@@ -119,6 +110,8 @@ const ManageSubjectForm = () => {
     queryKey: SUBJECT_KEYS.list(filters),
     queryFn: fetchSubjects,
   });
+
+  console.log(subjects)
 
   const queryClient = useQueryClient();
 
@@ -233,13 +226,13 @@ const ManageSubjectForm = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Subject Type Badge */}
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${SUBJECT_TYPE_COLORS[item.subjectConfig?.subjectType] || "bg-gray-100 text-gray-700"}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${SUBJECT_TYPE_COLORS[item.subjectConfig?.type] || "bg-gray-100 text-gray-700"}`}
                     >
-                      {item.subjectConfig?.subjectType}
+                      {item.subjectConfig?.type}
                     </span>
 
                     {/* Grade Badges */}
-                    {item.subjectConfig?.grade?.map((g: string) => (
+                    {item.subjectConfig?.allowedGrades?.map((g: string) => (
                       <span
                         key={g}
                         className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium"
@@ -249,7 +242,7 @@ const ManageSubjectForm = () => {
                     ))}
 
                     {/* Major Badges */}
-                    {item.subjectConfig?.major?.map((m: string) => (
+                    {item.subjectConfig?.allowedMajors?.map((m: string) => (
                       <span
                         key={m}
                         className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-medium"

@@ -3,6 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/db/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { notFound } from "../errors";
+import { StaffPosition, StudentPosition } from "../constants/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -21,47 +23,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        const [student, teacher, parent] = await Promise.all([
-          prisma.student.findUnique({ where: { email } }),
-          prisma.teacher.findUnique({ where: { email } }),
-          prisma.parent.findUnique({ where: { email } }),
-        ]);
-
-        const dbUser = student || teacher || parent;
-        if (!dbUser || !dbUser.password) return null;
-
-        const isValid = await bcrypt.compare(password, dbUser.password);
-        if (!isValid) return null;
-
-        let isHomeroom = false;
-        if (teacher) {
-          const homeroom = await prisma.homeroomClass.findUnique({
-            where: { teacherId: teacher.id },
-          });
-          isHomeroom = !!homeroom;
-        }
-
-        await prisma.user.upsert({
-          where: { email: dbUser.email },
-          update: {
-            name: dbUser.name,
-            role: dbUser.role,
-            isHomeroomClassTeacher: isHomeroom,
+        const user = await prisma.user.findUnique({
+          where: {
+            email: email,
           },
-          create: {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role,
-            isHomeroomClassTeacher: isHomeroom,
+          select: {
+            id: true,
+            email: true,
+            password: true,
+            name: true,
+            role: true,
+            teacherProfile: {
+              select: {
+                homeroom: true,
+                staffRole: true,
+              },
+            },
+            studentProfile: {
+              select: {
+                studentRole: true,
+              },
+            },
           },
         });
 
+        if (!user) {
+          throw notFound("Email or password are invalid");
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) return null;
+
+        let isHomeroom = false;
+        if (user.role === "STAFF" && user.teacherProfile?.homeroom) {
+          isHomeroom = true;
+        }
+
+        const actualRole =
+          user.role === "STUDENT"
+            ? (user.studentProfile?.studentRole as StudentPosition)
+            : user.role === "STAFF"
+              ? (user.teacherProfile?.staffRole as StaffPosition)
+              : user.role;
+
         return {
-          id: dbUser.id,
-          email: dbUser.email,
-          name: dbUser.name,
-          role: dbUser.role,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: actualRole,
           isHomeroomClassTeacher: isHomeroom,
         };
       },

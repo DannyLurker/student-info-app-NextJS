@@ -3,20 +3,20 @@ import { SubjectType } from "../constants/subject";
 
 type SubjectClient = {
   subjectId: number;
-  subjectConfig?: {
-    grade?: Grade[] | undefined;
-    major?: Major[] | undefined;
-    subjectType?: SubjectType | undefined;
+  config?: {
+    allowedGrades?: Grade[] | undefined;
+    allowedMajors?: Major[] | undefined;
+    type?: SubjectType | undefined;
   };
-  subjectName?: string | undefined;
+  name?: string | undefined;
 };
 type SubjectServer = {
-  subjectConfig: {
-    grade: Grade[];
-    major: Major[];
-    subjectType: SubjectType;
+  config: {
+    allowedGrades: Grade[];
+    allowedMajors: Major[];
+    type: SubjectType;
   };
-  subjectName: string;
+  name: string;
 };
 
 function areArraysIdentical(serverArr: string[], clientArr?: string[]) {
@@ -29,22 +29,21 @@ export function compareSubjectConfig(
   subjectClient: SubjectClient,
   subjectServer: SubjectServer,
 ) {
-  const config = subjectClient.subjectConfig;
+  const config = subjectClient.config;
   if (!config) return { hasChanged: false, changedData: {} };
 
   const isGradeChanged = !areArraysIdentical(
-    subjectServer.subjectConfig.grade,
-    config.grade,
+    subjectServer.config.allowedGrades,
+    config.allowedGrades,
   );
 
   const isMajorChanged = !areArraysIdentical(
-    subjectServer.subjectConfig.major,
-    config.major,
+    subjectServer.config.allowedMajors,
+    config.allowedMajors,
   );
 
   const isTypeChanged =
-    config.subjectType !== undefined &&
-    subjectServer.subjectConfig.subjectType !== config.subjectType;
+    config.type !== undefined && subjectServer.config.type !== config.type;
 
   return isGradeChanged || isMajorChanged || isTypeChanged;
 }

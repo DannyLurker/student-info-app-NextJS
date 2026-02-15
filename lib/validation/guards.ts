@@ -1,23 +1,25 @@
 import { auth } from "@/lib/auth/authNode";
 import { prisma } from "@/db/prisma";
 import { unauthorized, notFound, forbidden } from "@/lib/errors";
-import { isStaffRole } from "@/lib/constants/roles";
+import { hasManagementAccess } from "@/lib/constants/roles";
 
 export async function validateStaffSession() {
   const session = await auth();
-
-  console.log(session);
 
   if (!session?.user?.id) {
     throw unauthorized("You haven't logged in yet");
   }
 
   const staff = await prisma.teacher.findUnique({
-    where: { id: session.user.id },
+    where: { userId: session.user.id },
     select: {
-      id: true,
-      role: true,
-      name: true,
+      userId: true,
+      staffRole: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
@@ -25,7 +27,7 @@ export async function validateStaffSession() {
     throw notFound("User not found");
   }
 
-  if (!isStaffRole(staff.role)) {
+  if (!hasManagementAccess(staff.staffRole)) {
     throw forbidden("You're not allowed to access this");
   }
 

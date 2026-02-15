@@ -31,9 +31,9 @@ const subjectTypes = ["GENERAL", "MAJOR"] as SubjectType[];
 const INITIAL_SUBJECT_RECORD = {
   subjectNames: [""],
   subjectConfig: {
-    grade: [],
-    major: [],
-    subjectType: "GENERAL" as SubjectType,
+    allowedGrades: [] as Grade[],
+    allowedMajors: [] as Major[],
+    type: "GENERAL" as SubjectType,
   },
 };
 
@@ -65,9 +65,9 @@ const SubjectForm = ({
 
             subjectConfig: {
               // Berikan fallback untuk setiap properti di dalam config
-              grade: initialData.subjectConfig?.grade ?? [],
-              major: initialData.subjectConfig?.major ?? [],
-              subjectType: initialData.subjectConfig?.subjectType ?? "GENERAL",
+              allowedGrades: initialData.subjectConfig?.allowedGrades ?? [],
+              allowedMajors: initialData.subjectConfig?.allowedMajors ?? [],
+              type: initialData.subjectConfig?.type ?? "GENERAL",
             },
           },
         ],
@@ -184,21 +184,21 @@ const SubjectForm = ({
         (subject, index) => {
           if (index === subjectSetIndex) {
             const majorLimitReached =
-              configType === "MAJOR" && subject.subjectConfig.major.length < 3;
+              configType === "MAJOR" && subject.subjectConfig.allowedMajors.length < 3;
 
             const gradeLimitReached =
-              configType === "GRADE" && subject.subjectConfig.grade.length < 4;
+              configType === "GRADE" && subject.subjectConfig.allowedGrades.length < 4;
 
             return {
               ...subject,
               subjectConfig: {
-                major: majorLimitReached
-                  ? ([...subject.subjectConfig.major, ""] as Major[])
-                  : ([...subject.subjectConfig.major] as Major[]),
-                grade: gradeLimitReached
-                  ? ([...subject.subjectConfig.grade, ""] as Grade[])
-                  : ([...subject.subjectConfig.grade] as Grade[]),
-                subjectType: subject.subjectConfig.subjectType as SubjectType,
+                allowedMajors: majorLimitReached
+                  ? ([...subject.subjectConfig.allowedMajors, ""] as Major[])
+                  : ([...subject.subjectConfig.allowedMajors] as Major[]),
+                allowedGrades: gradeLimitReached
+                  ? ([...subject.subjectConfig.allowedGrades, ""] as Grade[])
+                  : ([...subject.subjectConfig.allowedGrades] as Grade[]),
+                type: subject.subjectConfig.type as SubjectType,
               },
             };
           }
@@ -250,21 +250,21 @@ const SubjectForm = ({
     configType: ConfigType,
     subjectConfigIndex: number,
   ) => {
-    const key = configType.toLowerCase() as "grade" | "major";
+    const key = configType === "GRADE" ? "allowedGrades" : "allowedMajors";
 
     setSubjectData((prev) => ({
       ...prev,
       subjectRecords: prev.subjectRecords.map((subject, sIdx) =>
         sIdx === subjectSetIndex
           ? {
-              ...subject,
-              subjectConfig: {
-                ...subject.subjectConfig,
-                [key]: subject.subjectConfig[key].map((val, cIdx) =>
-                  cIdx === subjectConfigIndex ? e.target.value : val,
-                ),
-              },
-            }
+            ...subject,
+            subjectConfig: {
+              ...subject.subjectConfig,
+              [key]: subject.subjectConfig[key].map((val, cIdx) =>
+                cIdx === subjectConfigIndex ? e.target.value : val,
+              ),
+            },
+          }
           : subject,
       ),
     }));
@@ -279,7 +279,7 @@ const SubjectForm = ({
       ...prev,
       subjectRecords: prev.subjectRecords.map((subject, index) => {
         if (index === subjectSetIndex) {
-          const key = configType.toLowerCase() as "grade" | "major";
+          const key = configType === "GRADE" ? "allowedGrades" : "allowedMajors";
           return {
             ...subject,
             subjectConfig: {
@@ -342,8 +342,8 @@ const SubjectForm = ({
       }
       // Check config
       if (
-        subject.subjectConfig.grade.length === 0 ||
-        subject.subjectConfig.major.length === 0
+        subject.subjectConfig.allowedGrades.length === 0 ||
+        subject.subjectConfig.allowedMajors.length === 0
       ) {
         setErrorMessage(
           `Set ${index + 1}: Please select at least one Grade and Major.`,
@@ -458,19 +458,19 @@ const SubjectForm = ({
               Subject Type
             </label>
             <Select
-              value={record.subjectConfig.subjectType}
+              value={record.subjectConfig.type}
               onValueChange={(val) => {
                 setSubjectData((prev) => ({
                   ...prev,
                   subjectRecords: prev.subjectRecords.map((s, i) =>
                     i === setIndex
                       ? {
-                          ...s,
-                          subjectConfig: {
-                            ...s.subjectConfig,
-                            subjectType: val as SubjectType,
-                          },
-                        }
+                        ...s,
+                        subjectConfig: {
+                          ...s.subjectConfig,
+                          type: val as SubjectType,
+                        },
+                      }
                       : s,
                   ),
                 }));
@@ -494,7 +494,7 @@ const SubjectForm = ({
             <label className="text-sm font-medium text-gray-600">
               Grade(s)
             </label>
-            {record.subjectConfig.grade.map((g, gIdx) => (
+            {record.subjectConfig.allowedGrades.map((g, gIdx) => (
               <div key={gIdx} className="flex items-center gap-2">
                 <Select
                   value={g}
@@ -516,7 +516,7 @@ const SubjectForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {record.subjectConfig.grade.length > 1 && (
+                {record.subjectConfig.allowedGrades.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -529,7 +529,7 @@ const SubjectForm = ({
                 )}
               </div>
             ))}
-            {record.subjectConfig.grade.length < 3 && (
+            {record.subjectConfig.allowedGrades.length < 3 && (
               <Button
                 type="button"
                 variant="outline"
@@ -548,7 +548,7 @@ const SubjectForm = ({
             <label className="text-sm font-medium text-gray-600">
               Major(s)
             </label>
-            {record.subjectConfig.major.map((m, mIdx) => (
+            {record.subjectConfig.allowedMajors.map((m, mIdx) => (
               <div key={mIdx} className="flex items-center gap-2">
                 <Select
                   value={m}
@@ -570,7 +570,7 @@ const SubjectForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {record.subjectConfig.major.length > 1 && (
+                {record.subjectConfig.allowedMajors.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -583,7 +583,7 @@ const SubjectForm = ({
                 )}
               </div>
             ))}
-            {record.subjectConfig.major.length < 2 && (
+            {record.subjectConfig.allowedMajors.length < 2 && (
               <Button
                 type="button"
                 variant="outline"

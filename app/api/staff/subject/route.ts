@@ -37,8 +37,8 @@ export async function POST(req: Request) {
     data.subjectRecords.map((record, index) => {
       // Multiple majors are not allowed for subjects with type 'MAJOR'.
       if (
-        record.subjectConfig.subjectType === "MAJOR" &&
-        record.subjectConfig.major.length > 1
+        record.subjectConfig.type === "MAJOR" &&
+        record.subjectConfig.allowedMajors.length > 1
       ) {
         throw unprocessableEntity(
           `Row ${index + 1}: Multiple majors are not allowed for MAJOR type subjects.`,
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         const uniqueMajor = new Set();
 
         // Can't be duplicted
-        record.subjectConfig.grade.forEach((grade) => {
+        record.subjectConfig.allowedGrades.forEach((grade) => {
           if (uniqueGrade.has(grade)) {
             throw badRequest(`row ${index + 1}: Grade ${grade} is duplicated`);
           }
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         });
 
         // Can't be duplicted
-        record.subjectConfig.major.forEach((major) => {
+        record.subjectConfig.allowedMajors.forEach((major) => {
           if (uniqueMajor.has(major)) {
             throw badRequest(`row ${index + 1}: Major ${major} is duplicated`);
           }
@@ -67,18 +67,18 @@ export async function POST(req: Request) {
           uniqueMajor.add(major);
         });
 
-        const uniqueSubjectKey = `${subjectName}-${record.subjectConfig.subjectType}-${record.subjectConfig.grade.join("-")}-${record.subjectConfig.major.join("-")}`;
+        const uniqueSubjectKey = `${subjectName}-${record.subjectConfig.type}-${record.subjectConfig.allowedGrades.join("-")}-${record.subjectConfig.allowedMajors.join("-")}`;
 
         if (uniqueSubjects.has(uniqueSubjectKey)) {
           throw unprocessableEntity(
-            `Duplicate subject: ${subjectName}. Configuration: ${record.subjectConfig.subjectType}-${record.subjectConfig.grade.join("-")}-${record.subjectConfig.major.join("-")}, already exists`,
+            `Duplicate subject: ${subjectName}. Configuration: ${record.subjectConfig.type}-${record.subjectConfig.allowedGrades.join("-")}-${record.subjectConfig.allowedMajors.join("-")}, already exists`,
           );
         }
 
         subjectMap.set(subjectName, {
-          subjectType: record.subjectConfig.subjectType,
-          grade: record.subjectConfig.grade,
-          major: record.subjectConfig.major,
+          subjectType: record.subjectConfig.type,
+          grade: record.subjectConfig.allowedGrades,
+          major: record.subjectConfig.allowedMajors,
         });
         uniqueSubjects.add(uniqueSubjectKey);
       });
@@ -91,23 +91,21 @@ export async function POST(req: Request) {
 
     const existingSubjects = await prisma.subject.findMany({
       where: {
-        subjectName: {
+        name: {
           in: uniqueSubjectNames,
           mode: "insensitive",
         },
       },
       select: {
-        subjectName: true,
+        name: true,
       },
     });
 
     uniqueSubjectNames.forEach((name) => {
-      console.log(name);
       existingSubjects.forEach((existingName) => {
         console.log(existingName);
         if (
-          existingName.subjectName.toLocaleLowerCase() ===
-          name.toLocaleLowerCase()
+          existingName.name.toLocaleLowerCase() === name.toLocaleLowerCase()
         ) {
           throw unprocessableEntity(
             `Subject can't be duplicated. ${name} is duplicated `,
@@ -123,7 +121,7 @@ export async function POST(req: Request) {
     }
 
     const existingSubjectNames = existingSubjects.map(
-      (subject) => subject.subjectName,
+      (subject) => subject.name,
     );
 
     const missingSubjectNames = uniqueSubjectNames.filter(
@@ -143,34 +141,35 @@ export async function POST(req: Request) {
         let potentialConfig = await tx.subjectConfig.findMany({
           where: {
             AND: [
-              { subjectType: subjectConfig.subjectType },
-              { major: { hasEvery: subjectConfig.major } },
-              { grade: { hasEvery: subjectConfig.grade } },
+              { type: subjectConfig.subjectType },
+              { allowedMajors: { hasEvery: subjectConfig.major } },
+              { allowedGrades: { hasEvery: subjectConfig.grade } },
             ],
           },
         });
 
         let targetConfig = potentialConfig.find(
           (config) =>
-            config.subjectType === subjectConfig.subjectType &&
-            config.major.length === subjectConfig.major.length &&
-            config.grade.length === subjectConfig.grade.length,
+            config.type === subjectConfig.subjectType &&
+            config.allowedMajors.length === subjectConfig.major.length &&
+            config.allowedGrades.length === subjectConfig.grade.length,
         );
 
         if (!targetConfig) {
           targetConfig = await tx.subjectConfig.create({
             data: {
-              subjectType: subjectConfig.subjectType,
-              major: subjectConfig.major,
-              grade: subjectConfig.grade,
+              type: subjectConfig.subjectType,
+              allowedMajors: subjectConfig.major,
+              allowedGrades: subjectConfig.grade,
             },
           });
         }
 
         await tx.subject.create({
           data: {
-            subjectName: subjectName,
-            subjectConfigId: targetConfig.id,
+            name: subjectName,
+            configId: targetConfig.id,
+            type: targetConfig.type,
           },
         });
       }
@@ -204,18 +203,20 @@ export async function GET(req: Request) {
     const whereCondition: Prisma.SubjectWhereInput = {};
 
     if (data.subjectName && data.subjectName?.length >= MIN_SEARCH_LENGTH) {
-      whereCondition.subjectName = {
+      whereCondition.name = {
         contains: data.subjectName,
         mode: "insensitive",
       };
     } else if (data.grade || data.major || data.subjectType) {
-      whereCondition.subjectConfig = {
+      whereCondition.config = {
         AND: [
-          data.grade ? { grade: { hasSome: [data.grade] as Grade[] } } : {},
-          data.major ? { major: { hasSome: [data.major] as Major[] } } : {},
-          data.subjectType
-            ? { subjectType: data.subjectType as SubjectType }
+          data.grade
+            ? { allowedGrades: { hasSome: [data.grade] as Grade[] } }
             : {},
+          data.major
+            ? { allowedMajors: { hasSome: [data.major] as Major[] } }
+            : {},
+          data.subjectType ? { type: data.subjectType as SubjectType } : {},
         ],
       };
     }
@@ -224,21 +225,27 @@ export async function GET(req: Request) {
       where: whereCondition,
       select: {
         id: true,
-        subjectName: true,
-        subjectConfig: {
+        name: true,
+        config: {
           select: {
-            grade: true,
-            major: true,
-            subjectType: true,
+            allowedGrades: true,
+            allowedMajors: true,
+            type: true,
           },
         },
       },
       orderBy: {
-        subjectName: data.sortOrder,
+        name: data.sortOrder,
       },
       skip: data.page * OFFSET,
       take: TAKE_RECORDS,
     });
+
+    const formattedSubjects = subjectRecords.map((subject) => ({
+      id: subject.id,
+      subjectName: subject.name,
+      subjectConfig: subject.config,
+    }));
 
     const totalSubject = await prisma.subject.count({
       where: whereCondition,
@@ -247,7 +254,7 @@ export async function GET(req: Request) {
     return Response.json(
       {
         message: "Successfully retrieved subjects data",
-        subjects: subjectRecords,
+        subjects: formattedSubjects,
         totalSubject: totalSubject,
       },
       { status: 200 },
@@ -309,14 +316,14 @@ export async function PATCH(req: Request) {
 
     const currentSubject = await prisma.subject.findUnique({
       where: { id: data.subjectId },
-      include: { subjectConfig: true },
+      include: { config: true },
     });
 
     if (!currentSubject) throw notFound("Subject not found");
 
     if (data.subjectName) {
       const findDuplicate = await prisma.subject.findUnique({
-        where: { subjectName: data.subjectName },
+        where: { name: data.subjectName },
         select: { id: true },
       });
 
@@ -328,7 +335,7 @@ export async function PATCH(req: Request) {
 
     const configChanged = compareSubjectConfig(data, currentSubject);
     const nameChanged =
-      data.subjectName && data.subjectName !== currentSubject.subjectName;
+      data.subjectName && data.subjectName !== currentSubject.name;
 
     if (!configChanged && !nameChanged) {
       return Response.json({ message: "No data was edited" }, { status: 200 });
@@ -337,40 +344,46 @@ export async function PATCH(req: Request) {
     const updateData: any = {};
 
     if (nameChanged) {
-      updateData.subjectName = data.subjectName;
+      updateData.name = data.subjectName;
     }
 
     if (configChanged) {
       const subjectConfig = {
-        major: data.subjectConfig?.major ?? currentSubject.subjectConfig.major,
-        grade: data.subjectConfig?.grade ?? currentSubject.subjectConfig.grade,
-        subjectType:
-          data.subjectConfig?.subjectType ??
-          currentSubject.subjectConfig.subjectType,
+        allowedMajors:
+          data.subjectConfig?.allowedMajors ??
+          currentSubject.config.allowedMajors,
+        allowedGrades:
+          data.subjectConfig?.allowedGrades ??
+          currentSubject.config.allowedGrades,
+        type: data.subjectConfig?.type ?? currentSubject.config.type,
       };
 
       const potentialConfig = await prisma.subjectConfig.findMany({
         where: {
-          major: { hasEvery: subjectConfig.major },
-          grade: { hasEvery: subjectConfig.grade },
-          subjectType: subjectConfig.subjectType,
+          allowedMajors: { hasEvery: subjectConfig.allowedMajors },
+          allowedGrades: { hasEvery: subjectConfig.allowedGrades },
+          type: subjectConfig.type,
         },
       });
 
       let targetConfig = potentialConfig.find(
         (config) =>
-          subjectConfig.subjectType === config.subjectType &&
-          subjectConfig.grade.length === config.grade.length &&
-          subjectConfig.major.length === config.major.length,
+          subjectConfig.type === config.type &&
+          subjectConfig.allowedGrades.length === config.allowedGrades.length &&
+          subjectConfig.allowedMajors.length === config.allowedMajors.length,
       );
 
       if (!targetConfig) {
         targetConfig = await prisma.subjectConfig.create({
-          data: subjectConfig,
+          data: {
+            allowedGrades: subjectConfig.allowedGrades,
+            allowedMajors: subjectConfig.allowedMajors,
+            type: subjectConfig.type,
+          },
         });
       }
 
-      updateData.subjectConfigId = targetConfig.id;
+      updateData.configId = targetConfig.id;
     }
 
     await prisma.subject.update({

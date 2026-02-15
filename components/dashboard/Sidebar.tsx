@@ -2,6 +2,11 @@
 
 import { SignOut } from "@/components/auth/SignOut";
 import {
+  GENERAL_ROLES,
+  STAFF_POSITIONS,
+  STUDENT_POSITIONS,
+} from "@/lib/constants/roles";
+import {
   BookOpen,
   GraduationCap,
   TrendingUp,
@@ -20,7 +25,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ROLES } from "@/lib/constants/roles";
 
 interface SidebarProps {
   role?: string;
@@ -68,7 +72,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
     ];
 
     switch (currentRole) {
-      case ROLES.TEACHER:
+      case STAFF_POSITIONS.TEACHER:
         const teacherItems = [
           {
             href: "/dashboard/teacher",
@@ -97,8 +101,8 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
         }
 
         return [...teacherItems, ...commonItems];
-      case ROLES.VICE_PRINCIPAL:
-      case ROLES.PRINCIPAL:
+      case STAFF_POSITIONS.VICE_PRINCIPAL:
+      case STAFF_POSITIONS.PRINCIPAL:
         return [
           {
             href: "/dashboard/staff",
@@ -123,7 +127,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
           },
           ...commonItems,
         ];
-      case ROLES.PARENT:
+      case GENERAL_ROLES.PARENT:
         return [
           {
             href: "/dashboard/parent",
@@ -133,7 +137,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
           { href: "/dashboard/parent/mark", icon: TrendingUp, label: "Marks" },
           ...commonItems,
         ];
-      case ROLES.STUDENT:
+      case STUDENT_POSITIONS.STUDENT:
         return [
           {
             href: "/dashboard/student",
@@ -143,7 +147,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
           { href: "/dashboard/student/mark", icon: TrendingUp, label: "Marks" },
           ...commonItems,
         ];
-      case ROLES.CLASS_SECRETARY:
+      case STUDENT_POSITIONS.CLASS_SECRETARY:
         return [
           {
             href: "/dashboard/student",
@@ -168,12 +172,14 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
 
   const getPortalTitle = (currentRole?: string) => {
     switch (currentRole) {
-      case ROLES.TEACHER:
+      case GENERAL_ROLES.ADMIN:
+        return "Admin Portal";
+      case STAFF_POSITIONS.TEACHER:
         return "Teacher Portal";
-      case ROLES.VICE_PRINCIPAL:
-      case ROLES.PRINCIPAL:
+      case STAFF_POSITIONS.VICE_PRINCIPAL:
+      case STAFF_POSITIONS.PRINCIPAL:
         return "Staff Portal";
-      case ROLES.PARENT:
+      case GENERAL_ROLES.PARENT:
         return "Parent Portal";
       default:
         return "Student Portal";

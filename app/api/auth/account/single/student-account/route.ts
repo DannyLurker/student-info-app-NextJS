@@ -5,7 +5,6 @@ import {
   StudentSignUpSchema,
   studentSignUpSchema,
 } from "@/lib/utils/zodSchema";
-import { subjects } from "@/lib/utils/subjects";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
 import { ClassSection, Grade, Semester } from "@/lib/constants/class";
@@ -27,6 +26,29 @@ export async function POST(req: Request) {
       email: "",
       password: "",
     };
+
+    const existingSubjects = await prisma.subject.findMany({
+      where: {
+        config: {
+          allowedGrades: {
+            has: data.classSchema.grade,
+          },
+          allowedMajors: {
+            has: data.classSchema.major,
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (existingSubjects.length === 0) {
+      throw badRequest(
+        "No subjects found for this grade and major. Please configure subjects first.",
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
       const existingStudent = await tx.user.findUnique({
@@ -81,26 +103,8 @@ export async function POST(req: Request) {
         },
       });
 
-      const existingSubjects = await tx.subject.findMany({
-        where: {
-          config: {
-            allowedGrades: {
-              has: data.classSchema.grade,
-            },
-            allowedMajors: {
-              has: data.classSchema.major,
-            },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-        },
-      });
+      // const subjectRecordIds = existingSubjects.map((s) => s.id);
 
-      const subjectRecordIds = existingSubjects.map((s) => s.id);
-
-      //Upsert all subjectmMark
       const today = new Date();
       // We only have 2 semsesters. In DB we describe as "FIRST" and "SECOND"
       const currentSemester = getSemester(today) === 1 ? "FIRST" : "SECOND";

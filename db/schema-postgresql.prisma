@@ -9,7 +9,6 @@ generator client {
 }
 
 // --- Enums ---
-
 enum Role {
     ADMIN
     STAFF
@@ -80,8 +79,8 @@ model User {
     id            String    @id @default(cuid())
     name          String
     email         String    @unique
-    password      String?
     emailVerified DateTime?
+    password      String
     role          Role      @default(STUDENT)
 
     // Profile Relations
@@ -114,7 +113,7 @@ model Classroom {
 
     // One class has one Homeroom Teacher
     homeroomTeacherId String?  @unique
-    homeroomTeacher   Teacher? @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
+    homeroomTeacher   Teacher? @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [userId])
 
     students    Student[]
     assignments TeachingAssignment[]
