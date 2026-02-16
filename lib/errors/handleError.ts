@@ -1,11 +1,20 @@
+import { Prisma } from "@/db/prisma/src/generated/prisma/client";
 import AppError from "./AppError";
 import { ZodError } from "zod";
+import { primsaNotFoundCode } from "../constants/prismaErrorCode";
 
 export function handleError(error: unknown) {
   console.error("[API_ERROR]", {
     type: error instanceof Error ? error.name : "Unknown",
     message: error instanceof Error ? error.message : String(error),
   });
+
+  // Di dalam file utils/handleError.ts atau sejenisnya
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === primsaNotFoundCode) {
+      return Response.json({ message: "Record not found" }, { status: 404 });
+    }
+  }
 
   if (error instanceof ZodError) {
     return Response.json(
@@ -16,7 +25,7 @@ export function handleError(error: unknown) {
           message: e.message,
         })),
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -24,7 +33,7 @@ export function handleError(error: unknown) {
   if (error instanceof AppError) {
     return Response.json(
       { message: error.message },
-      { status: error.statusCode }
+      { status: error.statusCode },
     );
   }
 
@@ -34,6 +43,6 @@ export function handleError(error: unknown) {
       code: "INTERNAL_SERVER_ERROR",
       message: "Internal server error",
     },
-    { status: 500 }
+    { status: 500 },
   );
 }

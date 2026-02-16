@@ -3,7 +3,7 @@ import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
 import { getFullClassLabel } from "@/lib/utils/labels";
-import { validateStaffSession } from "@/lib/validation/guards";
+import { validateManagementSession } from "@/lib/validation/guards";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 
 type ResolvedTeachingAssignments = {
@@ -15,7 +15,7 @@ type ResolvedTeachingAssignments = {
 
 export async function POST(req: Request) {
   try {
-    await validateStaffSession();
+    await validateManagementSession();
 
     const rawData = await req.json();
 
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
           skipDuplicates: true,
         });
 
-      // Handle homeroom class
+      // Handle homeroom class, I don't know will I change it or not, because in the future I might make a feature that can create class idenpedenlty without using teacher account
       if (data.homeroomClass?.grade && data.homeroomClass.major) {
         const existingHomeroomClass = await tx.classroom.findUnique({
           where: {

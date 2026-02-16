@@ -1,47 +1,38 @@
-// app/api/auth/bulk-create-teachers/route.ts
 import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
-import { subjects as subjectsData } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";
-import { ClassNumber, GRADES, MAJORS } from "@/lib/constants/class";
 import {
-  formatClassNumber,
-  getGradeNumber,
-  getMajorDisplayName,
-  SUBJECT_DISPLAY_MAP,
-} from "@/lib/utils/labels";
+  ClassSection,
+  Grade,
+  GRADES,
+  Major,
+  MAJORS,
+} from "@/lib/constants/class";
+import { getFullClassLabel } from "@/lib/utils/labels";
+import { validateManagementSession } from "@/lib/validation/guards";
+import {
+  ClassroomCreateManyInput,
+  TeacherCreateManyInput,
+  TeachingAssignmentCreateManyInput,
+  UserCreateManyInput,
+} from "@/db/prisma/src/generated/prisma/models";
+import { createId } from "@paralleldrive/cuid2";
 
-interface TeacherRow {
-  username: string;
+type TeacherAccountExcel = {
+  name: string;
   email: string;
   password: string;
   homeroomGrade?: Grade;
   homeroomMajor?: Major;
-  homeroomClassNumber: string;
+  homeroomClassSection?: ClassSection;
   teachingAssignments?: string; // Comma-separated: "math:tenth:accounting:1,english:eleventh:softwareEngineering:2"
-  teachingClasses?: string; // Comma-separated: "tenth:accounting:1,eleventh:softwareEngineering:2"
-}
-
-type TeachingClass = {
-  grade: Grade;
-  major: Major;
-  classNumber: ClassNumber;
 };
-
-type TeachingAssignment = {
-  subject: string;
-  grade: Grade;
-  major: Major;
-  classNumber: ClassNumber;
-};
-
-type Grade = keyof typeof subjectsData;
-
-type Major = keyof (typeof subjectsData)[Grade]["major"];
 
 export async function POST(req: Request) {
   try {
+    validateManagementSession();
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
@@ -53,357 +44,206 @@ export async function POST(req: Request) {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer);
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(worksheet) as TeacherRow[];
+    const data = XLSX.utils.sheet_to_json(worksheet) as TeacherAccountExcel[];
 
     if (data.length === 0) {
       throw badRequest("Excel file is empty");
     }
 
-    // Process each teacher
-    await prisma.$transaction(async (tx) => {
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        const rowNumber = i + 2;
-        // Validate required fields
-        if (!row.username || !row.email || !row.password) {
-          throw badRequest(`Row ${rowNumber}: Missing required fields`);
-        }
+    // PRE-FETCH DATA FOR VALIDATION
+    const excelEmails = data.map((row) => row.email).filter(Boolean);
+    const [existingUsers, allClassrooms, allSubjects] = await Promise.all([
+      prisma.user.findMany({
+        where: { email: { in: excelEmails }, role: "STAFF" },
+        select: { email: true },
+      }),
+      prisma.classroom.findMany(),
+      prisma.subject.findMany({
+        select: { id: true, name: true, config: true },
+      }),
+    ]);
+    const existingEmailSet = new Set(existingUsers.map((u) => u.email));
+    const classroomMap = new Map(
+      allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
+    );
+    const subjectMap = new Map(
+      allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }]),
+    );
 
-        // Validate grade and major
-        if (row.homeroomGrade) {
-          if (!GRADES.includes(row.homeroomGrade as Grade)) {
-            throw badRequest(
-              `Row ${rowNumber}: Invalid grade format in homeroom.`
-            );
-          }
-        }
+    const academicYear = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
 
-        if (row.homeroomMajor) {
-          if (!MAJORS.includes(row.homeroomMajor as Major)) {
-            throw badRequest(
-              `Row ${rowNumber}: Invalid major format in homeroom.`
-            );
-          }
-        }
+    // PREPARE COLLECTIONS
+    const usersToCreate: UserCreateManyInput[] = [];
+    const teacherProfilesToCreate: TeacherCreateManyInput[] = [];
+    const teachingAssignmentsToCreate: TeachingAssignmentCreateManyInput[] = [];
+    const classroomsToCreate: ClassroomCreateManyInput[] = [];
 
-        // Check if teacher already exists
-        const existingTeacher = await tx.teacher.findUnique({
-          where: { email: row.email },
-        });
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNumber = i + 2;
+      // Validate required fields
+      if (!row.name || !row.email || !row.password) {
+        throw badRequest(`Row ${rowNumber}: Missing required fields`);
+      }
 
-        if (existingTeacher) {
-          throw badRequest(`Row ${rowNumber}:Email already registered`);
-        }
-
-        // Hash password
-        const hashedPassword = await hashing(row.password);
-
-        // Create teacher
-        const teacher = await tx.teacher.create({
-          data: {
-            role: "TEACHER",
-            name: row.username,
-            email: row.email,
-            password: hashedPassword,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        // Handle Homeroom Class
-        if (row.homeroomGrade && row.homeroomMajor) {
-          const existingHomeroomClass = await tx.homeroomClass.findFirst({
-            where: {
-              grade: row.homeroomGrade as any,
-              major: row.homeroomMajor as any,
-              classNumber: row.homeroomClassNumber,
-            },
-          });
-
-          if (existingHomeroomClass) {
-            throw badRequest(
-              `Row ${rowNumber}: Homeroom class already has a teacher`
-            );
-          }
-
-          await tx.homeroomClass.create({
-            data: {
-              grade: row.homeroomGrade as any,
-              major: row.homeroomMajor as any,
-              classNumber: row.homeroomClassNumber as string,
-              teacherId: teacher.id,
-            },
-          });
-        }
-
-        if (row.teachingClasses && row.teachingAssignments) {
-          // Parse classes array & teaching assignments
-          const parseClassesArray: TeachingClass[] = [];
-          const parseTeachingAssignments: TeachingAssignment[] = [];
-
-          // Handle Teaching Classes
-          const classesArray = row.teachingClasses
-            .split(",")
-            .map((c) => c.trim());
-          const teachingClasses = await Promise.all(
-            classesArray.map(async (classStr) => {
-              const [grade, major, classNumber] = classStr.split(":");
-
-              if (grade) {
-                if (!GRADES.includes(grade as Grade)) {
-                  throw badRequest(
-                    `Row ${rowNumber}: Invalid grade format in teaching classes.`
-                  );
-                }
-              }
-
-              if (major) {
-                if (!MAJORS.includes(major as Major)) {
-                  throw badRequest(
-                    `Row ${rowNumber}: Invalid major format in teaching classes.`
-                  );
-                }
-              }
-
-              const classObject = {
-                grade: grade as Grade,
-                major: major as Major,
-                classNumber: classNumber as ClassNumber,
-              };
-
-              parseClassesArray.push(classObject);
-
-              return await tx.teachingClass.upsert({
-                where: {
-                  grade_major_classNumber: {
-                    grade: grade as Grade,
-                    major: major as Major,
-                    classNumber: classNumber,
-                  },
-                },
-                update: {},
-                create: {
-                  grade: grade as Grade,
-                  major: major as Major,
-                  classNumber: classNumber,
-                },
-              });
-            })
+      // Validate grade and major
+      if (row.homeroomGrade) {
+        if (!GRADES.includes(row.homeroomGrade as Grade)) {
+          throw badRequest(
+            `Row ${rowNumber}: Invalid grade format in homeroom.`,
           );
-
-          await tx.teacher.update({
-            where: { id: teacher.id },
-            data: {
-              teachingClasses: {
-                connect: teachingClasses.map((tc) => ({ id: tc.id })),
-              },
-            },
-          });
-
-          // Handle Teaching Assignments
-          const subjectsArray = row.teachingAssignments
-            .split(",")
-            .map((s) => s.trim());
-          const subjects = await Promise.all(
-            subjectsArray.map(async (subjectStr) => {
-              const [subjectName] = subjectStr.split(":");
-              return await tx.subject.upsert({
-                where: { subjectName },
-                update: {},
-                create: { subjectName },
-              });
-            })
-          );
-
-          const teachingAssignments = await Promise.all(
-            subjectsArray.map(async (subjectStr, idx) => {
-              const [subjectName, grade, major, classNumber] =
-                subjectStr.split(":");
-
-              const gradeNumber = getGradeNumber(grade as Grade);
-              const majorName = getMajorDisplayName(major as Major);
-              const classNumberFormatted = formatClassNumber(
-                classNumber as ClassNumber
-              );
-              const subjectNameDisplay = SUBJECT_DISPLAY_MAP[subjectName];
-
-              if (grade) {
-                if (!GRADES.includes(grade as Grade)) {
-                  throw badRequest(
-                    `Row ${rowNumber}: Invalid grade format in teaching assignments.`
-                  );
-                }
-              }
-
-              if (major) {
-                if (!MAJORS.includes(major as Major)) {
-                  throw badRequest(
-                    `Row ${rowNumber}: Invalid major format in teaching assignments.`
-                  );
-                }
-              }
-
-              if (
-                !grade ||
-                !major ||
-                !(grade in subjectsData) ||
-                !(major in subjectsData[grade as Grade].major)
-              ) {
-                throw badRequest(
-                  `Row ${rowNumber}: Invalid grade or major: ${gradeNumber}-${majorName}`
-                );
-              }
-
-              const allowedSubjects =
-                subjectsData[grade as Grade].major[major as Major];
-
-              if (!allowedSubjects.includes(subjectName)) {
-                throw badRequest(
-                  `Row ${rowNumber}: ${subjectName} not allowed for ${`Row ${rowNumber}: Invalid grade or major: ${gradeNumber}-${majorName}`}-${majorName}`
-                );
-              }
-
-              const existingAssignment = await tx.teachingAssignment.findFirst({
-                where: {
-                  grade: grade as Grade,
-                  major: major as Major,
-                  classNumber: classNumber as ClassNumber,
-                  subject: {
-                    subjectName: subjectName,
-                  },
-                },
-                include: {
-                  teacher: {
-                    select: { name: true },
-                  },
-                },
-              });
-
-              if (existingAssignment) {
-                throw badRequest(
-                  `Row ${rowNumber}: Assignment conflict! Teacher "${existingAssignment.teacher.name}" already teaches "${subjectNameDisplay}" in ${gradeNumber}-${majorName} ${classNumberFormatted}.`
-                );
-              }
-
-              const assignmentObject = {
-                subject: subjectName,
-                grade: grade as Grade,
-                major: major as Major,
-                classNumber: classNumber as ClassNumber,
-              };
-
-              parseTeachingAssignments.push(assignmentObject);
-
-              return await tx.teachingAssignment.upsert({
-                where: {
-                  teacherId_subjectId_grade_major_classNumber: {
-                    teacherId: teacher.id,
-                    subjectId: subjects[idx].id,
-                    grade: grade as Grade,
-                    major: major as Major,
-                    classNumber: classNumber,
-                  },
-                },
-                update: {},
-                create: {
-                  teacherId: teacher.id,
-                  subjectId: subjects[idx].id,
-                  grade: grade as Grade,
-                  major: major as Major,
-                  classNumber: classNumber,
-                },
-              });
-            })
-          );
-
-          // Validation
-          if (
-            parseClassesArray.length > 0 &&
-            parseTeachingAssignments.length > 0
-          ) {
-            // Check if every teaching assignment matches to one of the teaching classes
-            for (const ta of parseTeachingAssignments) {
-              const matchingClass = parseClassesArray.find((tc) => {
-                return (
-                  tc.grade == ta.grade &&
-                  tc.major == ta.major &&
-                  tc.classNumber == ta.classNumber
-                );
-              });
-
-              if (!matchingClass) {
-                const gradeNumber = getGradeNumber(ta.grade as Grade);
-                const majorName = getMajorDisplayName(ta.major as Major);
-                const classNumberFormatted = formatClassNumber(
-                  ta.classNumber as ClassNumber
-                );
-
-                throw badRequest(
-                  `Row ${rowNumber}: Teaching Assignment mismatch! You have an assignment for ${gradeNumber}-${majorName} ${classNumberFormatted}, but this class is not in your Teaching Classes list. Please add it to Teaching Classes first.`
-                );
-              }
-            }
-
-            // Check if every teaching classes matches to one of the teaching assignments
-            for (const tc of parseClassesArray) {
-              const macthingAssignments = parseTeachingAssignments.find(
-                (ta) =>
-                  ta.major === tc.major &&
-                  ta.grade === tc.grade &&
-                  ta.classNumber === tc.classNumber
-              );
-
-              if (!macthingAssignments) {
-                const gradeNumber = getGradeNumber(tc.grade as Grade);
-                const majorName = getMajorDisplayName(tc.major as Major);
-                const classNumberFormatted = formatClassNumber(
-                  tc.classNumber as ClassNumber
-                );
-
-                throw badRequest(
-                  `Row ${rowNumber}: Teaching Classes mismatch! You have an teaching classes for ${gradeNumber}-${majorName} ${classNumberFormatted}, but this class is not in your Teaching Assigments list. Please add it to Teaching Assignments also.`
-                );
-              }
-            }
-          }
-
-          // Check for duplicate assignments (same subject in same class)
-          const assignmentKeys = new Set<string>();
-          for (const ta of parseTeachingAssignments) {
-            const key = `${ta.grade}-${ta.major}-${ta.classNumber}-${ta.subject}`;
-            if (assignmentKeys.has(key)) {
-              const gradeNumber = getGradeNumber(ta.grade as Grade);
-              const majorName = getMajorDisplayName(ta.major as Major);
-              const classNumberFormatted = formatClassNumber(
-                ta.classNumber as ClassNumber
-              );
-              const subjectNameDisplay = SUBJECT_DISPLAY_MAP[ta.subject];
-
-              throw badRequest(
-                `Duplicate assignment detected! You cannot teach "${subjectNameDisplay}" more than once in ${gradeNumber}-${majorName} ${classNumberFormatted}.`
-              );
-            }
-            assignmentKeys.add(key);
-          }
-
-          await tx.teacher.update({
-            where: { id: teacher.id },
-            data: {
-              teachingAssignments: {
-                connect: teachingAssignments.map((ta) => ({ id: ta.id })),
-              },
-            },
-          });
         }
       }
-    });
+
+      if (row.homeroomMajor) {
+        if (!MAJORS.includes(row.homeroomMajor as Major)) {
+          throw badRequest(
+            `Row ${rowNumber}: Invalid major format in homeroom.`,
+          );
+        }
+      }
+
+      // Check if teacher already exists
+      if (existingEmailSet.has(row.email)) {
+        throw badRequest(`Row ${rowNumber}:Email already registered`);
+      }
+
+      // Hash password
+      const hashedPassword = await hashing(row.password);
+
+      //Pre-generate id
+      const teacherUserId = createId();
+
+      // Handle Homeroom Class
+      if (row.homeroomGrade && row.homeroomMajor && row.homeroomClassSection) {
+        const existingClassroom = classroomMap.get(
+          `${row.homeroomGrade}-${row.homeroomMajor}-${row.homeroomClassSection}`,
+        );
+
+        if (existingClassroom) {
+          throw badRequest(
+            `Row ${rowNumber}: Homeroom class already has a teacher`,
+          );
+        }
+
+        classroomsToCreate.push({
+          grade: row.homeroomGrade,
+          major: row.homeroomMajor,
+          section: row.homeroomClassSection,
+          homeroomTeacherId: teacherUserId,
+        });
+      }
+
+      // Create teacher
+      usersToCreate.push({
+        id: teacherUserId,
+        name: row.name,
+        email: row.email,
+        password: hashedPassword,
+        role: "STAFF",
+      });
+
+      teacherProfilesToCreate.push({
+        userId: teacherUserId,
+        staffRole: "TEACHER",
+      });
+
+      if (row.teachingAssignments && row.teachingAssignments?.length > 0) {
+        const transformTeachingAssignments = row.teachingAssignments
+          .split(",")
+          .map((s) => s.trim());
+
+        const teachingAssignmentUniqueKey = new Set();
+
+        // ta = teaching assignemnt
+        // Validate: Check for duplicate assignments (same subject in same class)
+        transformTeachingAssignments.forEach((ta) => {
+          const [subjectName, grade, major, section] = ta.split(":");
+          const key = `${subjectName}-${grade}-${major}-${section}`;
+
+          if (teachingAssignmentUniqueKey.has(key)) {
+            const classLabel = getFullClassLabel(
+              grade as Grade,
+              major as Major,
+              section as ClassSection,
+            );
+            throw badRequest(
+              `Duplicate assignment detected! You cannot teach "${subjectName}" more than once in ${classLabel}.`,
+            );
+          }
+
+          teachingAssignmentUniqueKey.add(key);
+        });
+
+        transformTeachingAssignments.forEach((ta) => {
+          const [subjectName, grade, major, section] = ta.split(":");
+
+          if (grade) {
+            if (!GRADES.includes(grade as Grade)) {
+              throw badRequest(
+                `Row ${rowNumber}: Invalid grade format in teaching classes.`,
+              );
+            }
+          }
+
+          if (major) {
+            if (!MAJORS.includes(major as Major)) {
+              throw badRequest(
+                `Row ${rowNumber}: Invalid major format in teaching classes.`,
+              );
+            }
+          }
+
+          const classroomKey = `${grade}-${major}-${section}`;
+          const classroom = classroomMap.get(classroomKey);
+
+          const classLabel = getFullClassLabel(
+            grade as Grade,
+            major as Major,
+            section as ClassSection,
+          );
+
+          if (!classroom) {
+            throw badRequest(`Row ${i + 1}: ${classLabel} not found`);
+          }
+
+          // From DB
+          const subjectMapData = subjectMap.get(subjectName);
+
+          if (!subjectMapData) {
+            throw badRequest(
+              `Subject ${subjectName} not found. Please check your subject data.`,
+            );
+          }
+
+          const { subjectId, config } = subjectMapData;
+
+          const isGradeInclude = config.allowedGrades.includes(grade as Grade);
+
+          const isMajorInclude = config.allowedMajors.includes(major as Major);
+
+          if (!(isGradeInclude && isMajorInclude)) {
+            throw badRequest(`${subjectName}: Config miss match`);
+          }
+
+          teachingAssignmentsToCreate.push({
+            subjectId: subjectId,
+            teacherId: teacherUserId,
+            academicYear,
+            classId: classroom,
+          });
+        });
+      }
+    }
+
+    // Process each teacher
+    await prisma.$transaction(async (tx) => {});
 
     return Response.json(
       {
         message: `Bulk import completed.`,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("API_ERROR", {

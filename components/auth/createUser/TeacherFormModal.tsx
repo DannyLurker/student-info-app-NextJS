@@ -17,7 +17,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChangeEvent, FormEvent, useState, useRef, useEffect } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import axios from "axios";
 import {
   Upload,
@@ -27,11 +34,12 @@ import {
   Plus,
   Trash2,
   BookOpen,
+  Eraser,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { subjects, subjectCategories } from "@/lib/utils/subjects";
 import { Spinner } from "../../ui/spinner";
-import { Eye, EyeOff, Eraser } from "lucide-react";
 import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
@@ -39,37 +47,41 @@ import {
 } from "@/lib/utils/labels";
 
 import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SUBJECT_KEYS, TEACHER_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import {
+  TeacherSignUpSchema,
+  TeachingAssignmentInput,
+} from "@/lib/utils/zodSchema";
+import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import {
+  ALLOWED_EXTENSIONS,
+  AllowedExtensions,
+} from "@/lib/constants/allowedExtensions";
+import { createPortal } from "react-dom";
 
-// Get all unique subjects from the subjects config
-const getAllSubjects = () => {
-  const allSubjects = new Set<string>();
-  Object.values(subjects).forEach((gradeData) => {
-    Object.values(gradeData.major).forEach((subjectList) => {
-      subjectList.forEach((subject) => allSubjects.add(subject));
-    });
-  });
-  return Array.from(allSubjects).sort();
-};
+type GroupedSubjects = Record<string, any[]>;
 
-type GroupedSubjects = Record<string, string[]>;
-
-const groupSubjects = (subjectKeys: string[]): GroupedSubjects => {
+const groupSubjects = (subjects: any[]): GroupedSubjects => {
   const grouped: GroupedSubjects = {
     general: [],
     accounting: [],
     software_engineering: [],
   };
 
-  const sweKeys = new Set(subjectCategories.SOFTWARE_ENGINEERING);
-  const accountingKeys = new Set(subjectCategories.ACCOUNTING);
-
-  subjectKeys.forEach((key) => {
-    if (sweKeys.has(key)) {
-      grouped.software_engineering.push(key);
-    } else if (accountingKeys.has(key)) {
-      grouped.accounting.push(key);
-    } else {
-      grouped.general.push(key);
+  subjects.forEach((subject) => {
+    if (subject.subjectConfig.type === "GENERAL") {
+      grouped.general.push(subject);
+    } else if (
+      subject.subjectConfig.type === "MAJOR" &&
+      subject.subjectConfig.allowedMajors.includes("ACCOUNTING")
+    ) {
+      grouped.accounting.push(subject);
+    } else if (
+      subject.subjectConfig.type === "MAJOR" &&
+      subject.subjectConfig.allowedMajors.includes("SOFTWARE_ENGINEERING")
+    ) {
+      grouped.software_engineering.push(subject);
     }
   });
 
@@ -83,12 +95,6 @@ interface TeachingAssignment {
   classNumber: string;
 }
 
-interface TeachingClass {
-  grade: string;
-  major: string;
-  classNumber: string;
-}
-
 interface TeacherFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -96,8 +102,7 @@ interface TeacherFormModalProps {
 
 const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -116,26 +121,99 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
     classNumber: "",
   });
 
-  // Teaching Classes - multiple
-  const [teachingClasses, setTeachingClasses] = useState<TeachingClass[]>([]);
-
   // Teaching Assignments - multiple
   const [teachingAssignments, setTeachingAssignments] = useState<
     TeachingAssignment[]
   >([]);
 
-  const [uploadLoading, setUploadLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Fetch subjects
+  const { data: subjectsData, isLoading: isSubjectsLoading } = useQuery({
+    queryKey: SUBJECT_KEYS.listsAll(),
+    queryFn: async () => {
+      const res = await axios.get("/api/staff/subject", {
+        params: {
+          getAll: "true",
+          sortOrder: "asc",
+        },
+      });
+      return res.data.subjects;
+    },
+    enabled: open, // Only fetch when modal is open
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const availableSubjects = Array.isArray(subjectsData) ? subjectsData : [];
+  const sortedAndGroupedSubjects = useMemo(() => {
+    return groupSubjects(availableSubjects);
+  }, [availableSubjects]);
+
+  const singleMutation = useMutation({
+    mutationFn: (teacherData: TeacherSignUpSchema) => {
+      return axios.post(
+        "/api/auth/account/single/teacher-account",
+        teacherData,
+      );
+    },
+    onSuccess: (res) => {
+      toast.success("Teacher account created successfully!");
+      // automatic refresh teachers table in background if needed
+      queryClient.invalidateQueries({ queryKey: TEACHER_KEYS.all });
+
+      setTimeout(() => {
+        resetForm();
+      }, 500); // Small delay for better UX
+    },
+    onError: async (err: any) => {
+      const message = await getErrorMessage(err);
+      setErrorMessage(message);
+      toast.error("Registration failed. Read the message above");
+    },
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axios.post(
+        "/api/auth/account/bulk/teacher-accounts",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setUploadedFile("");
+      if (fileRef.current) fileRef.current.value = "";
+    },
+    onError: async (err: any) => {
+      const message = await getErrorMessage(err);
+      setErrorMessage(message);
+      toast.error(message);
+      setUploadedFile("");
+      if (fileRef.current) fileRef.current.value = "";
+    },
+  });
+
+  const resetForm = () => {
+    setData({ username: "", email: "", password: "", confirmPassword: "" });
+    setHomeroomClass({ grade: "", major: "", classNumber: "" });
+
+    setTeachingAssignments([]);
+    setErrorMessage("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {
-      setData({ username: "", email: "", password: "", confirmPassword: "" });
-      setHomeroomClass({ grade: "", major: "", classNumber: "" });
-      setTeachingClasses([]);
-      setTeachingAssignments([]);
-      setError("");
-      setShowPassword(false);
-      setShowConfirmPassword(false);
+      resetForm();
+      singleMutation.reset();
+      bulkMutation.reset();
     }
   }, [open]);
 
@@ -145,28 +223,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
-    if (error) setError("");
-  };
-
-  const addTeachingClass = () => {
-    setTeachingClasses([
-      ...teachingClasses,
-      { grade: "", major: "", classNumber: "" },
-    ]);
-  };
-
-  const removeTeachingClass = (index: number) => {
-    setTeachingClasses(teachingClasses.filter((_, i) => i !== index));
-  };
-
-  const updateTeachingClass = (
-    index: number,
-    field: keyof TeachingClass,
-    value: string,
-  ) => {
-    const updated = [...teachingClasses];
-    updated[index][field] = value;
-    setTeachingClasses(updated);
+    if (errorMessage) setErrorMessage("");
   };
 
   const addTeachingAssignment = () => {
@@ -192,141 +249,116 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
+    setErrorMessage("");
 
-    const validTeachingAssignments = teachingAssignments.filter(
-      (ta) => ta.subjectName && ta.grade && ta.major,
+    // Filter and map assignments
+    // We need subject Id for the payload, but we store subjectName in state
+    let validAssignments: TeachingAssignmentInput[] = [];
+    let assignmentErrors = false;
+
+    // Check incomplete assignments
+    const completeAssignmentsState = teachingAssignments.filter(
+      (ta) => ta.subjectName && ta.grade && ta.major && ta.classNumber,
     );
 
-    const validTeachingClasses = teachingClasses.filter(
-      (tc) => tc.grade && tc.major,
-    );
-
-    if (validTeachingAssignments.length !== teachingAssignments.length) {
-      setError(
+    if (completeAssignmentsState.length !== teachingAssignments.length) {
+      setErrorMessage(
         "Please complete all teaching assignments or remove incomplete ones",
       );
       toast.error(
         "Please complete all teaching assignments or remove incomplete ones",
-      );
-      return;
-    }
-
-    if (validTeachingClasses.length !== teachingClasses.length) {
-      setError(
-        "Please complete all teaching classes or remove incomplete ones",
-      );
-      toast.error(
-        "Please complete all teaching classes or remove incomplete ones",
       );
       return;
     }
 
     if (data.password !== data.confirmPassword) {
-      setError("Passwords do not match");
+      setErrorMessage("Passwords do not match");
       toast.error("Passwords do not match");
       return;
     }
 
-    setLoading(true);
-
+    // Map to Zod Schema structure
     try {
-      const payload = {
-        username: data.username,
-        email: data.email,
-        passwordSchema: {
-          password: data.password,
-          confirmPassword: data.confirmPassword,
-        },
-        homeroomClass:
-          homeroomClass.grade && homeroomClass.major
-            ? homeroomClass
-            : undefined,
-        teachingClasses:
-          validTeachingClasses.length > 0 ? validTeachingClasses : undefined,
-        teachingAssignment:
-          validTeachingAssignments.length > 0
-            ? validTeachingAssignments
-            : undefined,
-      };
+      validAssignments = teachingAssignments.reduce((acc, curr) => {
+        // Find subject ID from the loaded subjects
+        const subject = availableSubjects.find(
+          (s: any) => s.subjectName === curr.subjectName,
+        );
 
-      const res = await axios.post(
-        "/api/auth/account/single/teacher-account",
-        payload,
-      );
-      if (res.status === 201) {
-        toast.success("Teacher account created successfully!");
-        setTimeout(() => {
-          setData({
-            username: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-          });
-          setHomeroomClass({ grade: "", major: "", classNumber: "" });
-          setTeachingClasses([]);
-          setTeachingAssignments([]);
-          setError("");
-          setShowPassword(false);
-          setShowConfirmPassword(false);
-        }, 2000);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "An error occurred, try again");
-      toast.error("Something went wrong. Read the message above.");
-    } finally {
-      setLoading(false);
+        if (!subject) {
+          // Should not happen if selected from dropdown
+          assignmentErrors = true;
+          return acc;
+        }
+
+        acc.push({
+          subjectId: subject.id,
+          subjectName: curr.subjectName,
+          grade: curr.grade as any,
+          major: curr.major as any,
+          section: curr.classNumber as any,
+        });
+
+        return acc;
+      }, [] as TeachingAssignmentInput[]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Error processing assignments");
+      return;
     }
+
+    if (assignmentErrors) {
+      toast.error("Invalid subject selected");
+      return;
+    }
+
+    const payload: TeacherSignUpSchema = {
+      username: data.username,
+      email: data.email,
+      passwordSchema: {
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+      },
+      homeroomClass:
+        homeroomClass.grade && homeroomClass.major
+          ? (homeroomClass as any)
+          : undefined,
+      assignments: validAssignments.length > 0 ? validAssignments : undefined,
+    };
+
+    singleMutation.mutate(payload);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadedFile(file.name);
-    setUploadLoading(true);
-    setError("");
+    const extension = file.name.split(".").pop()?.toLowerCase();
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await axios.post(
-        "/api/auth/account/bulk/teacher-accounts",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
-
-      if (res.status === 200) {
-        toast.success(res.data.message);
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || "Failed to upload file";
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setUploadLoading(false);
-      if (fileRef.current) fileRef.current.value = "";
-      setUploadedFile("");
+    if (
+      !extension ||
+      !ALLOWED_EXTENSIONS.includes(extension as AllowedExtensions)
+    ) {
+      toast.error("Please upload an Excel file (.xlsx or .xls)");
+      return;
     }
+
+    setUploadedFile(file.name);
+    setErrorMessage("");
+    bulkMutation.mutate(file);
   };
 
-  const availableSubjects = getAllSubjects();
-  const sortedAndGroupedSubjects = groupSubjects(availableSubjects);
+  const isLoading = singleMutation.isPending || bulkMutation.isPending;
 
   return (
     <>
-      {loading && (
-        <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
-          <Spinner />
-        </div>
-      )}
-
-      {uploadLoading && (
-        <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {isLoading &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
+            <Spinner />
+          </div>,
+          document.body,
+        )}
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -337,7 +369,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
             </DialogTitle>
           </DialogHeader>
 
-          {error && (
+          {errorMessage && (
             <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
               <div className="flex items-center">
                 <svg
@@ -351,7 +383,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="font-medium">{error}</span>
+                <span className="font-medium">{errorMessage}</span>
               </div>
             </div>
           )}
@@ -392,7 +424,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                     accept=".xlsx, .xls"
                     className="hidden"
                     onChange={handleFileUpload}
-                    disabled={uploadLoading}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -432,7 +464,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       type="text"
                       minLength={3}
                       required
-                      disabled={loading}
+                      disabled={isLoading}
                       onChange={handleChange}
                       value={data.username}
                       className="h-11"
@@ -448,7 +480,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       placeholder="your.email@example.com"
                       type="email"
                       required
-                      disabled={loading}
+                      disabled={isLoading}
                       onChange={handleChange}
                       value={data.email}
                       className="h-11"
@@ -466,7 +498,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                         type={showPassword ? "text" : "password"}
                         minLength={8}
                         required
-                        disabled={loading}
+                        disabled={isLoading}
                         onChange={handleChange}
                         value={data.password}
                         className="h-11 pr-12"
@@ -496,7 +528,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                         type={showConfirmPassword ? "text" : "password"}
                         minLength={8}
                         required
-                        disabled={loading}
+                        disabled={isLoading}
                         onChange={handleChange}
                         value={data.confirmPassword}
                         className="h-11 pr-12"
@@ -539,7 +571,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       setHomeroomClass({ ...homeroomClass, grade: v })
                     }
                     value={homeroomClass.grade}
-                    disabled={loading}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select grade" />
@@ -558,7 +590,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       setHomeroomClass({ ...homeroomClass, major: v })
                     }
                     value={homeroomClass.major}
-                    disabled={loading}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select major" />
@@ -577,7 +609,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                       setHomeroomClass({ ...homeroomClass, classNumber: v })
                     }
                     value={homeroomClass.classNumber}
-                    disabled={loading}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="h-11">
                       <SelectValue placeholder="Select class" />
@@ -593,268 +625,182 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                 </div>
               </div>
 
-              {/* Teaching Classes */}
-              <div className="border-t pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">
-                    Teaching Classes (Optional)
-                  </h3>
-                  <Button
-                    type="button"
-                    onClick={addTeachingClass}
-                    disabled={loading}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Class
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  {teachingClasses.map((tc, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 p-4 rounded-lg border"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-semibold text-gray-700">
-                          Class #{index + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeTeachingClass(index)}
-                          disabled={loading}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      <div className="grid md:grid-cols-3 gap-3">
-                        <Select
-                          onValueChange={(v) =>
-                            updateTeachingClass(index, "grade", v)
-                          }
-                          value={tc.grade}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select grade" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {GRADES.map((g) => (
-                              <SelectItem key={g} value={g}>
-                                {GRADE_DISPLAY_MAP[g]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Select
-                          onValueChange={(v) =>
-                            updateTeachingClass(index, "major", v)
-                          }
-                          value={tc.major}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select major" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MAJORS.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                {MAJOR_DISPLAY_MAP[m]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Select
-                          onValueChange={(v) =>
-                            updateTeachingClass(index, "classNumber", v)
-                          }
-                          value={tc.classNumber}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CLASS_SECTION.map((num) => (
-                              <SelectItem key={num} value={num}>
-                                {num === "none" ? "None" : `Class ${num}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
-
-                  {teachingClasses.length === 0 && (
-                    <p className="text-center py-4 text-gray-500">
-                      No teaching classes added. Click "Add Class" to add one.
-                    </p>
-                  )}
-                </div>
-              </div>
-
               {/* Teaching Assignments */}
-              <div className="border-t pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">
-                    Teaching Assignments (Optional)
-                  </h3>
-                  <Button
-                    type="button"
-                    onClick={addTeachingAssignment}
-                    disabled={loading}
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Assignment
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  {teachingAssignments.map((ta, index) => (
-                    <div
-                      key={index}
-                      className="bg-purple-50 p-4 rounded-lg border border-purple-200"
+              {availableSubjects.length !== 0 ? (
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-800">
+                      Teaching Assignments (Optional)
+                    </h3>
+                    <Button
+                      type="button"
+                      onClick={addTeachingAssignment}
+                      disabled={isLoading}
+                      className="bg-purple-600 hover:bg-purple-700"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center">
-                          <BookOpen className="w-5 h-5 text-purple-600 mr-2" />
-                          <span className="font-semibold text-gray-700">
-                            Assignment #{index + 1}
-                          </span>
+                      <Plus className="w-4 h-4 mr-1" /> Add Assignment
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {teachingAssignments.map((ta, index) => (
+                      <div
+                        key={index}
+                        className="bg-purple-50 p-4 rounded-lg border border-purple-200"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center">
+                            <BookOpen className="w-5 h-5 text-purple-600 mr-2" />
+                            <span className="font-semibold text-gray-700">
+                              Assignment #{index + 1}
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeTeachingAssignment(index)}
+                            disabled={isLoading}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeTeachingAssignment(index)}
-                          disabled={loading}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
 
-                      <div className="space-y-3">
-                        <Select
-                          onValueChange={(v) =>
-                            updateTeachingAssignment(index, "subjectName", v)
-                          }
-                          value={ta.subjectName}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="h-11 bg-white">
-                            <SelectValue placeholder="Select subject" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(sortedAndGroupedSubjects).map(
-                              ([categoryName, subjectKeysArray]) => (
-                                <SelectGroup key={categoryName}>
-                                  <SelectLabel>
-                                    {categoryName === "general"
-                                      ? "General Subjects"
-                                      : categoryName === "accounting"
-                                        ? "Accounting Subjects"
-                                        : "Software Engineering Subjects"}
-                                  </SelectLabel>
-                                  {subjectKeysArray.map(
-                                    (subjectKey: string) => (
-                                      <SelectItem
-                                        key={subjectKey}
-                                        value={subjectKey}
-                                      >
-                                        {SUBJECT_DISPLAY_MAP[subjectKey]}
-                                      </SelectItem>
-                                    ),
-                                  )}
-                                </SelectGroup>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-
-                        <div className="grid md:grid-cols-3 gap-3">
+                        <div className="space-y-3">
                           <Select
                             onValueChange={(v) =>
-                              updateTeachingAssignment(index, "grade", v)
+                              updateTeachingAssignment(index, "subjectName", v)
                             }
-                            value={ta.grade}
-                            disabled={loading}
+                            value={ta.subjectName}
+                            disabled={isLoading || isSubjectsLoading}
                           >
                             <SelectTrigger className="h-11 bg-white">
-                              <SelectValue placeholder="Select grade" />
+                              <SelectValue
+                                placeholder={
+                                  isSubjectsLoading
+                                    ? "Loading subjects..."
+                                    : "Select subject"
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
-                              {GRADES.map((g) => (
-                                <SelectItem key={g} value={g}>
-                                  {GRADE_DISPLAY_MAP[g]}
-                                </SelectItem>
-                              ))}
+                              {Object.entries(sortedAndGroupedSubjects).map(
+                                ([categoryName, subjectList]) =>
+                                  subjectList.length > 0 && (
+                                    <SelectGroup key={categoryName}>
+                                      <SelectLabel>
+                                        {categoryName === "general"
+                                          ? "General Subjects"
+                                          : categoryName === "accounting"
+                                            ? "Accounting Subjects"
+                                            : "Software Engineering Subjects"}
+                                      </SelectLabel>
+                                      {subjectList.map((subject: any) => (
+                                        <SelectItem
+                                          key={subject.id}
+                                          value={subject.subjectName}
+                                        >
+                                          {/* Fallback to name if display map fails, though it shouldn't */}
+                                          {SUBJECT_DISPLAY_MAP[
+                                            subject.subjectName
+                                          ] || subject.subjectName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  ),
+                              )}
                             </SelectContent>
                           </Select>
 
-                          <Select
-                            onValueChange={(v) =>
-                              updateTeachingAssignment(index, "major", v)
-                            }
-                            value={ta.major}
-                            disabled={loading}
-                          >
-                            <SelectTrigger className="h-11 bg-white">
-                              <SelectValue placeholder="Select major" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MAJORS.map((m) => (
-                                <SelectItem key={m} value={m}>
-                                  {MAJOR_DISPLAY_MAP[m]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="grid md:grid-cols-3 gap-3">
+                            <Select
+                              onValueChange={(v) =>
+                                updateTeachingAssignment(index, "grade", v)
+                              }
+                              value={ta.grade}
+                              disabled={isLoading}
+                            >
+                              <SelectTrigger className="h-11 bg-white">
+                                <SelectValue placeholder="Select grade" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {GRADES.map((g) => (
+                                  <SelectItem key={g} value={g}>
+                                    {GRADE_DISPLAY_MAP[g]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
 
-                          <Select
-                            onValueChange={(v) =>
-                              updateTeachingAssignment(index, "classNumber", v)
-                            }
-                            value={ta.classNumber}
-                            disabled={loading}
-                          >
-                            <SelectTrigger className="h-11 bg-white">
-                              <SelectValue placeholder="Select class" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CLASS_SECTION.map((num) => (
-                                <SelectItem key={num} value={num}>
-                                  {num === "none" ? "None" : `Class ${num}`}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <Select
+                              onValueChange={(v) =>
+                                updateTeachingAssignment(index, "major", v)
+                              }
+                              value={ta.major}
+                              disabled={isLoading}
+                            >
+                              <SelectTrigger className="h-11 bg-white">
+                                <SelectValue placeholder="Select major" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MAJORS.map((m) => (
+                                  <SelectItem key={m} value={m}>
+                                    {MAJOR_DISPLAY_MAP[m]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select
+                              onValueChange={(v) =>
+                                updateTeachingAssignment(
+                                  index,
+                                  "classNumber",
+                                  v,
+                                )
+                              }
+                              value={ta.classNumber}
+                              disabled={isLoading}
+                            >
+                              <SelectTrigger className="h-11 bg-white">
+                                <SelectValue placeholder="Select class" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CLASS_SECTION.map((num) => (
+                                  <SelectItem key={num} value={num}>
+                                    {num === "none" ? "None" : `Class ${num}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {teachingAssignments.length === 0 && (
-                    <p className="text-center py-4 text-gray-500">
-                      No teaching assignments added. Click "Add Assignment" to
-                      add one.
-                    </p>
-                  )}
+                    {teachingAssignments.length === 0 && (
+                      <p className="text-center py-4 text-gray-500">
+                        No teaching assignments added.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex justify-center w-full h-full border-t-2 pt-2">
+                  <p className="text-center text-muted-foreground">
+                    No subjects found. Please create a subject first to enable
+                    teaching assignments.
+                  </p>
+                </div>
+              )}
 
               {/* Submit Button */}
               <Button
-                className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-lg rounded-xl shadow-lg"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-xl shadow-lg"
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? (
+                {isLoading ? (
                   <span className="flex items-center justify-center">
                     <svg
                       className="animate-spin h-5 w-5 mr-3"
@@ -875,7 +821,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Creating Account...
+                    Processing...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center">

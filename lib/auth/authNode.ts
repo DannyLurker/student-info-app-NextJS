@@ -7,9 +7,10 @@ import { notFound } from "../errors";
 import { StaffPosition, StudentPosition } from "../constants/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // For now, Prisma adapter is still unused, it doesn't have any functinality
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt", // Tetap gunakan JWT agar kompatibel dengan Credentials
+    strategy: "jwt",
   },
   pages: {
     signIn: "/sign-in",

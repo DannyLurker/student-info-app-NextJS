@@ -8,12 +8,12 @@ import {
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
 import { ClassSection, Grade, Semester } from "@/lib/constants/class";
-import { validateStaffSession } from "@/lib/validation/guards";
+import { validateManagementSession } from "@/lib/validation/guards";
 import { Major } from "@/db/prisma/src/generated/prisma/enums";
 
 export async function POST(req: Request) {
   try {
-    await validateStaffSession();
+    await validateManagementSession();
 
     const rawData: StudentSignUpSchema = await req.json();
 
@@ -61,19 +61,13 @@ export async function POST(req: Request) {
 
       const hashedPassword = await hashing(data.passwordSchema.password);
 
-      const classroom = await tx.classroom.upsert({
+      const classroom = await tx.classroom.findUnique({
         where: {
           grade_major_section: {
             grade: data.classSchema.grade as Grade,
             major: data.classSchema.major as Major,
             section: data.classSchema.section as ClassSection,
           },
-        },
-        update: {},
-        create: {
-          grade: data.classSchema.grade,
-          major: data.classSchema.major,
-          section: data.classSchema.section,
         },
         select: {
           id: true,

@@ -19,12 +19,12 @@ import {
   getSubjectQueriesSchema,
   patchSubjectSchema,
 } from "@/lib/utils/zodSchema";
-import { validateStaffSession } from "@/lib/validation/guards";
+import { validateManagementSession } from "@/lib/validation/guards";
 import { compareSubjectConfig } from "@/lib/validation/subjectValidators";
 
 export async function POST(req: Request) {
   try {
-    await validateStaffSession();
+    await validateManagementSession();
 
     const rawData = await req.json();
 
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    await validateStaffSession();
+    await validateManagementSession();
 
     const { searchParams } = new URL(req.url);
     const rawParams = Object.fromEntries(searchParams.entries());
@@ -237,8 +237,8 @@ export async function GET(req: Request) {
       orderBy: {
         name: data.sortOrder,
       },
-      skip: data.page * OFFSET,
-      take: TAKE_RECORDS,
+      skip: data.getAll ? undefined : data.page * OFFSET,
+      take: data.getAll ? undefined : TAKE_RECORDS,
     });
 
     const formattedSubjects = subjectRecords.map((subject) => ({
@@ -270,7 +270,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    await validateStaffSession();
+    await validateManagementSession();
 
     const { searchParams } = new URL(req.url);
     const idParam = searchParams.get("subjectId");
@@ -287,7 +287,7 @@ export async function DELETE(req: Request) {
     });
 
     return Response.json(
-      { message: "Successfully deleted subject" },
+      { message: "Subject deleted Successfully" },
       { status: 200 },
     );
   } catch (error) {
@@ -310,7 +310,7 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    validateStaffSession();
+    validateManagementSession();
     const rawData = await req.json();
     const data = patchSubjectSchema.parse(rawData);
 

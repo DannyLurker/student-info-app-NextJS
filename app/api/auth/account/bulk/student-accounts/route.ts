@@ -1,40 +1,44 @@
 import { badRequest, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
-import { subjects } from "@/lib/utils/subjects";
 import * as XLSX from "xlsx";
-import { Grade, GRADES, Major, MAJORS } from "@/lib/constants/class";
+import { ClassSection, Grade, Major } from "@/lib/constants/class";
 import crypto from "crypto";
 import { getSemester } from "@/lib/utils/date";
 import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
 } from "@/lib/constants/allowedExtensions";
-interface StudentRow {
+import { validateManagementSession } from "@/lib/validation/guards";
+import { createId } from "@paralleldrive/cuid2"; // Using cuid2 for pre-generating IDs
+import {
+  GradebookCreateManyInput,
+  ParentCreateManyInput,
+  StudentCreateManyInput,
+  UserCreateManyInput,
+} from "@/db/prisma/src/generated/prisma/models";
+import { StudentPosition } from "@/lib/constants/roles";
+
+type StudentExcelRow = {
   username: string;
   email: string;
   password: string;
   grade: Grade;
   major: Major;
-  classNumber?: string;
-}
-
-type ParentAccount = {
-  email: string;
-  password: string;
+  section: ClassSection;
+  studentRole: StudentPosition;
 };
 
 export async function POST(req: Request) {
   try {
+    await validateManagementSession();
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
-    if (!file) {
-      throw badRequest("No file uploaded");
-    }
+    if (!file) throw badRequest("No file uploaded");
 
     const extension = file.name.split(".").pop()?.toLowerCase();
-
     if (
       !extension ||
       !ALLOWED_EXTENSIONS.includes(extension as AllowedExtensions)
@@ -42,206 +46,185 @@ export async function POST(req: Request) {
       throw badRequest("Please upload an Excel file (.xlsx or .xls)");
     }
 
-    // Read Excel file
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer);
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = XLSX.utils.sheet_to_json(worksheet) as StudentRow[];
+    const data = XLSX.utils.sheet_to_json(
+      workbook.Sheets[workbook.SheetNames[0]],
+    ) as StudentExcelRow[];
 
-    if (data.length === 0) {
-      throw badRequest("Excel file is empty");
+    if (data.length === 0) throw badRequest("Excel file is empty");
+
+    // PRE-FETCH DATA FOR VALIDATION
+    const excelEmails = data.map((row) => row.email).filter(Boolean);
+    const [existingUsers, allClassrooms, allSubjects] = await Promise.all([
+      prisma.user.findMany({
+        where: { email: { in: excelEmails }, role: "STUDENT" },
+        select: { email: true },
+      }),
+      prisma.classroom.findMany(),
+      // Get subject config for filtering
+      prisma.subject.findMany({
+        include: { config: true },
+      }),
+    ]);
+
+    const existingEmailSet = new Set(existingUsers.map((u) => u.email));
+    const classroomMap = new Map(
+      allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
+    );
+    const subjectMap = new Map(allSubjects.map((s) => [s.name, s.id]));
+
+    // PREPARE COLLECTIONS
+    const usersToCreate: UserCreateManyInput[] = [];
+    const studentProfilesToCreate: StudentCreateManyInput[] = [];
+    const parentsToCreate: ParentCreateManyInput[] = [];
+    const gradebooksToCreate: GradebookCreateManyInput[] = [];
+    const parentAccountsForExcel: any[] = [];
+
+    const academicYear = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+    const semester = getSemester(new Date()) === 1 ? "FIRST" : "SECOND";
+
+    // Student Password
+    const studentPasswordMap = new Map();
+    const parentPasswordMap = new Map();
+
+    await Promise.all(
+      excelEmails.map(async (email, index) => {
+        const rawParentPass = crypto.randomBytes(8).toString("hex");
+        const hashedParentPass = await hashing(rawParentPass);
+
+        if (data[index].email == email) {
+          const password = await hashing(data[index].password);
+          studentPasswordMap.set(email, password);
+          parentPasswordMap.set(email, {
+            rawParentPass: rawParentPass,
+            hashedParentPass: hashedParentPass,
+          });
+        } else {
+          throw badRequest(`Row ${index + 1}: There is an empty cell`);
+        }
+      }),
+    );
+
+    // VALIDATE AND MAP (IN-MEMORY)
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNum = i + 2;
+
+      const parentPassData = parentPasswordMap.get(data[i].email);
+
+      if (!parentPassData) {
+        throw badRequest(`Row ${i + 2}: Password data processing failed`);
+      }
+
+      if (
+        !row.username ||
+        !row.email ||
+        !row.password ||
+        !row.grade ||
+        !row.major ||
+        !row.section
+      ) {
+        throw badRequest(`Row ${rowNum}: Missing required fields`);
+      }
+
+      if (existingEmailSet.has(row.email)) {
+        throw badRequest(
+          `Row ${rowNum}: Email ${row.email} is already registered`,
+        );
+      }
+
+      const classKey = `${row.grade}-${row.major}-${row.section}`;
+      const classId = classroomMap.get(classKey);
+      if (!classId)
+        throw badRequest(`Row ${rowNum}: Classroom ${classKey} not found`);
+
+      // Pre-generate IDs
+      const studentUserId = createId();
+      const parentUserId = createId();
+
+      // Student User
+      usersToCreate.push({
+        id: studentUserId,
+        name: row.username,
+        email: row.email,
+        password: studentPasswordMap.get(row.email),
+        role: "STUDENT" as const,
+      });
+
+      // Student Profile
+      studentProfilesToCreate.push({
+        userId: studentUserId,
+        classId: classId,
+        studentRole: row.studentRole,
+      });
+
+      // Parent Logic
+      const parentEmail = `${row.username.toLowerCase().replace(/\s/g, "")}.parent@school.com`;
+
+      const { rawParentPass, hashedParentPass } = parentPassData;
+
+      usersToCreate.push({
+        id: parentUserId,
+        name: `${row.username}'s Parent`,
+        email: parentEmail,
+        password: hashedParentPass,
+        role: "PARENT" as const,
+      });
+
+      parentsToCreate.push({
+        userId: parentUserId,
+        studentId: studentUserId, // Linking to Student User ID
+      });
+
+      parentAccountsForExcel.push({
+        studentName: row.username,
+        parentEmail,
+        parentPassword: rawParentPass,
+      });
+
+      // Gradebooks Logic
+      const relevantSubjects = allSubjects.filter((subject) => {
+        const isGradeAllowed = subject.config.allowedGrades.includes(
+          row.grade as any,
+        );
+        const isMajorAllowed = subject.config.allowedMajors.includes(
+          row.major as any,
+        );
+        return isGradeAllowed && isMajorAllowed;
+      });
+
+      for (const subject of relevantSubjects) {
+        gradebooksToCreate.push({
+          studentId: studentUserId,
+          subjectId: subject.id,
+          semester,
+          academicYear,
+        });
+      }
     }
 
-    const parentAccounts: ParentAccount[] = [];
-
-    // Process each student
+    // SEQUENTIAL BULK TRANSACTION
     await prisma.$transaction(
       async (tx) => {
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          const rowNumber = i + 2; // +2 because Excel rows start at 1 and we have header
-
-          // Validate required fields
-          if (
-            !row.username ||
-            !row.email ||
-            !row.password ||
-            !row.grade ||
-            !row.major
-          ) {
-            throw badRequest(`Row ${rowNumber}: Missing required fields`);
-          }
-
-          //Validate grade and major type
-          if (!GRADES.includes(row.grade as Grade)) {
-            throw badRequest(`Row ${rowNumber}: Invalid grade format`);
-          }
-
-          if (!MAJORS.includes(row.major as Major)) {
-            throw badRequest(`Row ${rowNumber}: Invalid major format`);
-          }
-
-          // Check if student already exists
-          const existingStudent = await tx.student.findUnique({
-            where: { email: row.email },
-          });
-
-          if (existingStudent) {
-            throw badRequest(`Row ${rowNumber}: Email already registered`);
-          }
-
-          // Hash password
-          const hashedPassword = await hashing(row.password);
-
-          // Find homeroom class
-          const homeroomClass = await tx.homeroomClass.findFirst({
-            where: {
-              grade: row.grade,
-              major: row.major,
-              classNumber: row.classNumber,
-            },
-            select: {
-              id: true,
-            },
-          });
-
-          if (!homeroomClass) {
-            throw badRequest(`Row ${rowNumber}: Homeroom class not found`);
-          }
-
-          // Create student
-          const student = await tx.student.create({
-            data: {
-              name: row.username,
-              email: row.email,
-              password: hashedPassword,
-              grade: row.grade,
-              major: row.major,
-              classNumber: row.classNumber as string,
-              isVerified: true,
-              homeroomClassId: homeroomClass.id,
-            },
-            select: {
-              id: true,
-              name: true,
-            },
-          });
-
-          // Get subject list
-          const subjectsList = subjects[row.grade]?.major?.[row.major] ?? [];
-
-          if (subjectsList.length === 0) {
-            throw badRequest(
-              `Row ${rowNumber}: Subject configuration not found`,
-            );
-          }
-
-          // Upsert subjects
-          const subjectRecords = await Promise.all(
-            subjectsList.map(async (subjectName) => {
-              return await tx.subject.upsert({
-                where: { subjectName },
-                update: {},
-                create: { subjectName },
-              });
-            }),
-          );
-
-          // Connect subjects to student
-          await tx.student.update({
-            where: { id: student.id },
-            data: {
-              studentSubjects: {
-                connect: subjectRecords.map((s) => ({ id: s.id })),
-              },
-            },
-          });
-
-          //Upsert all subjectmMark
-          const today = new Date();
-          const currentSemester = getSemester(today);
-
-          const subjectMarkRecords = await Promise.all(
-            subjectsList.map(async (subjectName) => {
-              const subjectMark = await tx.subjectMark.upsert({
-                where: {
-                  studentId_subjectName_academicYear_semester: {
-                    studentId: student.id,
-                    subjectName: subjectName,
-                    academicYear: String(new Date().getFullYear()),
-                    semester: currentSemester === 1 ? "FIRST" : "SECOND",
-                  },
-                },
-                update: {},
-                create: {
-                  studentId: student.id,
-                  subjectName: subjectName,
-                  academicYear: String(new Date().getFullYear()),
-                  semester: currentSemester === 1 ? "FIRST" : "SECOND",
-                },
-              });
-              return subjectMark;
-            }),
-          );
-
-          // Connect subjectMark to student
-          await tx.student.update({
-            where: { id: student.id },
-            data: {
-              subjectMarks: {
-                connect: subjectMarkRecords.map((subjectMark) => ({
-                  id: subjectMark.id,
-                })),
-              },
-            },
-            include: {
-              subjectMarks: true,
-            },
-          });
-
-          const rawRandomPassword = crypto.randomBytes(8).toString("hex");
-          const hashRandomPassword = await hashing(rawRandomPassword);
-
-          await tx.parent.upsert({
-            where: {
-              studentId: student.id,
-            },
-            update: {},
-            create: {
-              email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
-              name: `${student.name}'s Parents`,
-              password: hashRandomPassword,
-              role: "PARENT",
-              studentId: student.id,
-            },
-          });
-
-          parentAccounts.push({
-            email: `${student.name.toLowerCase().replaceAll(" ", "")}parentaccount@gmail.com`,
-            password: rawRandomPassword,
-          });
-        }
+        await tx.user.createMany({ data: usersToCreate });
+        await tx.student.createMany({ data: studentProfilesToCreate });
+        await tx.parent.createMany({ data: parentsToCreate });
+        await tx.gradebook.createMany({ data: gradebooksToCreate });
       },
-      {
-        timeout: 10000,
-      },
+      { timeout: 30000 },
     );
 
-    const parentWorksheet = XLSX.utils.json_to_sheet(parentAccounts);
-    const parentWorkbook = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-      parentWorkbook,
-      parentWorksheet,
-      "Parent Accounts",
-    );
-
-    const parentbuffer = XLSX.write(parentWorkbook, {
+    // 5. GENERATE RESPONSE FILE
+    const parentSheet = XLSX.utils.json_to_sheet(parentAccountsForExcel);
+    const parentBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(parentBook, parentSheet, "Parent Accounts");
+    const outBuffer = XLSX.write(parentBook, {
       type: "buffer",
       bookType: "xlsx",
     });
 
-    return new Response(parentbuffer, {
+    return new Response(outBuffer, {
       status: 200,
       headers: {
         "Content-Type":
@@ -250,10 +233,6 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "/api/auth/account/bulk/student-accounts",
-      message: error instanceof Error ? error.message : String(error),
-    });
     return handleError(error);
   }
 }

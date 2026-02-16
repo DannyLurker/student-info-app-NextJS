@@ -9,9 +9,9 @@ const Page = async () => {
 
   if (!session) return redirect("/sign-in");
 
-  const canAcessManagement = hasManagementAccess(session.user.role);
+  const canAccess = hasManagementAccess(session.user.role);
 
-  if (!canAcessManagement) {
+  if (!canAccess) {
     return redirect(getRoleDashboard(session.user.role));
   }
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
@@ -65,6 +65,10 @@ const getSubjectQueriesSchema = z.object({
   grade: GradeEnum.optional(),
   major: MajorEnum.optional(),
   subjectType: SubjectTypeEnum.optional(),
+  getAll: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((val) => val === "true"),
 });
 
 const patchSubjectSchema = z.object({
@@ -111,6 +115,20 @@ const passwordSchema = z
   });
 
 // Main schemas
+
+// Classroom
+const createClassSchema = z.array(classSchema);
+
+type CreateClassSchema = z.infer<typeof createClassSchema>;
+
+const updateClassSchema = z.object({
+  id: z.number(),
+  classSchema: classSchema,
+  homeroomTeacherId: z.string().optional(),
+});
+
+type UpdateClassSchema = z.infer<typeof updateClassSchema>;
+
 // AUTH
 const studentSignUpSchema = z.object({
   username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
@@ -279,6 +297,8 @@ const markRecords = z.object({
 type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
+  createClassSchema,
+  updateClassSchema,
   createSubjectSchema,
   getSubjectQueriesSchema,
   patchSubjectSchema,
@@ -297,7 +317,9 @@ export {
   updateProblemPoint,
   problemPointQuerySchema,
   classSchema,
+  type CreateClassSchema,
   type CreateSubjectInput,
+  type UpdateClassSchema,
   type SubjectQueriesSchema,
   type PatchSubjectInput,
   type ClassSchema,

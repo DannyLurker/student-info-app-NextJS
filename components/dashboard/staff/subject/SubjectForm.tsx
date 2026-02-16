@@ -92,7 +92,7 @@ const SubjectForm = ({
       toast.success(`${data.details} has been created`);
       setSubjectData({ subjectRecords: [INITIAL_SUBJECT_RECORD] });
       setErrorMessage(""); // Clear error
-      queryClient.invalidateQueries({ queryKey: SUBJECT_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: SUBJECT_KEYS.all });
       if (onSuccess) onSuccess(); // Tutup modal di sini
     },
     onError: (err: any) => {
@@ -184,10 +184,12 @@ const SubjectForm = ({
         (subject, index) => {
           if (index === subjectSetIndex) {
             const majorLimitReached =
-              configType === "MAJOR" && subject.subjectConfig.allowedMajors.length < 3;
+              configType === "MAJOR" &&
+              subject.subjectConfig.allowedMajors.length < 3;
 
             const gradeLimitReached =
-              configType === "GRADE" && subject.subjectConfig.allowedGrades.length < 4;
+              configType === "GRADE" &&
+              subject.subjectConfig.allowedGrades.length < 4;
 
             return {
               ...subject,
@@ -257,14 +259,14 @@ const SubjectForm = ({
       subjectRecords: prev.subjectRecords.map((subject, sIdx) =>
         sIdx === subjectSetIndex
           ? {
-            ...subject,
-            subjectConfig: {
-              ...subject.subjectConfig,
-              [key]: subject.subjectConfig[key].map((val, cIdx) =>
-                cIdx === subjectConfigIndex ? e.target.value : val,
-              ),
-            },
-          }
+              ...subject,
+              subjectConfig: {
+                ...subject.subjectConfig,
+                [key]: subject.subjectConfig[key].map((val, cIdx) =>
+                  cIdx === subjectConfigIndex ? e.target.value : val,
+                ),
+              },
+            }
           : subject,
       ),
     }));
@@ -279,7 +281,8 @@ const SubjectForm = ({
       ...prev,
       subjectRecords: prev.subjectRecords.map((subject, index) => {
         if (index === subjectSetIndex) {
-          const key = configType === "GRADE" ? "allowedGrades" : "allowedMajors";
+          const key =
+            configType === "GRADE" ? "allowedGrades" : "allowedMajors";
           return {
             ...subject,
             subjectConfig: {
@@ -465,12 +468,12 @@ const SubjectForm = ({
                   subjectRecords: prev.subjectRecords.map((s, i) =>
                     i === setIndex
                       ? {
-                        ...s,
-                        subjectConfig: {
-                          ...s.subjectConfig,
-                          type: val as SubjectType,
-                        },
-                      }
+                          ...s,
+                          subjectConfig: {
+                            ...s.subjectConfig,
+                            type: val as SubjectType,
+                          },
+                        }
                       : s,
                   ),
                 }));
