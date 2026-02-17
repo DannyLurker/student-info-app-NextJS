@@ -65,7 +65,7 @@ export default function ResetPasswordOtpEmail({
               </Text>
 
               <Link
-                href={`http://localhost:3000/reset-password?token=${resetToken}`}
+                href={`http://localhost:3000/reset-password#token=${resetToken}`}
                 style={styles.resetButton}
               >
                 Reset Password

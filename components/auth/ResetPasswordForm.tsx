@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
@@ -10,12 +10,21 @@ import axios, { AxiosError } from "axios";
 
 const ResetPasswordContent = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
 
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    const hash = window.location.hash; // "#token=a3f9c2b1..."
+    console.log(hash);
+    const parsed = new URLSearchParams(hash.slice(1)); // buang "#" di depan
+    console.log(parsed);
+    const tokenFromHash = parsed.get("token");
+    console.log(tokenFromHash);
+    setToken(tokenFromHash);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +64,7 @@ const ResetPasswordContent = () => {
       console.error("Reset password error:", error);
       if (error instanceof AxiosError) {
         toast.error(
-          error.response?.data?.message || "Failed to reset password"
+          error.response?.data?.message || "Failed to reset password",
         );
       } else {
         toast.error("An unexpected error occurred");
@@ -209,19 +218,8 @@ const ResetPasswordContent = () => {
   );
 };
 
-// Wrap in Suspense as useSearchParams causes client-side bailouts
 const ResetPasswordForm = () => {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen w-full flex items-center justify-center bg-[#F9FAFB]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1E3A8A]"></div>
-        </div>
-      }
-    >
-      <ResetPasswordContent />
-    </Suspense>
-  );
+  return <ResetPasswordContent />;
 };
 
 export default ResetPasswordForm;

@@ -1,4 +1,4 @@
-import { forbidden, handleError, notFound } from "@/lib/errors";
+import { handleError } from "@/lib/errors";
 import {
   MIN_SEARCH_LENGTH,
   OFFSET,
@@ -6,73 +6,50 @@ import {
 } from "@/lib/constants/pagination";
 import { attendanceSummaryQueries } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
+import { validateHomeroomTeacherSession } from "@/lib/validation/guards";
 
 export async function GET(req: Request) {
   try {
+    const homeroomTeacherSession = await validateHomeroomTeacherSession();
+
     const { searchParams } = new URL(req.url);
 
     const rawParams = Object.fromEntries(searchParams.entries());
 
     const data = attendanceSummaryQueries.parse(rawParams);
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: data.id },
-      select: {
-        id: true,
-        role: true,
-        homeroomClass: true,
-      },
-    });
-
-    if (!teacher) {
-      throw notFound("User not found");
-    }
-
-    if (teacher.role !== "TEACHER") {
-      throw forbidden("You're not allowed to access this resources");
-    }
-
-    if (!teacher.homeroomClass) {
-      throw forbidden("You're not allowed to access this resources");
-    }
-
     let students;
 
+    const classIdSession = homeroomTeacherSession.homeroom?.id;
+
+    const selectData = {
+      name: true,
+      id: true,
+    };
+
     if (data.searchQuery && data.searchQuery?.length > MIN_SEARCH_LENGTH) {
-      students = await prisma.student.findMany({
+      students = await prisma.user.findMany({
         where: {
-          homeroomTeacherId: data.id,
           name: {
             contains: data.searchQuery,
             mode: "insensitive",
           },
-        },
-        select: {
-          name: true,
-          id: true,
-          attendances: {
-            select: {
-              type: true,
-            },
+          studentProfile: {
+            classId: classIdSession,
           },
         },
+        select: selectData,
         skip: data.page * OFFSET,
         take: TAKE_RECORDS,
       });
     } else {
-      students = await prisma.student.findMany({
+      students = await prisma.user.findMany({
         where: {
-          homeroomTeacherId: data.id,
-        },
-        select: {
-          name: true,
-          id: true,
-          attendances: {
-            select: {
-              type: true,
-            },
+          studentProfile: {
+            classId: classIdSession,
           },
         },
+        select: selectData,
         skip: data.page * OFFSET,
         take: TAKE_RECORDS,
         orderBy: {
@@ -81,28 +58,33 @@ export async function GET(req: Request) {
       });
     }
 
-    const studentAttendanceSummaries = await Promise.all(
-      students.map(async (student) => {
-        const data = await prisma.studentAttendance.groupBy({
-          by: ["type"],
-          where: {
-            studentId: student.id,
-          },
-          _count: true,
-        });
+    const studentIds = students.map((student) => student.id);
 
-        return {
-          name: student.name,
-          attendanceSummary: data,
-        };
-      }),
-    );
+    const stats = await prisma.attendance.groupBy({
+      by: ["type", "studentId"],
+      where: {
+        studentId: {
+          in: studentIds,
+        },
+      },
+      _count: true,
+    });
+
+    const studentAttendanceSummaries = students.map((student) => {
+      const summary = stats
+        .filter((s) => s.studentId === student.id)
+        .map((s) => ({ type: s.type, count: s._count }));
+
+      return {
+        id: student.id,
+        name: student.name,
+        attendanceSummary: summary,
+      };
+    });
 
     const totalStudents = await prisma.student.count({
       where: {
-        grade: teacher.homeroomClass.grade,
-        major: teacher.homeroomClass.major,
-        classNumber: teacher.homeroomClass.classNumber,
+        classId: classIdSession,
       },
     });
 
@@ -110,9 +92,9 @@ export async function GET(req: Request) {
       {
         message: "Successfully retrieved students' attendance summary",
         class: {
-          grade: teacher.homeroomClass.grade,
-          major: teacher.homeroomClass.major,
-          classNumber: teacher.homeroomClass.classNumber,
+          grade: homeroomTeacherSession.homeroom?.grade,
+          major: homeroomTeacherSession.homeroom?.major,
+          classNumber: homeroomTeacherSession.homeroom?.section,
         },
         students: studentAttendanceSummaries,
         totalStudents: totalStudents,

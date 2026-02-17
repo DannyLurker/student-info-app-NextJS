@@ -1,11 +1,11 @@
-import { badRequest, forbidden, handleError, notFound } from "@/lib/errors";
+import { badRequest, forbidden, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
 } from "@/lib/constants/attendance";
 import {
-  bulkAttendance,
+  bulkAttendanceSchema,
   studentAttendacesQueries,
 } from "@/lib/utils/zodSchema";
 import {
@@ -18,7 +18,11 @@ import {
   OFFSET,
   TAKE_RECORDS,
 } from "@/lib/constants/pagination";
-import { ClassNumber, Grade, Major } from "@/lib/constants/class";
+import {
+  validateHomeroomTeacherSession,
+  validateSecretarySession,
+} from "@/lib/validation/guards";
+import { AttendanceType } from "@/db/prisma/src/generated/prisma/enums";
 
 /**
  * Validates and normalizes the attendance type.
@@ -42,17 +46,23 @@ function normalizeAttendanceType(type: string): ValidAttendanceType | null {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { recorderId, date, records } = bulkAttendance.parse(body);
+    let secretarySession = null;
+    let homeroomTeacherSession = null;
 
-    // ============================================
-    // VALIDATION 1: Required fields
-    // ============================================
-    if (!recorderId || !date || !Array.isArray(records)) {
-      throw badRequest(
-        "Missing required fields: secretaryId, date, and records array.",
-      );
+    try {
+      secretarySession = await validateSecretarySession();
+    } catch {}
+
+    try {
+      homeroomTeacherSession = await validateHomeroomTeacherSession();
+    } catch {}
+
+    if (!secretarySession && !homeroomTeacherSession) {
+      throw forbidden("You're not allowed to access this");
     }
+
+    const rawData = await req.json();
+    const { date, records } = bulkAttendanceSchema.parse(rawData);
 
     if (records.length === 0) {
       return Response.json(
@@ -61,9 +71,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ============================================
-    // VALIDATION 2: Parse and validate date
-    // ============================================
+    // VALIDATION: Date logic
     const attendanceDate = new Date(date);
     attendanceDate.setHours(0, 0, 0, 0);
 
@@ -76,80 +84,33 @@ export async function POST(req: Request) {
 
     const { start: semesterStart, end: semesterEnd } =
       getSemesterDateRange(today);
-
     if (attendanceDate < semesterStart || attendanceDate > semesterEnd) {
       const semesterNum = getSemester(today);
-      throw badRequest(
-        `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
-      );
+      throw badRequest(`Outside current semester (Semester ${semesterNum}).`);
     }
 
-    // ============================================
-    // VALIDATION 3: Secretary role check
-    // ============================================
-
-    let accessContext: {
-      homeroomTeacherId: string;
-    } | null = null;
-
-    const secretary = await prisma.student.findUnique({
-      where: { id: recorderId },
-      select: { role: true, homeroomTeacherId: true },
-    });
-
-    if (secretary) {
-      if (!secretary) {
-        throw notFound("Secretary not found.");
-      }
-
-      if (secretary.role !== "CLASS_SECRETARY") {
-        throw forbidden("Only class secretaries can record attendance.");
-      }
-
-      accessContext = {
-        homeroomTeacherId: secretary.homeroomTeacherId,
-      };
-    }
-
-    const homeroomTeacher = await prisma.teacher.findUnique({
-      where: {
-        id: recorderId,
-      },
-      select: {
-        role: true,
-        id: true,
-      },
-    });
-
-    if (!accessContext && homeroomTeacher) {
-      if (homeroomTeacher.role !== "TEACHER" || !homeroomTeacher) {
-        throw forbidden("Access denied");
-      }
-
-      accessContext = {
-        homeroomTeacherId: homeroomTeacher.id,
-      };
-    }
-
-    if (!accessContext) {
-      throw forbidden("Access denied");
-    }
-
-    // ============================================
-    // VALIDATION 4: Pre-validate all records before transaction
-    // ============================================
+    // Pre-fetch available students & attendances data (Batching)
     const studentIds = records.map((r) => r.studentId);
-    const uniqueStudentIds = [...new Set(studentIds)];
+    const { startOfDay, endOfDay } = getDayBounds(attendanceDate);
 
-    const existingStudents = await prisma.student.findMany({
-      where: { id: { in: uniqueStudentIds } },
-      select: { id: true, homeroomTeacherId: true },
-    });
+    const [existingStudents, existingAttendances] = await Promise.all([
+      prisma.student.findMany({
+        where: { userId: { in: studentIds } },
+        select: { userId: true, classId: true },
+      }),
+      prisma.attendance.findMany({
+        where: {
+          studentId: { in: studentIds },
+          date: { gte: startOfDay, lte: endOfDay },
+        },
+      }),
+    ]);
 
-    const existingStudentMap = new Map(existingStudents.map((s) => [s.id, s]));
+    const studentMap = new Map(existingStudents.map((s) => [s.userId, s]));
+    const attendanceMap = new Map(
+      existingAttendances.map((a) => [a.studentId, a]),
+    );
 
-    // Validate all students exist and belong to same class
     const validationErrors: string[] = [];
     const normalizedRecords: Array<{
       studentId: string;
@@ -158,50 +119,39 @@ export async function POST(req: Request) {
     }> = [];
 
     for (const record of records) {
-      const student = existingStudentMap.get(record.studentId);
+      const student = studentMap.get(record.studentId);
 
       if (!student) {
         validationErrors.push(`Student ${record.studentId} not found.`);
         continue;
       }
 
-      if (student.homeroomTeacherId !== accessContext.homeroomTeacherId) {
+      if (
+        secretarySession &&
+        student.classId !== secretarySession.classId &&
+        homeroomTeacherSession &&
+        student.classId !== homeroomTeacherSession.homeroom?.id
+      ) {
         validationErrors.push(
           `Student ${record.studentId} is not in your class.`,
         );
         continue;
       }
 
-      try {
-        const normalizedType = normalizeAttendanceType(record.attendanceType);
-        const description =
+      const normalizedType = normalizeAttendanceType(record.attendanceType);
+      normalizedRecords.push({
+        studentId: record.studentId,
+        type: normalizedType,
+        description:
           normalizedType === "ALPHA" || normalizedType === "LATE"
             ? ""
-            : record.description || "";
-
-        normalizedRecords.push({
-          studentId: record.studentId,
-          type: normalizedType,
-          description,
-        });
-      } catch (error: any) {
-        validationErrors.push(
-          `Invalid attendance type for student ${record.studentId}: ${record.attendanceType}`,
-        );
-      }
+            : record.description || "",
+      });
     }
 
-    // If any validation errors, reject the entire batch
     if (validationErrors.length > 0) {
-      throw badRequest(
-        `Validation failed for ${validationErrors.length} record(s): ${validationErrors.join("; ")}`,
-      );
+      throw badRequest(`Validation failed: ${validationErrors.join("; ")}`);
     }
-
-    // ============================================
-    // TRANSACTIONAL BULK OPERATION
-    // ============================================
-    const { startOfDay, endOfDay } = getDayBounds(attendanceDate);
 
     const result = await prisma.$transaction(async (tx) => {
       let created = 0;
@@ -209,42 +159,31 @@ export async function POST(req: Request) {
       let deleted = 0;
 
       for (const record of normalizedRecords) {
-        // Find existing attendance for this student on this date
-        const existing = await tx.studentAttendance.findFirst({
-          where: {
-            studentId: record.studentId,
-            date: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-          },
-        });
+        const existing = attendanceMap.get(record.studentId);
+
+        console.log(existing);
 
         if (record.type === null) {
-          // "present" - delete existing record if any
+          // Present = if there is a record, Delete attendance record
           if (existing) {
-            await tx.studentAttendance.delete({
-              where: { id: existing.id },
-            });
+            await tx.attendance.delete({ where: { id: existing.id } });
             deleted++;
           }
         } else if (existing) {
-          // Update existing record
-          await tx.studentAttendance.update({
+          await tx.attendance.update({
             where: { id: existing.id },
             data: {
-              type: record.type,
-              description: record.description,
+              type: record.type as AttendanceType,
+              note: record.description,
             },
           });
           updated++;
         } else {
-          // Create new record
-          await tx.studentAttendance.create({
+          await tx.attendance.create({
             data: {
               studentId: record.studentId,
-              type: record.type,
-              description: record.description,
+              type: record.type as AttendanceType,
+              note: record.description,
               date: attendanceDate,
             },
           });
@@ -255,109 +194,50 @@ export async function POST(req: Request) {
       return { created, updated, deleted };
     });
 
-    return Response.json(
-      {
-        message: `Bulk attendance saved successfully. Created: ${result.created}, Updated: ${result.updated}, Deleted (marked present): ${result.deleted}`,
-        data: result,
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("API_ERROR", {
-      route: "/api/student/attendance",
-      message: error instanceof Error ? error.message : String(error),
+    return Response.json({
+      message: "Success",
+      data: result,
     });
+  } catch (error) {
+    console.error("API_ERROR", { route: "/api/attendance", error });
     return handleError(error);
   }
 }
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
+    let secretarySession = null;
+    let homeroomTeacherSession = null;
+
+    try {
+      secretarySession = await validateSecretarySession();
+    } catch {}
+
+    try {
+      homeroomTeacherSession = await validateHomeroomTeacherSession();
+    } catch {}
+
+    if (!secretarySession && !homeroomTeacherSession) {
+      throw forbidden("You're not allowed to access this");
+    }
+
+    const { searchParams } = new URL(req.url); // Use standard URL for search params
 
     const rawParams = Object.fromEntries(searchParams.entries());
 
     const data = studentAttendacesQueries.parse(rawParams);
-
-    let accessContext: {
-      classNumber: ClassNumber;
-      grade: Grade;
-      major: Major;
-    } | null = null;
-
-    const secretary = await prisma.student.findUnique({
-      where: { id: data.id },
-      select: {
-        role: true,
-        homeroomTeacherId: true,
-        classNumber: true,
-        major: true,
-        grade: true,
-      },
-    });
-
-    if (secretary) {
-      if (secretary.role !== "CLASS_SECRETARY") {
-        throw forbidden("Access denied");
-      }
-
-      if (secretary.homeroomTeacherId !== data.homeroomTeacherId) {
-        throw forbidden("You can only access your own class");
-      }
-
-      accessContext = {
-        classNumber: secretary.classNumber as ClassNumber,
-        grade: secretary.grade,
-        major: secretary.major,
-      };
-    }
-
-    const homeroomTeacher = await prisma.teacher.findUnique({
-      where: {
-        id: data.id,
-      },
-      select: {
-        role: true,
-        homeroomClass: true,
-      },
-    });
-
-    if (!accessContext && homeroomTeacher) {
-      if (
-        homeroomTeacher.role !== "TEACHER" ||
-        !homeroomTeacher.homeroomClass
-      ) {
-        throw forbidden("Access denied");
-      }
-
-      accessContext = {
-        classNumber: homeroomTeacher.homeroomClass.classNumber as ClassNumber,
-        grade: homeroomTeacher.homeroomClass.grade,
-        major: homeroomTeacher.homeroomClass.major,
-      };
-    }
-
-    if (!accessContext) {
-      throw forbidden("Access denied");
-    }
 
     const targetDate = new Date(data.date);
     const { startOfDay, endOfDay } = getDayBounds(targetDate);
 
     let studentAttendanceRecords;
 
-    if (data.searchQuery && data.searchQuery.length >= MIN_SEARCH_LENGTH) {
-      studentAttendanceRecords = await prisma.student.findMany({
-        where: {
-          name: {
-            contains: data.searchQuery,
-            mode: "insensitive",
-          },
-        },
+    const selectData = {
+      id: true,
+      name: true,
+      studentProfile: {
         select: {
-          id: true,
-          name: true,
-          attendances: {
+          attendance: {
             where: {
               date: {
                 gte: startOfDay,
@@ -367,10 +247,27 @@ export async function GET(req: Request) {
             select: {
               date: true,
               type: true,
-              description: true,
+              note: true,
             },
           },
         },
+      },
+    };
+
+    const classIdSession = secretarySession?.classId
+      ? secretarySession.classId
+      : homeroomTeacherSession?.homeroom?.id;
+
+    if (data.searchQuery && data.searchQuery.length >= MIN_SEARCH_LENGTH) {
+      studentAttendanceRecords = await prisma.user.findMany({
+        where: {
+          name: {
+            contains: data.searchQuery,
+            mode: "insensitive",
+          },
+          role: "STUDENT",
+        },
+        select: selectData,
         skip: data.page * OFFSET,
         take: TAKE_RECORDS,
         orderBy: {
@@ -378,29 +275,13 @@ export async function GET(req: Request) {
         },
       });
     } else if (data.sortBy === "name") {
-      studentAttendanceRecords = await prisma.student.findMany({
+      studentAttendanceRecords = await prisma.user.findMany({
         where: {
-          classNumber: accessContext.classNumber,
-          grade: accessContext.grade,
-          major: accessContext.major,
-        },
-        select: {
-          id: true,
-          name: true,
-          attendances: {
-            where: {
-              date: {
-                gte: startOfDay,
-                lte: endOfDay,
-              },
-            },
-            select: {
-              date: true,
-              type: true,
-              description: true,
-            },
+          studentProfile: {
+            classId: classIdSession,
           },
         },
+        select: selectData,
         skip: data.page * OFFSET,
         take: TAKE_RECORDS,
         orderBy: {
@@ -408,47 +289,28 @@ export async function GET(req: Request) {
         },
       });
     } else {
-      studentAttendanceRecords = await prisma.student.findMany({
+      studentAttendanceRecords = await prisma.user.findMany({
         where: {
-          classNumber: accessContext.classNumber,
-          grade: accessContext.grade,
-          major: accessContext.major,
-        },
-        select: {
-          id: true,
-          name: true,
-          attendances: {
-            where: {
-              date: {
-                gte: startOfDay,
-                lte: endOfDay,
-              },
-            },
-            select: {
-              date: true,
-              type: true,
-              description: true,
-            },
-            orderBy: {
-              type: data.sortOrder === "asc" ? "asc" : "desc",
-            },
+          studentProfile: {
+            classId: classIdSession,
           },
         },
+        select: selectData,
         skip: data.page * OFFSET,
         take: TAKE_RECORDS,
       });
     }
 
-    const totalStudents = await prisma.student.count({
+    const totalStudents = await prisma.user.count({
       where: {
-        classNumber: accessContext.classNumber,
-        grade: accessContext.grade,
-        major: accessContext.major,
+        studentProfile: {
+          classId: classIdSession,
+        },
       },
     });
 
-    // Get attendance stats for the selected date (for Option B: stats from API)
-    const attendanceStats = await prisma.studentAttendance.groupBy({
+    // Get attendance stats for the selected date
+    const attendanceStats = await prisma.attendance.groupBy({
       by: ["type"],
       where: {
         date: {
@@ -456,9 +318,7 @@ export async function GET(req: Request) {
           lte: endOfDay,
         },
         student: {
-          classNumber: accessContext.classNumber,
-          grade: accessContext.grade,
-          major: accessContext.major,
+          classId: classIdSession,
         },
       },
       _count: {
@@ -490,7 +350,7 @@ export async function GET(req: Request) {
     );
   } catch (error) {
     console.error("API_ERROR", {
-      route: "/api/student/attendance",
+      route: "/api/attendance",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);

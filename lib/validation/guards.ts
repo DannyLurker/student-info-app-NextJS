@@ -1,10 +1,13 @@
 import { auth } from "@/lib/auth/authNode";
 import { prisma } from "@/db/prisma";
 import { unauthorized, notFound, forbidden } from "@/lib/errors";
-import { hasManagementAccess } from "@/lib/constants/roles";
+import {
+  hasManagementAccess,
+  isClassSecretaryRole,
+  isTeacherRole,
+} from "@/lib/constants/roles";
 
 export async function validateManagementSession() {
-  // Lebih simpel
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -26,8 +29,104 @@ export async function validateManagementSession() {
     throw notFound("Staff profile not found");
   }
 
-  // Menggunakan nama variabel yang lebih deskriptif untuk hasil pengecekan
   const canAccess = hasManagementAccess(teacherProfile.staffRole);
+
+  if (!canAccess) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return teacherProfile;
+}
+
+export async function validateSecretarySession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const studentProfile = await prisma.student.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      studentRole: true,
+      classId: true,
+      user: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!studentProfile) {
+    throw notFound("Student secretary profile not found");
+  }
+
+  const canAccess = isClassSecretaryRole(studentProfile.studentRole);
+
+  if (!canAccess) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return studentProfile;
+}
+
+export async function validateHomeroomTeacherSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const teacherProfile = await prisma.teacher.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      staffRole: true,
+      homeroom: true,
+      user: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!teacherProfile) {
+    throw notFound("Homeroom teacher profile not found");
+  }
+
+  const canAccess = isTeacherRole(teacherProfile.staffRole);
+
+  const isHomeroomTeacher = !!teacherProfile.homeroom;
+
+  if (!canAccess || !isHomeroomTeacher) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return teacherProfile;
+}
+
+export async function validateTeacherSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const teacherProfile = await prisma.teacher.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      staffRole: true,
+      user: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!teacherProfile) {
+    throw notFound("Teacher profile not found");
+  }
+
+  const canAccess = isTeacherRole(teacherProfile.staffRole);
 
   if (!canAccess) {
     throw forbidden("You're not allowed to access this");

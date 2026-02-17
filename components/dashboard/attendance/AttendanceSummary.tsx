@@ -23,6 +23,9 @@ import axios from "axios";
 import { AttendanceType } from "@/db/prisma/src/generated/prisma/enums";
 import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
 import { SortOrder } from "@/lib/constants/sortingAndFilltering";
+import { useQuery } from "@tanstack/react-query";
+import { ATTENDANCE_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type StudentClient = {
   name: string;
@@ -39,7 +42,7 @@ type StudentServer = {
   attendanceSummary: [
     {
       type: AttendanceType;
-      _count: number;
+      count: number;
     },
   ];
 };
@@ -51,106 +54,85 @@ interface AttendanceSummaryProps {
   setHomeroomClass: ({
     grade,
     major,
-    classNumber,
+    section,
   }: {
     grade: string;
     major: string;
-    classNumber: string;
+    section: string;
   }) => void;
-}
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
 }
 
 const AttendanceSummary = ({
   session,
   setHomeroomClass,
 }: AttendanceSummaryProps) => {
-  const [students, setStudents] = useState<StudentClient[]>([]);
-  const [totalStudents, setTotalStudents] = useState(0);
-
-  const [loading, setIsLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(totalStudents / 10);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const effectiveSearchQuery =
     debouncedSearchQuery.length >= 3 ? debouncedSearchQuery : "";
 
+  const fetchAttendanceSummary = async () => {
+    const response = await axios.get("/api/attendance/summary", {
+      params: {
+        id: session.id,
+        page,
+        sortOrder,
+        effectiveSearchQuery,
+      },
+    });
+    return response.data;
+  };
+
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ATTENDANCE_KEYS.summary({
+      id: session.id,
+      page,
+      sortOrder,
+      effectiveSearchQuery,
+    }),
+    queryFn: fetchAttendanceSummary,
+    placeholderData: (previousData) => previousData,
+  });
+
+  console.log(data);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-
-        const response = await axios.get("/api/attendance/summary", {
-          params: {
-            id: session.id,
-            page,
-            sortOrder,
-            effectiveSearchQuery,
-          },
-        });
-
-        if (response.status === 200) {
-          setHomeroomClass({
-            grade: response.data.class.grade,
-            major: response.data.class.major,
-            classNumber: response.data.class.classNumber,
-          });
-
-          setTotalStudents(response.data.totalStudents);
-
-          const studentListServer = response.data.students;
-
-          const studentListClient: StudentClient[] = [];
-
-          studentListServer.forEach((student: StudentServer) => {
-            const attendanceSummary = {
-              alpha: 0,
-              permission: 0,
-              sick: 0,
-              late: 0,
-            };
-
-            student.attendanceSummary.forEach((attendance) => {
-              const normalizeAttendanceStatus =
-                attendance.type.toLocaleLowerCase() as AttendanceTypeClient;
-
-              attendanceSummary[normalizeAttendanceStatus] = attendance._count;
-            });
-
-            studentListClient.push({ name: student.name, attendanceSummary });
-          });
-
-          setStudents(studentListClient);
-        }
-      } catch (error) {
-        setIsLoading(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [session.id, effectiveSearchQuery, sortOrder, page]);
+    if (data?.class) {
+      setHomeroomClass({
+        grade: data.class.grade,
+        major: data.class.major,
+        section: data.class.classNumber,
+      });
+    }
+  }, [data, setHomeroomClass]);
 
   useEffect(() => {
     setPage(0);
   }, [effectiveSearchQuery, sortOrder]);
+
+  const totalStudents = data?.totalStudents || 0;
+  const totalPages = Math.ceil(totalStudents / 10);
+
+  const students: StudentClient[] =
+    data?.students.map((student: StudentServer) => {
+      const attendanceSummary = {
+        alpha: 0,
+        permission: 0,
+        sick: 0,
+        late: 0,
+      };
+
+      student.attendanceSummary.forEach((attendance) => {
+        const normalizeAttendanceStatus =
+          attendance.type.toLocaleLowerCase() as AttendanceTypeClient;
+
+        attendanceSummary[normalizeAttendanceStatus] = attendance.count;
+      });
+
+      return { name: student.name, attendanceSummary };
+    }) || [];
 
   return (
     <div className="space-y-6 overflow-x-auto p-2">

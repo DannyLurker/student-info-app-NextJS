@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AttendanceManagerSkeleton from "./AttendanceManagerSkeleton";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,10 +25,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { ROLES } from "@/lib/constants/roles";
+import { STUDENT_POSITIONS, STAFF_POSITIONS } from "@/lib/constants/roles";
 import { Session } from "@/lib/types/session";
 import { abbreviateName } from "@/lib/utils/nameFormatter";
 import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
+import { ATTENDANCE_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface Student {
   id: string;
@@ -54,29 +57,9 @@ interface AttendanceManagerProps {
   session: Session;
 }
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
-
 const AttendanceManager = ({ session }: AttendanceManagerProps) => {
   const router = useRouter();
-
-  // Data State
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalStudents, setTotalStudents] = useState(0);
+  const queryClient = useQueryClient();
 
   // Filter/Sort State
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -91,25 +74,10 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     debouncedSearchQuery.length >= 3 ? debouncedSearchQuery : "";
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Attendance State
-  // serverAttendanceMap: records from DB for the CURRENT page
-  const [serverAttendanceMap, setServerAttendanceMap] = useState<
-    Record<string, AttendanceRecord>
-  >({});
-  // unsavedChanges: local edits that persist across pages
+  // Unsaved changes: local edits that persist across pages
   const [unsavedChanges, setUnsavedChanges] = useState<
     Record<string, AttendanceRecord>
   >({});
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stats, setStats] = useState<AttendanceStats>({
-    total: 0,
-    present: 0,
-    sick: 0,
-    permission: 0,
-    alpha: 0,
-    late: 0,
-  });
 
   type SortOption = "name-asc" | "name-desc" | "status";
 
@@ -117,96 +85,105 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
   const isFutureDate =
     new Date(selectedDate) > new Date(new Date().toISOString().split("T")[0]);
   const isValidDate = !isFutureDate;
-  const totalPages = Math.ceil(totalStudents / ITEMS_PER_PAGE);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(0);
   }, [effectiveSearchQuery, sortBy, selectedDate]);
 
-  // Fetch Data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const apiSortBy = sortBy === "status" ? "status" : "name";
-        const apiSortOrder = sortBy === "name-desc" ? "desc" : "asc";
+  // Derived API params
+  const apiSortBy = sortBy === "status" ? "status" : "name";
+  const apiSortOrder = sortBy === "name-desc" ? "desc" : "asc";
 
-        const attendanceRes = await axios.get(`/api/attendance`, {
-          params: {
-            id: session.id,
-            homeroomTeacherId: session.homeroomTeacherId,
-            date: selectedDate,
-            page: currentPage,
-            sortOrder: apiSortOrder,
-            sortBy: apiSortBy,
-            searchQuery: effectiveSearchQuery,
-          },
-        });
+  const fetchAttendance = async () => {
+    const { data } = await axios.get(`/api/attendance`, {
+      params: {
+        homeroomTeacherId: session.homeroomTeacherId,
+        date: selectedDate,
+        page: currentPage,
+        sortOrder: apiSortOrder,
+        sortBy: apiSortBy,
+        searchQuery: effectiveSearchQuery,
+      },
+    });
+    return data.data;
+  };
 
-        console.log(attendanceRes);
+  const { data: attendanceData, isLoading: loading } = useQuery({
+    queryKey: ATTENDANCE_KEYS.list({
+      homeroomTeacherId: session.homeroomTeacherId,
+      date: selectedDate,
+      page: currentPage,
+      sortOrder: apiSortOrder,
+      sortBy: apiSortBy,
+      searchQuery: effectiveSearchQuery,
+    }),
+    queryFn: fetchAttendance,
+    placeholderData: (previousData) => previousData,
+    enabled:
+      session?.role === STUDENT_POSITIONS.CLASS_SECRETARY ||
+      (session.role === STAFF_POSITIONS.TEACHER &&
+        !!session.isHomeroomClassTeacher),
+  });
 
-        const {
-          studentAttendanceRecords,
-          totalStudents: total,
-          stats: apiStats,
-        } = attendanceRes.data.data;
+  const studentList: Student[] =
+    attendanceData?.studentAttendanceRecords.map((record: any) => ({
+      id: record.id,
+      name: record.name,
+    })) || [];
 
-        // Transform to Student list
-        const studentList: Student[] = studentAttendanceRecords.map(
-          (record: any) => ({
-            id: record.id,
-            name: record.name,
-          }),
-        );
-        setStudents(studentList);
-        setTotalStudents(total);
+  const totalStudents = attendanceData?.totalStudents || 0;
+  const totalPages = Math.ceil(totalStudents / ITEMS_PER_PAGE);
 
-        // Build server map
-        const map: Record<string, AttendanceRecord> = {};
-        studentAttendanceRecords.forEach((record: any) => {
-          if (record.attendances && record.attendances.length > 0) {
-            const att = record.attendances[0];
-            map[record.id] = {
-              studentId: record.id,
-              type: att.type,
-              description: att.description || "",
-            };
-          }
-        });
-        setServerAttendanceMap(map);
+  const apiStats = attendanceData?.stats || {
+    sick: 0,
+    permission: 0,
+    alpha: 0,
+    late: 0,
+  };
 
-        // Update stats
-        setStats({
-          total,
-          sick: apiStats.sick,
-          permission: apiStats.permission,
-          alpha: apiStats.alpha,
-          late: apiStats.late,
-          present:
-            total -
-            (apiStats.sick +
-              apiStats.permission +
-              apiStats.alpha +
-              apiStats.late),
-        });
-      } catch (error: any) {
-        console.error(error);
-        toast.error(error.response?.data?.message || "Something went wrong.");
-        setStudents([]);
-        setServerAttendanceMap({});
-      } finally {
-        setLoading(false);
-      }
-    };
+  const stats: AttendanceStats = {
+    total: totalStudents,
+    sick: apiStats.sick,
+    permission: apiStats.permission,
+    alpha: apiStats.alpha,
+    late: apiStats.late,
+    present:
+      totalStudents -
+      (apiStats.sick + apiStats.permission + apiStats.alpha + apiStats.late),
+  };
 
-    if (
-      session?.role === ROLES.CLASS_SECRETARY ||
-      (session.role === ROLES.TEACHER && session.isHomeroomClassTeacher)
-    ) {
-      fetchData();
+  // Build server map for merging
+  const serverAttendanceMap: Record<string, AttendanceRecord> = {};
+  attendanceData?.studentAttendanceRecords.forEach((record: any) => {
+    if (record.attendances && record.attendances.length > 0) {
+      const att = record.attendances[0];
+      serverAttendanceMap[record.id] = {
+        studentId: record.id,
+        type: att.type,
+        description: att.description || "",
+      };
     }
-  }, [session, selectedDate, currentPage, effectiveSearchQuery, sortBy]);
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (records: any[]) => {
+      await axios.post("/api/attendance", {
+        date: selectedDate,
+        records,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Attendance saved successfully");
+      setUnsavedChanges({});
+      queryClient.invalidateQueries({
+        queryKey: ATTENDANCE_KEYS.lists(),
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Something went wrong");
+    },
+  });
 
   const handleAttendanceChange = (
     studentId: string,
@@ -214,7 +191,6 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     value: any,
   ) => {
     setUnsavedChanges((prev) => {
-      // Start with existing unsaved record, or server record, or default
       const serverRecord = serverAttendanceMap[studentId];
       const currentRecord = prev[studentId] ||
         serverRecord || { studentId, type: "PRESENT" };
@@ -243,52 +219,25 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     }
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    const toastId = toast.loading("Saving attendance...");
+  const handleSubmit = () => {
+    const recordsToSave = Object.values(unsavedChanges).map((record) => ({
+      studentId: record.studentId,
+      attendanceType: record.type,
+      description: record.description,
+    }));
 
-    try {
-      // Prepare bulk payload with primarily unsaved changes
-      const recordsToSave = Object.values(unsavedChanges).map((record) => ({
-        studentId: record.studentId,
-        attendanceType: record.type,
-        description: record.description,
-      }));
-
-      if (recordsToSave.length === 0) {
-        toast.success("No changes to save.", { id: toastId });
-        setIsSubmitting(false);
-        return;
-      }
-
-      await axios.post("/api/attendance", {
-        recorderId: session?.id,
-        date: selectedDate,
-        records: recordsToSave,
-      });
-
-      toast.success("Attendance saved successfully", {
-        id: toastId,
-      });
-
-      // Clear unsaved changes and reload data
-      setUnsavedChanges({});
-      // We can reload the page to be safe and refresh everything, or just refetch
-      window.location.reload();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Something went wrong", {
-        id: toastId,
-      });
-    } finally {
-      setIsSubmitting(false);
+    if (recordsToSave.length === 0) {
+      toast.success("No changes to save.");
+      return;
     }
+
+    saveMutation.mutate(recordsToSave);
   };
 
-  // derived count of unsaved changes for UI feedback (optional)
   const unsavedCount = Object.keys(unsavedChanges).length;
+  const isSubmitting = saveMutation.isPending;
 
-  if (loading && students.length === 0) {
-    // Only show skeleton on initial load or if no data
+  if (loading && studentList.length === 0) {
     return <AttendanceManagerSkeleton />;
   }
 
@@ -446,7 +395,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
-                {students.map((student, index) => {
+                {studentList.map((student, index) => {
                   // Merge: Unsaved > Server > Default
                   const unsaved = unsavedChanges[student.id];
                   const server = serverAttendanceMap[student.id];
@@ -555,7 +504,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                     </tr>
                   );
                 })}
-                {students.length === 0 && !loading && (
+                {studentList.length === 0 && !loading && (
                   <tr>
                     <td colSpan={3} className="px-8 py-16">
                       <div className="text-center space-y-3">
@@ -576,7 +525,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
           {/* Mobile Card View */}
           <div className="sm:hidden divide-y divide-[#E5E7EB]">
-            {students.map((student, index) => {
+            {studentList.map((student, index) => {
               const unsaved = unsavedChanges[student.id];
               const server = serverAttendanceMap[student.id];
               const record = unsaved ||
@@ -672,7 +621,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
               );
             })}
 
-            {students.length === 0 && !loading && (
+            {studentList.length === 0 && !loading && (
               <div className="p-8">
                 <div className="text-center space-y-3">
                   <Users className="w-12 h-12 text-gray-300 mx-auto" />

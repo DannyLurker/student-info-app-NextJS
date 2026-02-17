@@ -28,3 +28,12 @@ export const CLASSROOM_KEYS = {
   detail: (id: string) => [...CLASSROOM_KEYS.details(), id] as const,
   listsAll: () => [...CLASSROOM_KEYS.all, "list", "all"] as const,
 };
+
+export const ATTENDANCE_KEYS = {
+  all: ["attendance"] as const,
+  lists: () => [...ATTENDANCE_KEYS.all, "list"] as const,
+  list: (filters: any) => [...ATTENDANCE_KEYS.lists(), { filters }] as const,
+  summaries: () => [...ATTENDANCE_KEYS.all, "summary"] as const,
+  summary: (filters: any) =>
+    [...ATTENDANCE_KEYS.summaries(), { filters }] as const,
+};

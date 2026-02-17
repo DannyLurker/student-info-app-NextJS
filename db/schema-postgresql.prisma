@@ -54,7 +54,7 @@ enum AssessmentType {
 enum AttendanceType {
     PRESENT
     LATE
-    ABSENT
+    ALPHA
     SICK
     PERMISSION
 }
@@ -229,7 +229,7 @@ model AssessmentScore {
     description String?
 
     recordedById String
-    teacher      Teacher @relation(fields: [recordedById], references: [id])
+    teacher      Teacher @relation(fields: [recordedById], references: [userId])
 
     createdAt DateTime @default(now())
 }
@@ -239,7 +239,7 @@ model AssessmentScore {
 model Attendance {
     id        Int     @id @default(autoincrement())
     studentId String
-    student   Student @relation(fields: [studentId], references: [id])
+    student   Student @relation(fields: [studentId], references: [userId])
 
     date DateTime       @default(now()) @db.Date
     type AttendanceType
@@ -251,7 +251,7 @@ model Attendance {
 model DemeritPoint {
     id        Int     @id @default(autoincrement())
     studentId String
-    student   Student @relation(fields: [studentId], references: [id])
+    student   Student @relation(fields: [studentId], references: [userId])
 
     points      Int
     category    InfractionCategory
@@ -259,7 +259,7 @@ model DemeritPoint {
     date        DateTime           @db.Date
 
     recordedById String
-    teacher      Teacher @relation(fields: [recordedById], references: [id])
+    teacher      Teacher @relation(fields: [recordedById], references: [userId])
 }
 
 model VerificationToken {

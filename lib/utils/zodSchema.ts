@@ -146,11 +146,11 @@ const teacherSignUpSchema = z.object({
   assignments: z.array(teachingAssignmentInput).optional(),
 });
 
-const zodForgotPassword = z.object({
+const forgotPasswordSchema = z.object({
   email: z.string().email({ message: "Please input a correct format" }),
 });
 
-const zodResetPassword = z.object({
+const resetPasswordSchema = z.object({
   otp: z.string({ message: "Must be filled" }),
   token: z.string({ message: "Must be filled" }),
   password: z
@@ -163,12 +163,11 @@ const zodResetPassword = z.object({
 
 type StudentSignUpSchema = z.infer<typeof studentSignUpSchema>;
 type TeacherSignUpSchema = z.infer<typeof teacherSignUpSchema>;
-type EmailSchema = z.infer<typeof zodForgotPassword>;
-type ResetPasswordSchema = z.infer<typeof zodResetPassword>;
+type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
 
 // ATTENDANCE
-const bulkAttendance = z.object({
-  recorderId: z.string({ message: "Must be filled" }),
+const bulkAttendanceSchema = z.object({
   date: z.string({ message: "Must be filled" }),
   records: z.array(
     z.object({
@@ -179,10 +178,9 @@ const bulkAttendance = z.object({
   ),
 });
 
-type BulkAttendanceSchema = z.infer<typeof bulkAttendance>;
+type BulkAttendanceSchema = z.infer<typeof bulkAttendanceSchema>;
 
 const studentAttendacesQueries = z.object({
-  id: z.string({ message: "Must be filled" }),
   date: z
     .string({ message: "Must be filled" })
     .default(new Date().toISOString().split("T")[0]),
@@ -196,7 +194,6 @@ const studentAttendacesQueries = z.object({
 type StudentAttendacesQueriesSchema = z.infer<typeof studentAttendacesQueries>;
 
 const attendanceSummaryQueries = z.object({
-  id: z.string({ message: "Must be filled" }),
   page,
   sortOrder: SortOrderEnum,
   searchQuery: z.string().optional(),
@@ -304,11 +301,11 @@ export {
   patchSubjectSchema,
   studentSignUpSchema,
   teacherSignUpSchema,
-  zodForgotPassword,
-  zodResetPassword,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   homeroomClassStudent,
   problemPoint,
-  bulkAttendance,
+  bulkAttendanceSchema,
   studentAttendacesQueries,
   attendanceSummaryQueries,
   queryStudentMarks,
@@ -325,7 +322,7 @@ export {
   type ClassSchema,
   type StudentSignUpSchema,
   type TeacherSignUpSchema,
-  type EmailSchema,
+  type ForgotPasswordSchema,
   type ResetPasswordSchema,
   type HomeroomClassStudentSchema,
   type ProblemPointSchema,

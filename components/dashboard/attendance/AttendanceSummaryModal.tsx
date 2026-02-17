@@ -11,20 +11,14 @@ import { Button } from "@/components/ui/button";
 import { BarChart3 } from "lucide-react";
 import AttendanceSummary from "./AttendanceSummary";
 import { Session } from "@/lib/types/session";
-import {
-  formatClassNumber,
-  GRADE_DISPLAY_MAP,
-  MAJOR_DISPLAY_MAP,
-} from "@/lib/utils/labels";
-import { ClassNumber } from "@/lib/constants/class";
+import { getFullClassLabel } from "@/lib/utils/labels";
+import { ClassSection, Grade, Major } from "@/lib/constants/class";
 
 interface AttendanceSummaryModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   session: Session;
 }
-
-// Mock data for UI demonstration
 
 const AttendanceSummaryModal = ({
   isOpen,
@@ -34,10 +28,14 @@ const AttendanceSummaryModal = ({
   const [homeroomClass, setHomeroomClass] = useState({
     grade: "",
     major: "",
-    classNumber: "",
+    section: "",
   });
 
-  const formattedClass = `${GRADE_DISPLAY_MAP[homeroomClass.grade]} ${MAJOR_DISPLAY_MAP[homeroomClass.major]} ${formatClassNumber(homeroomClass.classNumber as ClassNumber) === "none" ? "" : formatClassNumber(homeroomClass.classNumber as ClassNumber)}`;
+  const classLabel = getFullClassLabel(
+    homeroomClass.grade as Grade,
+    homeroomClass.major as Major,
+    homeroomClass.section as ClassSection,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -45,7 +43,7 @@ const AttendanceSummaryModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <BarChart3 className="w-5 h-5 text-blue-600" />
-            Student Attendance Summary | {formattedClass}
+            Student Attendance Summary | {classLabel}
           </DialogTitle>
         </DialogHeader>
 

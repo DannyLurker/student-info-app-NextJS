@@ -43,7 +43,6 @@ import { Spinner } from "../../ui/spinner";
 import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
-  SUBJECT_DISPLAY_MAP,
 } from "@/lib/utils/labels";
 
 import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
@@ -700,10 +699,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
                                           key={subject.id}
                                           value={subject.subjectName}
                                         >
-                                          {/* Fallback to name if display map fails, though it shouldn't */}
-                                          {SUBJECT_DISPLAY_MAP[
-                                            subject.subjectName
-                                          ] || subject.subjectName}
+                                          {subject.subjectName}
                                         </SelectItem>
                                       ))}
                                     </SelectGroup>

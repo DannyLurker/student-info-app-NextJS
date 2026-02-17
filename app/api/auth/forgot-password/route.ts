@@ -1,5 +1,4 @@
 import { handleError, tooManyRequest } from "@/lib/errors";
-import { zodForgotPassword } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import redis from "@/lib/redis";
 import { sendEmail } from "@/lib/emails/nodeMailer";
@@ -9,12 +8,13 @@ import hashing from "@/lib/utils/hashing";
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { hashResetToken } from "@/lib/utils/hashToken";
+import { forgotPasswordSchema } from "@/lib/utils/zodSchema";
 
 export async function POST(req: Request) {
   try {
     const headersList = headers();
     const body = await req.json();
-    const data = zodForgotPassword.parse(body);
+    const data = forgotPasswordSchema.parse(body);
     const ip =
       (await headersList).get("x-forwarded-for") ||
       (await headersList).get("x-real-ip") ||
@@ -44,38 +44,16 @@ export async function POST(req: Request) {
       );
     }
 
-    let user;
-
-    user = await prisma.student.findUnique({
-      where: { email: data.email },
+    const user = await prisma.user.findUnique({
+      where: {
+        email: data.email,
+      },
       select: {
         id: true,
-        email: true,
         name: true,
+        email: true,
       },
     });
-
-    if (!user) {
-      user = await prisma.teacher.findUnique({
-        where: { email: data.email },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      });
-    }
-
-    if (!user) {
-      user = await prisma.parent.findUnique({
-        where: { email: data.email },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      });
-    }
 
     if (!user) {
       return Response.json(
