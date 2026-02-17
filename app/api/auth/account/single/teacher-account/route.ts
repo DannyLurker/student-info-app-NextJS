@@ -1,4 +1,9 @@
-import { badRequest, handleError, internalServerError } from "@/lib/errors";
+import {
+  badRequest,
+  handleError,
+  internalServerError,
+  notFound,
+} from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
@@ -133,9 +138,9 @@ export async function POST(req: Request) {
           skipDuplicates: true,
         });
 
-      // Handle homeroom class, I don't know will I change it or not, because in the future I might make a feature that can create class idenpedenlty without using teacher account
+      // Handle homeroom
       if (data.homeroomClass?.grade && data.homeroomClass.major) {
-        const existingHomeroomClass = await tx.classroom.findUnique({
+        const classroom = await tx.classroom.findUnique({
           where: {
             grade_major_section: {
               grade: data.homeroomClass.grade,
@@ -145,7 +150,11 @@ export async function POST(req: Request) {
           },
         });
 
-        if (existingHomeroomClass) {
+        if (!classroom) {
+          throw notFound("Classroom not found");
+        }
+
+        if (classroom.homeroomTeacherId) {
           const classLabel = getFullClassLabel(
             data.homeroomClass.grade,
             data.homeroomClass.major,
@@ -153,15 +162,15 @@ export async function POST(req: Request) {
           );
 
           throw badRequest(
-            `There is already a homeroom teacher in ${classLabel}`,
+            `${classLabel} already has a homeroom teacher assigned. `,
           );
         }
 
-        await tx.classroom.create({
+        await tx.classroom.update({
+          where: {
+            id: classroom.id,
+          },
           data: {
-            grade: data.homeroomClass.grade,
-            major: data.homeroomClass.major,
-            section: data.homeroomClass.section,
             homeroomTeacherId: teacher.id,
           },
         });

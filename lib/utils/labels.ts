@@ -1,36 +1,4 @@
-import { ClassSection, Grade, Major } from "../constants/class";
-
-export const SUBJECT_DISPLAY_MAP: Record<string, string> = {
-  fundamentals_of_fluency_swe: "Fundamentals of Fluency SWE",
-  fundamentals_of_fluency_accounting: "Fundamentals of Fluency Accounting",
-  english: "English",
-  civic_education: "Civic Education",
-  math: "Mathematics",
-  religion: "Religion",
-  physical_education: "Physical Education",
-  information_technology: "Information Technology",
-  indonesian: "Indonesian",
-  art: "Art",
-  conversation: "Conversation",
-  history: "History",
-  fundamentals_of_science_and_social: "Fundamentals of Science & Social",
-  mandarin: "Mandarin",
-  ap: "Accounting Principles",
-  creative_entrepreneurial_products_swe:
-    "Creative Entrepreneurial Products SWE",
-  creative_entrepreneurial_products_accounting:
-    "Creative Entrepreneurial Products Accounting",
-  pal: "PAL",
-  computerized_accounting: "Computerized Accounting",
-  financial_accounting: "Financial Accounting",
-  banking: "Banking",
-  microsoft: "Microsoft Office",
-  taxation: "Taxation",
-  web: "Web Development",
-  database: "Database",
-  oop: "Object Oriented Programming",
-  mobile: "Mobile Development",
-};
+import { CLASS_SECTION, ClassSection, Grade, Major } from "../constants/class";
 
 export const GRADE_DISPLAY_MAP: Record<string, string> = {
   TENTH: "Grade 10",
@@ -41,6 +9,12 @@ export const GRADE_DISPLAY_MAP: Record<string, string> = {
 export const MAJOR_DISPLAY_MAP: Record<string, string> = {
   SOFTWARE_ENGINEERING: "Software Engineering",
   ACCOUNTING: "Accounting",
+};
+
+export const SECTION_DISPLAY_MAP: Record<string, string> = {
+  none: "",
+  1: "1",
+  2: "2",
 };
 
 export const STUDENT_ROLES_MAP: Record<string, string> = {
@@ -63,7 +37,11 @@ export function getGradeNumber(grade: Grade): string {
   }
 }
 
-export function formatClassNumber(classSection: ClassSection): string {
+export function formatClassSection(classSection: ClassSection): string {
+  if (!CLASS_SECTION.includes(classSection)) {
+    return `${classSection} (Class section format is wrong. Please use: none, 1, or 2)`;
+  }
+
   return classSection === "none" ? "" : classSection;
 }
 
@@ -72,5 +50,5 @@ export function getFullClassLabel(
   major: Major,
   classSection: ClassSection,
 ) {
-  return `${getGradeNumber(grade)}-${getMajorDisplayName(major)} ${formatClassNumber(classSection)}`;
+  return `${getGradeNumber(grade)}-${getMajorDisplayName(major)} ${formatClassSection(classSection)}`;
 }

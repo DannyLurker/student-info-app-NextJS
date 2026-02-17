@@ -92,7 +92,7 @@ interface TeachingAssignment {
   subjectName: string;
   grade: string;
   major: string;
-  classNumber: string;
+  section: string;
 }
 
 interface TeacherFormModalProps {
@@ -118,7 +118,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
   const [homeroomClass, setHomeroomClass] = useState({
     grade: "",
     major: "",
-    classNumber: "",
+    section: "",
   });
 
   // Teaching Assignments - multiple
@@ -192,7 +192,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
     onError: async (err: any) => {
       const message = await getErrorMessage(err);
       setErrorMessage(message);
-      toast.error(message);
+      toast.error("Something went wrong. Read the message above");
       setUploadedFile("");
       if (fileRef.current) fileRef.current.value = "";
     },
@@ -200,7 +200,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
   const resetForm = () => {
     setData({ username: "", email: "", password: "", confirmPassword: "" });
-    setHomeroomClass({ grade: "", major: "", classNumber: "" });
+    setHomeroomClass({ grade: "", major: "", section: "" });
 
     setTeachingAssignments([]);
     setErrorMessage("");
@@ -218,7 +218,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
   }, [open]);
 
   const clearHomeroomClass = () => {
-    setHomeroomClass({ grade: "", major: "", classNumber: "" });
+    setHomeroomClass({ grade: "", major: "", section: "" });
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -229,7 +229,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
   const addTeachingAssignment = () => {
     setTeachingAssignments([
       ...teachingAssignments,
-      { subjectName: "", grade: "", major: "", classNumber: "" },
+      { subjectName: "", grade: "", major: "", section: "" },
     ]);
   };
 
@@ -258,7 +258,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
     // Check incomplete assignments
     const completeAssignmentsState = teachingAssignments.filter(
-      (ta) => ta.subjectName && ta.grade && ta.major && ta.classNumber,
+      (ta) => ta.subjectName && ta.grade && ta.major && ta.section,
     );
 
     if (completeAssignmentsState.length !== teachingAssignments.length) {
@@ -296,7 +296,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
           subjectName: curr.subjectName,
           grade: curr.grade as any,
           major: curr.major as any,
-          section: curr.classNumber as any,
+          section: curr.section as any,
         });
 
         return acc;
@@ -606,9 +606,9 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
                   <Select
                     onValueChange={(v) =>
-                      setHomeroomClass({ ...homeroomClass, classNumber: v })
+                      setHomeroomClass({ ...homeroomClass, section: v })
                     }
-                    value={homeroomClass.classNumber}
+                    value={homeroomClass.section}
                     disabled={isLoading}
                   >
                     <SelectTrigger className="h-11">
@@ -753,13 +753,9 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
 
                             <Select
                               onValueChange={(v) =>
-                                updateTeachingAssignment(
-                                  index,
-                                  "classNumber",
-                                  v,
-                                )
+                                updateTeachingAssignment(index, "section", v)
                               }
-                              value={ta.classNumber}
+                              value={ta.section}
                               disabled={isLoading}
                             >
                               <SelectTrigger className="h-11 bg-white">

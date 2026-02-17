@@ -78,8 +78,8 @@ const ManageSubjectForm = () => {
     page: 0,
     sortOrder: "asc",
     subjectName: "",
+    getAll: false,
   });
-
   useEffect(() => {
     setCurrentPage(0);
   }, [effectiveSearchQuery, sortBy]);

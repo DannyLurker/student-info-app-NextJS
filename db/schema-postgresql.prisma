@@ -151,8 +151,8 @@ model Student {
 
     studentRole StudentRole @default(STUDENT)
 
-    classId Int
-    class   Classroom @relation(fields: [classId], references: [id])
+    classId Int?
+    class   Classroom? @relation(fields: [classId], references: [id], onDelete: SetNull)
 
     attendance Attendance[]
     demerits   DemeritPoint[]

@@ -11,10 +11,20 @@ export const SUBJECT_KEYS = {
 };
 
 export const TEACHER_KEYS = {
-  all: ["teacher"] as const,
+  all: ["teachers"] as const,
   lists: () => [...TEACHER_KEYS.all, "list"] as const,
   list: (filters: any) => [...TEACHER_KEYS.lists(), { filters }] as const,
   details: () => [...TEACHER_KEYS.all, "detail"] as const,
   detail: (id: string) => [...TEACHER_KEYS.details(), id] as const,
   listsAll: () => [...TEACHER_KEYS.all, "list", "all"] as const,
+};
+
+export const CLASSROOM_KEYS = {
+  all: ["classrooms"] as const,
+  nonHomeroom: () => [...CLASSROOM_KEYS.all, "nonHomeroom"] as const,
+  lists: () => [...CLASSROOM_KEYS.all, "list"] as const,
+  list: (filters: any) => [...CLASSROOM_KEYS.lists(), { filters }] as const,
+  details: () => [...CLASSROOM_KEYS.all, "detail"] as const,
+  detail: (id: string) => [...CLASSROOM_KEYS.details(), id] as const,
+  listsAll: () => [...CLASSROOM_KEYS.all, "list", "all"] as const,
 };

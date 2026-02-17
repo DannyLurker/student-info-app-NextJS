@@ -3,13 +3,26 @@ import { ClassSection, Grade, Major } from "@/lib/constants/class";
 import { badRequest, handleError } from "@/lib/errors";
 import { getFullClassLabel } from "@/lib/utils/labels";
 import { createClassSchema, updateClassSchema } from "@/lib/utils/zodSchema";
+import { compareClassAtributes } from "@/lib/validation/classroomValidators";
 import { validateManagementSession } from "@/lib/validation/guards";
 
 export async function GET(req: Request) {
   try {
     validateManagementSession();
 
-    const classroomData = await prisma.classroom.findMany({});
+    const classroomData = await prisma.classroom.findMany({
+      include: {
+        homeroomTeacher: {
+          select: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     return Response.json(
       {
@@ -70,62 +83,6 @@ export async function POST(req: Request) {
     });
     return handleError(error);
   }
-}
-
-type classServer = {
-  id: number;
-  grade: Grade;
-  major: Major;
-  section: string | ClassSection;
-  homeroomTeacherId: string | null;
-};
-
-type classClient = {
-  id: number;
-  classSchema: {
-    grade: Grade;
-    major: Major;
-    section: ClassSection;
-  };
-  homeroomTeacherId?: string;
-};
-
-function compareClassAtributes(
-  classServer: classServer,
-  classClient: classClient,
-) {
-  const changedData: any = {};
-
-  const isGradeChanged = classServer.grade !== classClient.classSchema.grade;
-
-  if (isGradeChanged) changedData.grade = classClient.classSchema.grade;
-
-  const isMajorChanged = classServer.major !== classClient.classSchema.major;
-
-  if (isMajorChanged) changedData.major = classClient.classSchema.major;
-
-  const isClassSectionChanged =
-    classServer.section !== classClient.classSchema.section;
-
-  if (isClassSectionChanged)
-    changedData.section = classClient.classSchema.section;
-
-  const isTeacherIdChanged =
-    classServer.homeroomTeacherId !== classClient.homeroomTeacherId;
-
-  if (isTeacherIdChanged)
-    changedData.homeroomTeacherId =
-      classClient.homeroomTeacherId == ""
-        ? null
-        : classClient.homeroomTeacherId;
-
-  const hasChanged =
-    isGradeChanged ||
-    isMajorChanged ||
-    isClassSectionChanged ||
-    isTeacherIdChanged;
-
-  return { hasChanged, changedData };
 }
 
 export async function PATCH(req: Request) {

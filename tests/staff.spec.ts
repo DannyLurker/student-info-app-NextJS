@@ -26,7 +26,7 @@ test.describe("Account Creation", () => {
           classSchema: {
             grade: "ELEVENTH",
             major: "SOFTWARE_ENGINEERING",
-            classNumber: "none",
+            section: "none",
           },
         },
       },
@@ -54,7 +54,7 @@ test.describe("Subject CRUD feature (Success)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],
@@ -74,7 +74,7 @@ test.describe("Subject CRUD feature (Success)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],
@@ -101,7 +101,7 @@ test.describe("Subject CRUD feature (Success)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],
@@ -114,7 +114,7 @@ test.describe("Subject CRUD feature (Success)", () => {
         subjectNames: "PAL",
         subjectConfig: {
           major: ["ACCOUNTING"],
-          subjectType: "MAJOR",
+          type: "MAJOR",
         },
       },
     });
@@ -132,7 +132,7 @@ test.describe("Subject CRUD feature (Success)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],
@@ -160,7 +160,7 @@ test.describe("Subject CRUD feature (Fail)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],
@@ -177,7 +177,7 @@ test.describe("Subject CRUD feature (Fail)", () => {
             subjectConfig: {
               grade: ["ELEVENTH", "TWELFTH"],
               major: ["SOFTWARE_ENGINEERING"],
-              subjectType: "MAJOR",
+              type: "MAJOR",
             },
           },
         ],

@@ -13,6 +13,7 @@ import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateManagementSession } from "@/lib/validation/guards";
 import {
   ClassroomCreateManyInput,
+  ClassroomUpdateManyArgs,
   TeacherCreateManyInput,
   TeachingAssignmentCreateManyInput,
   UserCreateManyInput,
@@ -64,7 +65,10 @@ export async function POST(req: Request) {
     ]);
     const existingEmailSet = new Set(existingUsers.map((u) => u.email));
     const classroomMap = new Map(
-      allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
+      allClassrooms.map((c) => [
+        `${c.grade}-${c.major}-${c.section}`,
+        { id: c.id, homeroomTeacherId: c.homeroomTeacherId },
+      ]),
     );
     const subjectMap = new Map(
       allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }]),
@@ -76,7 +80,10 @@ export async function POST(req: Request) {
     const usersToCreate: UserCreateManyInput[] = [];
     const teacherProfilesToCreate: TeacherCreateManyInput[] = [];
     const teachingAssignmentsToCreate: TeachingAssignmentCreateManyInput[] = [];
-    const classroomsToCreate: ClassroomCreateManyInput[] = [];
+    const classroomsToUpdate: {
+      where: { id: number };
+      data: { homeroomTeacherId: string };
+    }[] = [];
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -120,17 +127,34 @@ export async function POST(req: Request) {
           `${row.homeroomGrade}-${row.homeroomMajor}-${row.homeroomClassSection}`,
         );
 
-        if (existingClassroom) {
+        const classLabel = getFullClassLabel(
+          row.homeroomGrade,
+          row.homeroomMajor,
+          row.homeroomClassSection,
+        );
+
+        if (!existingClassroom) {
+          throw badRequest(`Row ${rowNumber}: ${classLabel} not found`);
+        }
+
+        const { id, homeroomTeacherId } = existingClassroom;
+
+        console.log(id, homeroomTeacherId);
+        if (homeroomTeacherId) {
           throw badRequest(
-            `Row ${rowNumber}: Homeroom class already has a teacher`,
+            `Row ${rowNumber}: ${classLabel} already has a homeroom teacher`,
           );
         }
 
-        classroomsToCreate.push({
-          grade: row.homeroomGrade,
-          major: row.homeroomMajor,
-          section: row.homeroomClassSection,
-          homeroomTeacherId: teacherUserId,
+        console.log(row.homeroomClassSection);
+
+        classroomsToUpdate.push({
+          where: {
+            id: id,
+          },
+          data: {
+            homeroomTeacherId: teacherUserId,
+          },
         });
       }
 
@@ -207,6 +231,8 @@ export async function POST(req: Request) {
             throw badRequest(`Row ${i + 1}: ${classLabel} not found`);
           }
 
+          const { id, homeroomTeacherId } = classroom;
+
           // From DB
           const subjectMapData = subjectMap.get(subjectName);
 
@@ -230,14 +256,30 @@ export async function POST(req: Request) {
             subjectId: subjectId,
             teacherId: teacherUserId,
             academicYear,
-            classId: classroom,
+            classId: id,
           });
         });
       }
     }
 
     // Process each teacher
-    await prisma.$transaction(async (tx) => {});
+    await prisma.$transaction(async (tx) => {
+      await tx.user.createMany({ data: usersToCreate });
+      await tx.teacher.createMany({ data: teacherProfilesToCreate });
+      if (classroomsToUpdate.length > 0) {
+        await Promise.all(
+          classroomsToUpdate.map((item) =>
+            tx.classroom.update({
+              where: item.where,
+              data: item.data,
+            }),
+          ),
+        );
+      }
+      await tx.teachingAssignment.createMany({
+        data: teachingAssignmentsToCreate,
+      });
+    });
 
     return Response.json(
       {

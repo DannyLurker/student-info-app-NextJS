@@ -1,4 +1,4 @@
-import { test as setup, expect } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 import { STAFF_STATE, STUDENT_STATE } from "./auth.constants";
 
 setup("authentication as staff", async ({ page }) => {
