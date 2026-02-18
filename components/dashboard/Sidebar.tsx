@@ -86,9 +86,9 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             label: "Student Assignment",
           },
           {
-            href: "/dashboard/problem-point",
+            href: "/dashboard/demerit-point",
             icon: BookX,
-            label: "Problem Point",
+            label: "Demerit Point",
           },
         ];
 
@@ -127,9 +127,9 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             label: "Export Students",
           },
           {
-            href: "/dashboard/problem-point",
+            href: "/dashboard/demerit-point",
             icon: BookX,
-            label: "Problem Point",
+            label: "Demerit Point",
           },
 
           ...commonItems,

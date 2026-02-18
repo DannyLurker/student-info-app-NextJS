@@ -7,31 +7,28 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import ProblemPointManagement from "./ProblemPointManagement";
-import { Session } from "@/lib/types/session";
+import DemeritPointManagement from "./DemeritPointManagement";
 
-interface ManageProblemPointModalProps {
+interface ManageDemeritPointModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  session: Session;
 }
 
-export default function ManageProblemPointModal({
+export default function ManageDemeritPointModal({
   open,
   onOpenChange,
-  session,
-}: ManageProblemPointModalProps) {
+}: ManageDemeritPointModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Manage Problem Points</DialogTitle>
+          <DialogTitle>Manage Demerit Points</DialogTitle>
           <DialogDescription>
-            View, update, or delete existing problem point records.
+            View, update, or delete existing demerit point records.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
-          <ProblemPointManagement session={session} />
+          <DemeritPointManagement />
         </div>
       </DialogContent>
     </Dialog>

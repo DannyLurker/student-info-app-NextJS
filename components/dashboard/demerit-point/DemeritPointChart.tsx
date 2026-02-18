@@ -9,7 +9,7 @@ import {
     Tooltip,
 } from "recharts";
 
-interface ProblemPointChartProps {
+interface DemeritPointChartProps {
     data: {
         name: string;
         value: number;
@@ -17,11 +17,11 @@ interface ProblemPointChartProps {
     }[];
 }
 
-export const ProblemPointChart = ({ data }: ProblemPointChartProps) => {
+export const DemeritPointChart = ({ data }: DemeritPointChartProps) => {
     if (data.every((d) => d.value === 0)) {
         return (
             <div className="flex h-[300px] items-center justify-center text-gray-400 text-sm">
-                No problem points recorded.
+                No demerit points recorded.
             </div>
         );
     }

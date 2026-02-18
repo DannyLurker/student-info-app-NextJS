@@ -1,17 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,38 +17,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-import { GRADES, MAJORS, CLASSNUMBERS } from "@/lib/constants/class";
-import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
-import { BadgeAlert, Clock, AlertTriangle, Trash2, Pencil } from "lucide-react";
-import ProblemPointForm from "../create/ProblemPointForm";
-import { Session } from "@/lib/types/session";
+import {
+  BadgeAlert,
+  Clock,
+  AlertTriangle,
+  Trash2,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import DemeritPointForm from "../create/DemeritPointForm";
+import { DEMERIT_POINT_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { abbreviateName } from "@/lib/utils/nameFormatter";
 
 const CATEGORY_COLORS: Record<string, string> = {
   LATE: "bg-orange-100 text-orange-700",
-  INCOMPLETE_ATTRIBUTES: "bg-gray-100 text-gray-700",
+  UNIFORM: "bg-gray-100 text-gray-700",
   DISCIPLINE: "bg-red-100 text-red-700",
   ACADEMIC: "bg-blue-100 text-blue-700",
   SOCIAL: "bg-green-100 text-green-700",
   OTHER: "bg-purple-100 text-purple-700",
 };
 
-interface ProblemPointManagementProps {
-  session: Session;
-}
+export default function DemeritPointManagement() {
+  const queryClient = useQueryClient();
 
-export default function ProblemPointManagement({
-  session,
-}: ProblemPointManagementProps) {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any[]>([]);
-
-  // Filters
-  const [filters, setFilters] = useState({
-    grade: "",
-    major: "",
-    classNumber: "",
-  });
+  // Pagination
+  const [page, setPage] = useState(0);
 
   // Edit Mode
   const [editItem, setEditItem] = useState<any | null>(null);
@@ -61,67 +51,63 @@ export default function ProblemPointManagement({
   // Delete Confirmation
   const [deleteItem, setDeleteItem] = useState<any | null>(null);
 
-  const isClassSelected = filters.grade && filters.major && filters.classNumber;
-
-  const fetchData = async () => {
-    if (!isClassSelected) return;
-
-    setLoading(true);
-    try {
-      const res = await axios.get("/api/problem-point", {
-        params: {
-          grade: filters.grade,
-          major: filters.major,
-          classNumber: filters.classNumber,
-          recordedBy: session.id,
-        },
+  // Fetch demerit points with useQuery
+  const { data: responseData, isLoading: loading } = useQuery({
+    queryKey: DEMERIT_POINT_KEYS.list({
+      page,
+    }),
+    queryFn: async () => {
+      const res = await axios.get("/api/demerit-point", {
+        params: { page },
       });
-      setData(res.data.data || []);
-      console.log(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch problem points");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    placeholderData: (previousData) => previousData,
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [filters, isClassSelected]);
+  const data = responseData?.data || [];
+  const totalRecords = responseData?.totalRecords || 0;
+  const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
 
-  const handleDelete = async () => {
-    if (!deleteItem) return;
-
-    try {
-      await axios.delete("/api/problem-point", {
-        params: { problemPointId: deleteItem.id, teacherId: session.id },
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await axios.delete("/api/demerit-point", {
+        params: { demeritRecordId: id },
       });
+    },
+    onSuccess: () => {
       toast.success("Record deleted successfully");
       setDeleteItem(null);
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({
+        queryKey: DEMERIT_POINT_KEYS.lists(),
+      });
+    },
+    onError: (error) => {
       console.error(error);
       toast.error("Failed to delete record");
-    }
+    },
+  });
+
+  const handleDelete = () => {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   };
 
   if (editItem) {
     return (
       <div className="p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold">Edit Problem Point</h3>
+          <h3 className="text-lg font-bold">Edit Demerit Point</h3>
           <Button variant="ghost" onClick={() => setEditItem(null)}>
             Back to List
           </Button>
         </div>
-        <ProblemPointForm
-          session={session}
+        <DemeritPointForm
           mode="edit"
           initialData={editItem}
           onSuccess={() => {
             setEditItem(null);
-            fetchData();
           }}
           onCancel={() => setEditItem(null)}
         />
@@ -130,81 +116,21 @@ export default function ProblemPointManagement({
   }
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-xl border shadow-sm">
-        <h3 className="text-sm font-medium mb-3 text-gray-500 uppercase tracking-wider">
-          Filter by Class
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Select
-            value={filters.grade}
-            onValueChange={(val) => setFilters({ ...filters, grade: val })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Grade" />
-            </SelectTrigger>
-            <SelectContent>
-              {GRADES.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {GRADE_DISPLAY_MAP[g]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filters.major}
-            onValueChange={(val) => setFilters({ ...filters, major: val })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Major" />
-            </SelectTrigger>
-            <SelectContent>
-              {MAJORS.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {MAJOR_DISPLAY_MAP[m]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filters.classNumber}
-            onValueChange={(val) =>
-              setFilters({ ...filters, classNumber: val })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Class Number" />
-            </SelectTrigger>
-            <SelectContent>
-              {CLASSNUMBERS.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c === "none" ? "None" : c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
+    <div className="p-4">
       {/* List */}
       <div className="bg-white min-h-[400px] rounded-xl border shadow-sm p-6">
-        {!isClassSelected ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <p>Select a class to view problem points</p>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex justify-center items-center h-full">
             <Spinner />
           </div>
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <AlertTriangle className="w-12 h-12 mb-2 opacity-20" />
-            <p>No problem points found for this class</p>
+            <p>No demerit points found for this class</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {data.map((item) => (
+            {data.map((item: any) => (
               <div
                 key={item.id}
                 className="flex flex-col md:flex-row gap-4 p-4 bg-white border rounded-lg hover:shadow-sm transition-shadow"
@@ -219,9 +145,7 @@ export default function ProblemPointManagement({
                 {/* Content */}
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <h4 className="font-semibold text-gray-800">
-                    {item.student.name.split(" ").length > 0
-                      ? `${item.student.name.split(" ")[0]} ${item.student.name.split(" ")[1]?.[0] ?? ""}`
-                      : item.student.name}
+                    {abbreviateName(item.student.user.name)}
                   </h4>
 
                   <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -243,7 +167,7 @@ export default function ProblemPointManagement({
                 {/* Right actions */}
                 <div className="flex flex-col justify-between items-end">
                   <span className="text-red-600 font-bold bg-red-50 px-2 py-1 rounded text-sm">
-                    {item.point} pts
+                    {item.points} pts
                   </span>
 
                   <div className="flex gap-2 mt-2">
@@ -269,6 +193,44 @@ export default function ProblemPointManagement({
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t">
+            <p className="text-sm text-gray-600">
+              Showing {page * ITEMS_PER_PAGE + 1} to{" "}
+              {Math.min((page + 1) * ITEMS_PER_PAGE, totalRecords)} of{" "}
+              {totalRecords} records
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                disabled={page === 0 || loading}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <span className="text-sm font-medium text-gray-700 px-3">
+                Page {page + 1} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((prev) => Math.min(totalPages - 1, prev + 1))
+                }
+                disabled={page >= totalPages - 1 || loading}
+                className="flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Alert */}
@@ -281,7 +243,7 @@ export default function ProblemPointManagement({
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              problem point record for{" "}
+              demerit point record for{" "}
               <span className="font-bold">{deleteItem?.student?.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>

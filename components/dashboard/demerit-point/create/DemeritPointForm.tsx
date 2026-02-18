@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,12 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-
-import { GRADES, MAJORS, CLASSNUMBERS } from "@/lib/constants/class";
+import { GRADES, MAJORS, CLASS_SECTION } from "@/lib/constants/class";
 import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
-
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
-import { Session } from "@/lib/types/session";
+import { DEMERIT_POINT_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 
 interface Student {
   id: string;
@@ -29,7 +29,7 @@ const ITEMS_PER_PAGE = 10;
 
 const CATEGORIES = [
   "LATE",
-  "INCOMPLETE_ATTRIBUTES",
+  "UNIFORM",
   "DISCIPLINE",
   "ACADEMIC",
   "SOCIAL",
@@ -38,41 +38,39 @@ const CATEGORIES = [
 
 const CATEGORY_LABELS: Record<string, string> = {
   LATE: "Late",
-  INCOMPLETE_ATTRIBUTES: "Incomplete Attributes",
+  UNIFORM: "Uniform",
   DISCIPLINE: "Discipline",
   ACADEMIC: "Academic",
   SOCIAL: "Social",
   OTHER: "Other",
 };
 
-interface ProblemPointFormProps {
-  session: Session;
+interface DemeritPointFormProps {
   mode?: "create" | "edit";
   initialData?: any;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function ProblemPointForm({
-  session,
+export default function DemeritPointForm({
   mode = "create",
   initialData,
   onSuccess,
   onCancel,
-}: ProblemPointFormProps) {
-  const [loading, setLoading] = useState(false);
-  // ... other states
+}: DemeritPointFormProps) {
+  const queryClient = useQueryClient();
 
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Class Selection State
   const [selectedClass, setSelectedClass] = useState({
     grade: "",
     major: "",
-    classNumber: "",
+    section: "",
   });
 
   // Form State
@@ -85,7 +83,7 @@ export default function ProblemPointForm({
   });
 
   const isClassSelected =
-    selectedClass.grade && selectedClass.major && selectedClass.classNumber;
+    selectedClass.grade && selectedClass.major && selectedClass.section;
 
   const totalPages = Math.ceil(totalStudents / ITEMS_PER_PAGE);
 
@@ -102,18 +100,19 @@ export default function ProblemPointForm({
       }
 
       try {
-        const { grade, major, classNumber } = selectedClass;
+        const { grade, major, section } = selectedClass;
         const res = await axios.get(`/api/student`, {
           params: {
             grade,
             major,
-            classNumber,
+            section,
             page: currentPage,
           },
         });
-        console.log(res.data);
         if (res.data) {
-          setStudents(res.data.data.students || []);
+          setStudents(
+            res.data.data.students.map((s: { user: Student }) => s.user) || [],
+          );
           setTotalStudents(res.data.totalStudents || 0);
         }
       } catch (error) {
@@ -129,7 +128,7 @@ export default function ProblemPointForm({
   }, [
     selectedClass.grade,
     selectedClass.major,
-    selectedClass.classNumber,
+    selectedClass.section,
     isClassSelected,
     currentPage,
   ]);
@@ -153,9 +152,8 @@ export default function ProblemPointForm({
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
-        category:
-          initialData.problemPointCategory || initialData.category || "",
-        point: String(initialData.point || ""),
+        category: initialData.category || "",
+        point: String(initialData.points ?? initialData.point ?? ""),
         description: initialData.description || "",
         date: initialData.date
           ? new Date(initialData.date).toISOString().split("T")[0]
@@ -164,8 +162,68 @@ export default function ProblemPointForm({
     }
   }, [mode, initialData]);
 
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async (payload: {
+      studentsId: string[];
+      demeritCategory: string;
+      points: number;
+      description: string;
+      date: string;
+    }) => {
+      return axios.post("/api/demerit-point", payload);
+    },
+    onSuccess: async () => {
+      toast.success("Demerit points recorded successfully");
+      await queryClient.invalidateQueries({
+        queryKey: DEMERIT_POINT_KEYS.lists(),
+      });
+      setFormData({
+        category: "",
+        point: "",
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+      });
+      setSelectedStudentIds([]);
+    },
+    onError: async (error: any) => {
+      const transformedErrorMessage = await getErrorMessage(error);
+      setErrorMessage(transformedErrorMessage);
+      toast.error("Something went wrong. Read the message");
+    },
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (payload: {
+      demeritRecordId: number;
+      demeritCategory: string;
+      points: number;
+      description: string;
+      date: string;
+    }) => {
+      return axios.patch("/api/demerit-point", payload);
+    },
+    onSuccess: async () => {
+      toast.success("Demerit point updated successfully");
+      await queryClient.invalidateQueries({
+        queryKey: DEMERIT_POINT_KEYS.lists(),
+      });
+      if (onSuccess) onSuccess();
+    },
+    onError: async (error: any) => {
+      const transformedErrorMessage = await getErrorMessage(error);
+      setErrorMessage(transformedErrorMessage);
+      toast.error("Something went wrong. Read the message");
+    },
+  });
+
+  const loading = createMutation.isPending || updateMutation.isPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    setErrorMessage("");
 
     if (mode === "create" && selectedStudentIds.length === 0) {
       toast.error("Please select at least one student");
@@ -177,64 +235,48 @@ export default function ProblemPointForm({
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const postPayload = {
-        teacherId: session.id,
+    if (mode === "create") {
+      createMutation.mutate({
         studentsId: selectedStudentIds,
-        problemPointCategory: formData.category,
-        point: Number(formData.point),
+        demeritCategory: formData.category,
+        points: Number(formData.point),
         description: formData.description,
         date: formData.date,
-      };
-
-      const updatePayload = {
-        problemPointId: initialData?.id,
-        problemPointCategory: formData.category,
-        point: Number(formData.point),
+      });
+    } else {
+      updateMutation.mutate({
+        demeritRecordId: initialData?.id,
+        demeritCategory: formData.category,
+        points: Number(formData.point),
         description: formData.description,
         date: formData.date,
-        teacherId: session.id,
-      };
-
-      let res;
-      if (mode === "create") {
-        res = await axios.post("/api/problem-point", postPayload);
-      } else {
-        res = await axios.patch("/api/problem-point", updatePayload);
-      }
-
-      if (res.status === 201 || res.status === 200) {
-        toast.success(
-          mode === "create"
-            ? "Problem points recorded successfully"
-            : "Problem point updated successfully",
-        );
-        if (onSuccess) onSuccess();
-
-        if (mode === "create") {
-          setFormData({
-            category: "",
-            point: "",
-            description: "",
-            date: new Date().toISOString().split("T")[0],
-          });
-          setSelectedStudentIds([]);
-        }
-      }
-    } catch (error: any) {
-      console.error(error);
-      const msg = error.response?.data?.message || "Something went wrong";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
+      });
     }
   };
 
   return (
     <div className="space-y-8">
       {/* Class Selection Section - Hide in Edit Mode if not needed */}
+
+      {errorMessage && (
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+          <div className="flex items-center">
+            <svg
+              className="w-5 h-5 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="font-medium">{errorMessage}</span>
+          </div>
+        </div>
+      )}
+
       {mode === "create" && (
         <div className="bg-white p-6 rounded-xl border shadow-sm">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">
@@ -278,16 +320,16 @@ export default function ProblemPointForm({
             </Select>
 
             <Select
-              value={selectedClass.classNumber}
+              value={selectedClass.section}
               onValueChange={(val) =>
-                setSelectedClass({ ...selectedClass, classNumber: val })
+                setSelectedClass({ ...selectedClass, section: val })
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Class Number" />
               </SelectTrigger>
               <SelectContent>
-                {CLASSNUMBERS.map((c) => (
+                {CLASS_SECTION.map((c) => (
                   <SelectItem key={c} value={c}>
                     {c === "none" ? "None" : c}
                   </SelectItem>
@@ -410,8 +452,8 @@ export default function ProblemPointForm({
           <div className="bg-white p-6 rounded-xl border shadow-sm">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
               {mode === "create"
-                ? "3. Problem Details"
-                : "Edit Problem Details"}
+                ? "3. Demerit Details"
+                : "Edit Demerit Details"}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -493,8 +535,8 @@ export default function ProblemPointForm({
             >
               {loading ? <Spinner className="mr-2" /> : null}
               {mode === "create"
-                ? "Submit Problem Points"
-                : "Update Problem Point"}
+                ? "Submit Demerit Points"
+                : "Update Demerit Point"}
             </Button>
           </div>
         </form>

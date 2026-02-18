@@ -37,3 +37,10 @@ export const ATTENDANCE_KEYS = {
   summary: (filters: any) =>
     [...ATTENDANCE_KEYS.summaries(), { filters }] as const,
 };
+
+export const DEMERIT_POINT_KEYS = {
+  all: ["demeritPoints"] as const,
+  lists: () => [...DEMERIT_POINT_KEYS.all, "list"] as const,
+  list: (filters: any) =>
+    [...DEMERIT_POINT_KEYS.lists(), { filters }] as const,
+};

@@ -1,12 +1,12 @@
 "use client";
 import { GraduationCap, BookOpen, Calendar } from "lucide-react";
 import { AttendanceChart } from "../attendance/AttendanceChart";
-import { ProblemPointChart } from "../problemPoint/ProblemPointChart";
-import { ProblemPointList } from "../problemPoint/ProblemPointList";
+import { DemeritPointChart } from "../demerit-point/DemeritPointChart";
+import { DemeritPointList } from "../demerit-point/DemeritPointList";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { ValidProblemPointType } from "@/lib/constants/problemPoint";
+import { ValidInfractionType } from "@/lib/constants/discplinary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Session } from "@/lib/types/session";
 
@@ -19,8 +19,8 @@ type AttendanceStats = {
   date: number | Date;
 };
 
-type ProblemPointData = {
-  category: ValidProblemPointType;
+type DemeritPointData = {
+  category: ValidInfractionType;
   description: string;
   point: number;
   date: string | Date;
@@ -28,7 +28,7 @@ type ProblemPointData = {
 
 const CATEGORY_COLORS_HEX: Record<string, string> = {
   LATE: "#F97316",
-  INCOMPLETE_ATTRIBUTES: "#6B7280",
+  UNIFORM: "#6B7280",
   DISCIPLINE: "#EF4444",
   ACADEMIC: "#3B82F6",
   SOCIAL: "#22C55E",
@@ -45,11 +45,11 @@ export default function ParentDashboard({ session }: DashboardProps) {
     alpha: [],
     late: [],
   });
-  const [problemPointRecords, setProblemPointRecords] = useState<
-    ProblemPointData[]
+  const [demeritPointRecords, setDemeritPointRecords] = useState<
+    DemeritPointData[]
   >([]);
-  const [totalproblemPoint, setTotalProblemPoint] = useState(0);
-  const [problemPointChartData, setProblemPointChartData] = useState<
+  const [totalDemeritPoint, setTotalDemeritPoint] = useState(0);
+  const [demeritPointChartData, setDemeritPointChartData] = useState<
     { name: string; value: number; color: string }[]
   >([]);
 
@@ -99,23 +99,23 @@ export default function ParentDashboard({ session }: DashboardProps) {
             acc[type.toString().toLowerCase()].push(stat);
             return acc;
           },
-          { sick: [], permission: [], alpha: [], late: [] }
+          { sick: [], permission: [], alpha: [], late: [] },
         );
 
         setAttendanceStats(grouped);
 
-        // Process Problem Points
+        // Process Demerit Points
         if (problemPointRecords) {
           const records = problemPointRecords;
           const totalPoint = records.reduce(
-            (acc: any, record: ProblemPointData) => {
+            (acc: any, record: DemeritPointData) => {
               return acc + record.point;
             },
-            0
+            0,
           );
 
           const ppChartDataMap: Record<string, number> = {};
-          records.forEach((record: ProblemPointData) => {
+          records.forEach((record: DemeritPointData) => {
             ppChartDataMap[record.category] =
               (ppChartDataMap[record.category] || 0) + record.point;
           });
@@ -125,12 +125,12 @@ export default function ParentDashboard({ session }: DashboardProps) {
               name: category.replace(/_/g, " "),
               value,
               color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
-            })
+            }),
           );
 
-          setTotalProblemPoint(totalPoint);
-          setProblemPointRecords(records);
-          setProblemPointChartData(ppChartData);
+          setTotalDemeritPoint(totalPoint);
+          setDemeritPointRecords(records);
+          setDemeritPointChartData(ppChartData);
         }
       }
     } catch (error) {
@@ -267,7 +267,7 @@ export default function ParentDashboard({ session }: DashboardProps) {
                             day: "numeric",
                           })}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -293,7 +293,7 @@ export default function ParentDashboard({ session }: DashboardProps) {
                             day: "numeric",
                           })}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -327,21 +327,21 @@ export default function ParentDashboard({ session }: DashboardProps) {
         </div>
       </div>
 
-      {/* Problem Points Section */}
+      {/* Demerit Points Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Chart */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-4 sm:p-6">
           <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-6">
-            Problem Points Breakdown
+            Demerit Points Breakdown
           </h3>
           <div className="flex items-center justify-center">
-            <ProblemPointChart data={problemPointChartData} />
+            <DemeritPointChart data={demeritPointChartData} />
           </div>
           <div className="mt-4 text-center">
             <p className="text-gray-500 text-sm">
-              Total Problem Points:{" "}
+              Total Demerit Points:{" "}
               <span className="font-bold text-red-600">
-                {totalproblemPoint}
+                {totalDemeritPoint}
               </span>
             </p>
           </div>
@@ -350,9 +350,9 @@ export default function ParentDashboard({ session }: DashboardProps) {
         {/* List */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-4 sm:p-6">
           <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-6">
-            Problem Points History
+            Demerit Points History
           </h3>
-          <ProblemPointList data={problemPointRecords} />
+          <DemeritPointList data={demeritPointRecords} />
         </div>
       </div>
     </div>

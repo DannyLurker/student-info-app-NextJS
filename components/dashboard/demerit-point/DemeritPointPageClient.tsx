@@ -2,15 +2,10 @@
 
 import { useState } from "react";
 import { PlusCircle, ListChecks } from "lucide-react";
-import CreateProblemPointModal from "./create/CreateProblemPointModal";
-import ManageProblemPointModal from "./manage/ManageProblemPointModal";
-import { Session } from "@/lib/types/session";
+import CreateDemeritPointModal from "./create/CreateDemeritPointModal";
+import ManageDemeritPointModal from "./manage/ManageDemeritPointModal";
 
-interface ProblemPointPageClientProps {
-  session: Session;
-}
-
-const ProblemPointPageClient = ({ session }: ProblemPointPageClientProps) => {
+const DemeritPointPageClient = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [manageModalOpen, setManageModalOpen] = useState(false);
 
@@ -25,10 +20,10 @@ const ProblemPointPageClient = ({ session }: ProblemPointPageClientProps) => {
               <PlusCircle className="w-12 h-12" />
             </div>
             <h1 className="text-3xl font-bold mb-2">
-              Problem Points Management
+              Demerit Points Management
             </h1>
             <p className="text-red-100">
-              Manage student behavioral records and problem points
+              Manage student behavioral records and demerit points
             </p>
           </div>
 
@@ -48,13 +43,13 @@ const ProblemPointPageClient = ({ session }: ProblemPointPageClientProps) => {
                     Create Record
                   </h2>
                   <p className="text-gray-600 text-sm">
-                    Assign new problem points to one or multiple students for
+                    Assign new demerit points to one or multiple students for
                     disciplinary actions, lateness, or other issues.
                   </p>
                 </div>
               </button>
 
-              {/* Mange Button */}
+              {/* Manage Button */}
               <button
                 onClick={() => setManageModalOpen(true)}
                 className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-400 rounded-2xl p-8 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 text-left"
@@ -78,18 +73,16 @@ const ProblemPointPageClient = ({ session }: ProblemPointPageClientProps) => {
       </div>
 
       {/* Modals */}
-      <CreateProblemPointModal
+      <CreateDemeritPointModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        session={session}
       />
-      <ManageProblemPointModal
+      <ManageDemeritPointModal
         open={manageModalOpen}
         onOpenChange={setManageModalOpen}
-        session={session}
       />
     </div>
   );
 };
 
-export default ProblemPointPageClient;
+export default DemeritPointPageClient;

@@ -7,13 +7,13 @@ const AttendanceTypesEnum = z.enum(["ALPHA", "SICK", "PERMISSION", "LATE"]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
 const SortByEnum = z.enum(["name", "status"]);
 const SortOrderEnum = z.enum(["asc", "desc"]);
-const ProblemPointCategoryEnum = z.enum([
+const DemeritCategoryEnum = z.enum([
   "DISCIPLINE",
   "ACADEMIC",
   "SOCIAL",
   "OTHER",
   "LATE",
-  "INCOMPLETE_ATTRIBUTES",
+  "UNIFORM",
 ]);
 const AssessmentType = z.enum([
   "SCHOOLWORK",
@@ -129,6 +129,14 @@ const updateClassSchema = z.object({
 
 type UpdateClassSchema = z.infer<typeof updateClassSchema>;
 
+// Student
+const studentQuerySchema = z.object({
+  grade: GradeEnum,
+  major: MajorEnum,
+  section: ClassSectionEnum,
+  page,
+});
+
 // AUTH
 const studentSignUpSchema = z.object({
   username: z.string().min(3, { message: "Must be 3 characters at minimum" }),
@@ -209,39 +217,36 @@ const homeroomClassStudent = z.object({
 
 type HomeroomClassStudentSchema = z.infer<typeof homeroomClassStudent>;
 
-// PROBLEM POINT
-const problemPointQuerySchema = z.object({
+// DEMERIT POINT
+const demeritPointQuerySchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
-  classNumber: ClassSectionEnum,
-  recordedBy: z.string({ message: "Must be filled" }),
+  section: ClassSectionEnum,
 });
 
-const problemPoint = z.object({
-  teacherId: z.string({ message: "Must be filled" }),
+const createDemeritPointSchema = z.object({
   studentsId: z.array(z.string()).min(1),
-  problemPointCategory: ProblemPointCategoryEnum,
-  point: z
-    .number({ message: "Must be filled" })
-    .min(5, { message: "The minimum is 5" }),
+  demeritCategory: DemeritCategoryEnum,
+  points: z
+    .number({ message: "Point field must be filled" })
+    .min(5, { message: "Point field must be filled. The minimum points is 5" }),
   description: z.string().max(300),
   date: z.string(),
 });
 
-type ProblemPointSchema = z.infer<typeof problemPoint>;
+type CreateDemeritPointSchema = z.infer<typeof createDemeritPointSchema>;
 
-const updateProblemPoint = z.object({
-  problemPointId: z.number(),
-  teacherId: z.string({ message: "Must be filled" }),
-  problemPointCategory: ProblemPointCategoryEnum,
-  point: z
-    .number({ message: "Must be filled" })
-    .min(5, { message: "The minimum is 5" }),
+const updateDemeritPointSchema = z.object({
+  demeritRecordId: z.number(),
+  demeritCategory: DemeritCategoryEnum,
+  points: z
+    .number({ message: "Point field must be filled" })
+    .min(5, { message: "Point field must be filled. The minimum points is 5" }),
   description: z.string().max(300),
   date: z.string(),
 });
 
-type UpadateProblemPointSchema = z.infer<typeof problemPoint>;
+type UpdateDemeritPointSchema = z.infer<typeof updateDemeritPointSchema>;
 
 // SCORING SYSTEM (TEACHER)
 const queryStudentMarks = z.object({
@@ -294,6 +299,7 @@ const markRecords = z.object({
 type MarkRecordSchema = z.infer<typeof markRecords>;
 
 export {
+  studentQuerySchema,
   createClassSchema,
   updateClassSchema,
   createSubjectSchema,
@@ -304,15 +310,15 @@ export {
   forgotPasswordSchema,
   resetPasswordSchema,
   homeroomClassStudent,
-  problemPoint,
+  createDemeritPointSchema,
   bulkAttendanceSchema,
   studentAttendacesQueries,
   attendanceSummaryQueries,
   queryStudentMarks,
   markColumn,
   markRecords,
-  updateProblemPoint,
-  problemPointQuerySchema,
+  updateDemeritPointSchema,
+  demeritPointQuerySchema,
   classSchema,
   type CreateClassSchema,
   type CreateSubjectInput,
@@ -325,13 +331,13 @@ export {
   type ForgotPasswordSchema,
   type ResetPasswordSchema,
   type HomeroomClassStudentSchema,
-  type ProblemPointSchema,
+  type CreateDemeritPointSchema,
   type BulkAttendanceSchema,
   type QueryStudentMarksSchema,
   type AttendanceSummaryQueriesSchema,
   type StudentAttendacesQueriesSchema,
   type MarkColumnSchema,
   type MarkRecordSchema,
-  type UpadateProblemPointSchema,
+  type UpdateDemeritPointSchema,
   type TeachingAssignmentInput,
 };
