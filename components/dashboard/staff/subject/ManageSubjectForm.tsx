@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  PatchSubjectInput,
-  SubjectQueriesSchema,
-} from "@/lib/utils/zodSchema";
+import { PatchSubjectInput, SubjectQueriesSchema } from "@/lib/utils/zodSchema";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
@@ -22,10 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  GRADE_DISPLAY_MAP,
-  MAJOR_DISPLAY_MAP,
-} from "@/lib/utils/labels";
+import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
 import {
   Search,
   ArrowUpDown,
@@ -37,6 +31,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import SubjectForm from "./SubjectForm";
+import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -111,12 +106,12 @@ const ManageSubjectForm = () => {
     queryFn: fetchSubjects,
   });
 
-  console.log(subjects)
+  console.log(subjects);
 
   const queryClient = useQueryClient();
 
   const totalPages = Math.ceil(
-    (subjects.data?.totalSubject || 0) / ITEMS_PER_PAGE
+    (subjects.data?.totalSubject || 0) / ITEMS_PER_PAGE,
   );
 
   const handleDelete = async () => {
@@ -135,9 +130,10 @@ const ManageSubjectForm = () => {
         setDeleteItem(null);
         return `Successfully deleted ${deleteItem.subjectName}`;
       },
-      error: (err) => {
-        const msg = err.response?.data?.message || "Something went wrong";
+      error: async (err) => {
+        const msg = await getErrorMessage(err);
         setErrorMessage(msg);
+        toast.error("Something went wrong. Read the message above");
         return msg;
       },
     });
@@ -168,6 +164,25 @@ const ManageSubjectForm = () => {
 
   return (
     <div className="space-y-6 p-4">
+      {errorMessage && (
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-sm">
+          <div className="flex items-center">
+            <svg
+              className="w-5 h-5 mr-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="font-medium">{errorMessage}</span>
+          </div>
+        </div>
+      )}
+
       {/* Search & Sort */}
       <div className="bg-white p-4 rounded-xl border shadow-sm">
         <h3 className="text-sm font-medium mb-3 text-gray-500 uppercase tracking-wider">
@@ -185,7 +200,9 @@ const ManageSubjectForm = () => {
           </div>
           <Button
             variant="outline"
-            onClick={() => setSortBy((prev) => (prev === "asc" ? "desc" : "asc"))}
+            onClick={() =>
+              setSortBy((prev) => (prev === "asc" ? "desc" : "asc"))
+            }
             className="flex items-center gap-2"
           >
             <ArrowUpDown className="w-4 h-4" />

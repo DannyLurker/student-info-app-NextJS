@@ -1,106 +1,130 @@
-import { handleError } from "@/lib/errors";
-import { getSemester } from "@/lib/utils/date";
-import {
-  formatClassNumber,
-  getGradeNumber,
-  getMajorDisplayName,
-  SUBJECT_DISPLAY_MAP,
-} from "@/lib/utils/labels";
-import { markColumn } from "@/lib/utils/zodSchema";
+import { badRequest, handleError, notFound } from "@/lib/errors";
+import { getAcademicYear } from "@/lib/utils/date";
+import { getFullClassLabel } from "@/lib/utils/labels";
+import { createMarkColumnSchema } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
+import { validateTeacherSession } from "@/lib/validation/guards";
+import { AssessmentScoreCreateManyInput } from "@/db/prisma/src/generated/prisma/models";
+import { ClassSection, Grade, Major } from "@/lib/constants/class";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const data = markColumn.parse(body);
+    const teacherSession = await validateTeacherSession();
 
-    await prisma.$transaction(async (tx) => {
-      const studentRecords = await tx.student.findMany({
-        where: {
+    console.log(teacherSession);
+
+    const rawData = await req.json();
+    const data = createMarkColumnSchema.parse(rawData);
+
+    const studentRecords = await prisma.student.findMany({
+      where: {
+        class: {
           grade: data.class.grade,
           major: data.class.major,
-          classNumber: data.class.classNumber,
+          section: data.class.section,
         },
-        select: {
-          id: true,
+      },
+      select: {
+        classId: true,
+        user: {
+          select: {
+            id: true,
+          },
         },
-      });
-
-      const parseGivenAt = new Date(data.description.givenAt);
-      const parseDueAt = new Date(data.description.dueAt);
-
-      const description = await tx.markDescription.create({
-        data: {
-          givenAt: parseGivenAt,
-          dueAt: parseDueAt,
-          detail: data.description.detail,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      for (const student of studentRecords) {
-        console.log(student);
-        const subjectMark = await tx.subjectMark.findUnique({
+        gradebooks: {
           where: {
-            studentId_subjectName_academicYear_semester: {
-              studentId: student.id,
-              subjectName: data.subjectName,
-              academicYear: String(new Date().getFullYear()),
-              semester: getSemester(new Date()) === 1 ? "FIRST" : "SECOND",
-            },
+            subjectId: data.subjectId,
           },
           select: {
             id: true,
-            _count: true,
           },
-        });
+        },
+      },
+    });
 
-        console.log("test", subjectMark);
+    if (studentRecords.length === 0) {
+      throw notFound("Student data not found");
+    }
 
-        // A single mark that will be connected with subjectMark
-        await tx.mark.create({
-          data: {
-            type: data.assessmentType,
-            descriptionId: description.id,
-            subjectMarkId: subjectMark?.id as number,
-            assessmentNumber:
-              subjectMark?._count.marks === undefined
-                ? 0
-                : subjectMark?._count.marks + 1,
-          },
-        });
-      }
+    const teachingAssignment = await prisma.teachingAssignment.findUnique({
+      where: {
+        teacherId_subjectId_classId_academicYear: {
+          teacherId: teacherSession.userId,
+          subjectId: data.subjectId,
+          classId: studentRecords[0].classId as number,
+          academicYear: getAcademicYear(),
+        },
+      },
+      select: {
+        id: true,
+        totalAssignmentAssigned: true,
+      },
+    });
 
+    console.log(teachingAssignment);
+
+    if (!teachingAssignment) {
+      throw badRequest("Teaching assignment not found");
+    }
+
+    const parseGivenAt = new Date(data.description.givenAt);
+    const parseDueAt = new Date(data.description.dueAt);
+
+    const assessment = await prisma.assessment.create({
+      data: {
+        assignmentId: teachingAssignment.id,
+        title: data.description.title,
+        givenAt: parseGivenAt,
+        dueAt: parseDueAt,
+        type: data.assessmentType,
+      },
+    });
+
+    const assessmentScoresToCreate: AssessmentScoreCreateManyInput[] = [];
+
+    for (const student of studentRecords) {
+      assessmentScoresToCreate.push({
+        gradebookId: student.gradebooks[0].id,
+        teacherId: teacherSession.userId,
+        assessmentId: assessment.id,
+        studentId: student.user.id,
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
       await tx.teachingAssignment.update({
         where: {
-          teacherId_subjectId_grade_major_classNumber: {
-            grade: data.class.grade,
-            major: data.class.major,
-            classNumber: data.class.classNumber,
-            teacherId: data.teacherId,
+          teacherId_subjectId_classId_academicYear: {
+            classId: studentRecords[0].classId as number,
+            teacherId: teacherSession.userId,
             subjectId: data.subjectId,
+            academicYear: getAcademicYear(),
           },
         },
         data: {
-          totalAssignmentsAssigned: {
+          totalAssignmentAssigned: {
             increment: 1,
           },
         },
       });
+
+      await tx.assessmentScore.createMany({
+        data: assessmentScoresToCreate,
+        skipDuplicates: true,
+      });
     });
 
-    const gradeLabel = getGradeNumber(data.class.grade);
-    const majorLabel = getMajorDisplayName(data.class.major);
-    const classNumber = formatClassNumber(data.class.classNumber);
-    const subjectLabel = SUBJECT_DISPLAY_MAP[data.subjectName];
+    const classLabel = getFullClassLabel(
+      data.class.grade as Grade,
+      data.class.major as Major,
+      data.class.section as ClassSection,
+    );
 
     return Response.json(
       {
-        message: `Successfully created new assignment column for subject ${subjectLabel} in ${gradeLabel} ${majorLabel} ${classNumber}`,
+        message: `Successfully created new assignment column for subject ${data.subjectName} in ${classLabel}`,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("API_ERROR", {
@@ -111,4 +135,4 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE(req: Request) { }
+export async function DELETE(req: Request) {}

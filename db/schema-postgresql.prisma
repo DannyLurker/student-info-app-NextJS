@@ -44,6 +44,7 @@ enum Semester {
 }
 
 enum AssessmentType {
+    SCHOOLWORK
     HOMEWORK
     QUIZ
     EXAM
@@ -154,10 +155,11 @@ model Student {
     classId Int?
     class   Classroom? @relation(fields: [classId], references: [id], onDelete: SetNull)
 
-    attendance Attendance[]
-    demerits   DemeritPoint[]
-    gradebooks Gradebook[]
-    parent     Parent?
+    attendance       Attendance[]
+    demerits         DemeritPoint[]
+    gradebooks       Gradebook[]
+    parent           Parent?
+    assessmentScores AssessmentScore[]
 }
 
 model Teacher {
@@ -199,7 +201,10 @@ model TeachingAssignment {
     classId Int
     class   Classroom @relation(fields: [classId], references: [id])
 
+    totalAssignmentAssigned Int @default(0)
+
     academicYear String // e.g., "2025/2026"
+    assessments  Assessment[]
 
     @@unique([teacherId, subjectId, classId, academicYear])
 }
@@ -219,19 +224,38 @@ model Gradebook {
     @@unique([studentId, subjectId, semester, academicYear])
 }
 
-model AssessmentScore {
-    id          Int       @id @default(autoincrement())
-    gradebookId Int
-    gradebook   Gradebook @relation(fields: [gradebookId], references: [id])
+model Assessment {
+    id    Int            @id @default(autoincrement())
+    title String?
+    type  AssessmentType @default(SCHOOLWORK)
 
-    type        AssessmentType
-    score       Int?
-    description String?
+    assignmentId Int
+    assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
-    recordedById String
-    teacher      Teacher @relation(fields: [recordedById], references: [userId])
+    scores AssessmentScore[]
+
+    givenAt DateTime
+    dueAt   DateTime
 
     createdAt DateTime @default(now())
+}
+
+model AssessmentScore {
+    id Int @id @default(autoincrement())
+
+    assessmentId Int
+    assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+    studentId String
+    student   Student @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+
+    gradebookId Int
+    gradebook   Gradebook @relation(fields: [gradebookId], references: [id], onDelete: Cascade)
+
+    score Int @default(0)
+
+    teacher   Teacher? @relation(fields: [teacherId], references: [userId])
+    teacherId String
 }
 
 // --- Discipline & Attendance ---

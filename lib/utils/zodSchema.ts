@@ -21,7 +21,7 @@ const AssessmentType = z.enum([
   "QUIZ",
   "EXAM",
   "PROJECT",
-  "GROUP",
+  "GROUP_WORK",
 ]);
 const SubjectTypeEnum = z.enum(["GENERAL", "MAJOR"]);
 
@@ -262,13 +262,14 @@ const queryStudentMarks = z.object({
 type QueryStudentMarksSchema = z.infer<typeof queryStudentMarks>;
 
 const DescriptionSchema = z.object({
-  givenAt: z.string({ message: "Must be filled" }),
-  dueAt: z.string({ message: "Must be filled" }),
-  detail: z.string({ message: "Must be filled" }),
+  givenAt: z.string({ message: "Given at Must be filled" }),
+  dueAt: z.string({ message: "Due at Must be filled" }),
+  title: z
+    .string({ message: "Title must be filled" })
+    .max(20, { message: "Title must not exceed 20 characters" }),
 });
 
-const markColumn = z.object({
-  teacherId: z.string({ message: "Must be filled" }),
+const createMarkColumnSchema = z.object({
   class: classSchema,
   subjectId: z.number({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
@@ -276,7 +277,7 @@ const markColumn = z.object({
   description: DescriptionSchema,
 });
 
-type MarkColumnSchema = z.infer<typeof markColumn>;
+type CreateMarkColumnSchema = z.infer<typeof createMarkColumnSchema>;
 
 const studentAssessments = z.object({
   assessmentNumber: z.number({ message: "Must be number and filled" }),
@@ -288,12 +289,14 @@ const studentMarkData = z.object({
   subjectName: z.string({ message: "Must be filled" }),
   studentAssessments: z
     .array(studentAssessments)
-    .nonempty("Student assessments can't be empty"),
+    .nonempty({ message: "Student assessments can't be empty" }),
 });
 
 const markRecords = z.object({
   teacherId: z.string({ message: "Must be filled" }), // for validation
-  students: z.array(studentMarkData).nonempty("student data can't be empty"),
+  students: z
+    .array(studentMarkData)
+    .nonempty({ message: "student data can't be empty" }),
 });
 
 type MarkRecordSchema = z.infer<typeof markRecords>;
@@ -315,7 +318,7 @@ export {
   studentAttendacesQueries,
   attendanceSummaryQueries,
   queryStudentMarks,
-  markColumn,
+  createMarkColumnSchema,
   markRecords,
   updateDemeritPointSchema,
   demeritPointQuerySchema,
@@ -336,7 +339,7 @@ export {
   type QueryStudentMarksSchema,
   type AttendanceSummaryQueriesSchema,
   type StudentAttendacesQueriesSchema,
-  type MarkColumnSchema,
+  type CreateMarkColumnSchema,
   type MarkRecordSchema,
   type UpdateDemeritPointSchema,
   type TeachingAssignmentInput,

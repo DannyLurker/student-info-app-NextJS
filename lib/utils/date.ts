@@ -41,3 +41,9 @@ export function getDayBounds(date: Date): { startOfDay: Date; endOfDay: Date } {
 
   return { startOfDay, endOfDay };
 }
+
+export function getAcademicYear() {
+  //`${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+
+  return `${new Date().getFullYear()}`;
+}

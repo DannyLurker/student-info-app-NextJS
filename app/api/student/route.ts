@@ -2,12 +2,13 @@ import { handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import { studentQuerySchema } from "@/lib/utils/zodSchema";
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
+import { validateLoginSession } from "@/lib/validation/guards";
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
+    await validateLoginSession();
 
-    console.log(searchParams);
+    const { searchParams } = new URL(req.url);
 
     const rawData = Object.fromEntries(searchParams.entries());
 

@@ -19,6 +19,7 @@ import {
   UserCreateManyInput,
 } from "@/db/prisma/src/generated/prisma/models";
 import { createId } from "@paralleldrive/cuid2";
+import { getAcademicYear } from "@/lib/utils/date";
 
 type TeacherAccountExcel = {
   name: string;
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
       allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }]),
     );
 
-    const academicYear = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+    const academicYear = getAcademicYear();
 
     // PREPARE COLLECTIONS
     const usersToCreate: UserCreateManyInput[] = [];

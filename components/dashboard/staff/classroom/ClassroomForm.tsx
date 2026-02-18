@@ -34,7 +34,7 @@ import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
 import { CLASSROOM_KEYS } from "@/lib/constants/tanStackQueryKeys";
 
-// Single classroom schema
+// Single classroom schema. NOTES: What's the difference between classScheam in the zod file is that classroomSchema(In this file) has homeroomTeacherId
 const classroomSchema = z.object({
   grade: z.enum(GRADES),
   major: z.enum(MAJORS),

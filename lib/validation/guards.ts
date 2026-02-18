@@ -1,11 +1,35 @@
 import { auth } from "@/lib/auth/authNode";
 import { prisma } from "@/db/prisma";
-import { unauthorized, notFound, forbidden } from "@/lib/errors";
+import { unauthorized, notFound, forbidden, badRequest } from "@/lib/errors";
 import {
   hasManagementAccess,
   isClassSecretaryRole,
   isTeacherRole,
 } from "@/lib/constants/roles";
+
+export async function validateLoginSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.user.id,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!user) {
+    throw notFound("User not found");
+  }
+
+  return user;
+}
 
 export async function validateManagementSession() {
   const session = await auth();

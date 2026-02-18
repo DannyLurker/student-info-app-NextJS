@@ -4,5 +4,5 @@ export enum AssessmentType {
   QUIZ = "QUIZ",
   EXAM = "EXAM",
   PROJECT = "PROJECT",
-  GROUP = "GROUP",
+  GROUPWORK = "GROUPWORK",
 }
