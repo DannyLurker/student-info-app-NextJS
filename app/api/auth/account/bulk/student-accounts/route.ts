@@ -199,7 +199,6 @@ export async function POST(req: Request) {
           studentId: studentUserId,
           subjectId: subject.id,
           semester,
-          academicYear,
         });
       }
     }

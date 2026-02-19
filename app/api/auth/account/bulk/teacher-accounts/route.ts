@@ -12,14 +12,11 @@ import {
 import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateManagementSession } from "@/lib/validation/guards";
 import {
-  ClassroomCreateManyInput,
-  ClassroomUpdateManyArgs,
   TeacherCreateManyInput,
   TeachingAssignmentCreateManyInput,
   UserCreateManyInput,
 } from "@/db/prisma/src/generated/prisma/models";
 import { createId } from "@paralleldrive/cuid2";
-import { getAcademicYear } from "@/lib/utils/date";
 
 type TeacherAccountExcel = {
   name: string;
@@ -74,8 +71,6 @@ export async function POST(req: Request) {
     const subjectMap = new Map(
       allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }]),
     );
-
-    const academicYear = getAcademicYear();
 
     // PREPARE COLLECTIONS
     const usersToCreate: UserCreateManyInput[] = [];
@@ -256,7 +251,6 @@ export async function POST(req: Request) {
           teachingAssignmentsToCreate.push({
             subjectId: subjectId,
             teacherId: teacherUserId,
-            academicYear,
             classId: id,
           });
         });

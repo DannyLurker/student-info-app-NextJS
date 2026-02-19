@@ -1,5 +1,4 @@
 import { handleError, notFound } from "@/lib/errors";
-import { getAcademicYear, getSemester } from "@/lib/utils/date";
 import { updateAssessmentScoresSchema } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import { validateTeacherSession } from "@/lib/validation/guards";
@@ -13,11 +12,10 @@ export async function PATCH(req: Request) {
 
     const teachingAssignment = await prisma.teachingAssignment.findUnique({
       where: {
-        teacherId_subjectId_classId_academicYear: {
+        teacherId_subjectId_classId: {
           teacherId: teacherSession.userId,
           subjectId: data.subjectId,
           classId: data.classId,
-          academicYear: getAcademicYear(),
         },
       },
       select: {

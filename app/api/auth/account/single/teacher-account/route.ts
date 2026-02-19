@@ -1,21 +1,14 @@
-import {
-  badRequest,
-  handleError,
-  internalServerError,
-  notFound,
-} from "@/lib/errors";
+import { badRequest, handleError, notFound } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import hashing from "@/lib/utils/hashing";
 import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
 import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateManagementSession } from "@/lib/validation/guards";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
-import { getAcademicYear } from "@/lib/utils/date";
 
 type ResolvedTeachingAssignments = {
   teacherId: string;
   subjectId: number;
-  academicYear: string;
   classId: number;
 };
 
@@ -125,7 +118,6 @@ export async function POST(req: Request) {
             return {
               teacherId: teacher.id,
               subjectId: assignment.subjectId,
-              academicYear: getAcademicYear(),
               classId: classroom.id,
             };
           }),

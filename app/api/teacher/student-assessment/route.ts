@@ -1,5 +1,4 @@
 import { badRequest, handleError, notFound } from "@/lib/errors";
-import { getAcademicYear } from "@/lib/utils/date";
 import { getFullClassLabel } from "@/lib/utils/labels";
 import {
   createStudentAssessmentSchema,
@@ -50,11 +49,10 @@ export async function POST(req: Request) {
 
     const teachingAssignment = await prisma.teachingAssignment.findUnique({
       where: {
-        teacherId_subjectId_classId_academicYear: {
+        teacherId_subjectId_classId: {
           teacherId: teacherSession.userId,
           subjectId: data.subjectId,
           classId: studentRecords[0].classId as number,
-          academicYear: getAcademicYear(),
         },
       },
       select: {
@@ -96,11 +94,10 @@ export async function POST(req: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.teachingAssignment.update({
         where: {
-          teacherId_subjectId_classId_academicYear: {
+          teacherId_subjectId_classId: {
             classId: studentRecords[0].classId as number,
             teacherId: teacherSession.userId,
             subjectId: data.subjectId,
-            academicYear: getAcademicYear(),
           },
         },
         data: {
@@ -165,11 +162,10 @@ export async function GET(req: Request) {
 
     const teachingAssingnment = await prisma.teachingAssignment.findUnique({
       where: {
-        teacherId_subjectId_classId_academicYear: {
+        teacherId_subjectId_classId: {
           teacherId: teacherSession.userId,
           subjectId: data.subjectId,
           classId: classroom.id,
-          academicYear: getAcademicYear(),
         },
       },
       select: {

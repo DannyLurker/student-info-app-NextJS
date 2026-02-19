@@ -203,10 +203,9 @@ model TeachingAssignment {
 
     totalAssignmentAssigned Int @default(0)
 
-    academicYear String // e.g., "2025/2026"
-    assessments  Assessment[]
+    assessments Assessment[]
 
-    @@unique([teacherId, subjectId, classId, academicYear])
+    @@unique([teacherId, subjectId, classId])
 }
 
 model Gradebook {
@@ -216,12 +215,11 @@ model Gradebook {
     subjectId Int
     subject   Subject @relation(fields: [subjectId], references: [id])
 
-    semester     Semester
-    academicYear String
+    semester Semester
 
     scores AssessmentScore[]
 
-    @@unique([studentId, subjectId, semester, academicYear])
+    @@unique([studentId, subjectId, semester])
 }
 
 model Assessment {
