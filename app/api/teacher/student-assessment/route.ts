@@ -61,8 +61,6 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log(teachingAssignment);
-
     if (!teachingAssignment) {
       throw badRequest("Teaching assignment not found");
     }
@@ -72,7 +70,7 @@ export async function POST(req: Request) {
 
     const assessment = await prisma.assessment.create({
       data: {
-        assignmentId: teachingAssignment.id,
+        teachingAssignmentId: teachingAssignment.id,
         title: data.description.title,
         givenAt: parseGivenAt,
         dueAt: parseDueAt,
@@ -177,13 +175,22 @@ export async function GET(req: Request) {
 
     const assessments = await prisma.assessment.findMany({
       where: {
-        assignmentId: teachingAssingnment.id,
+        teachingAssignmentId: teachingAssingnment.id,
       },
       include: {
         scores: {
           select: {
-            studentId: true,
-            assessmentId: true,
+            student: {
+              select: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            id: true,
             score: true,
           },
         },

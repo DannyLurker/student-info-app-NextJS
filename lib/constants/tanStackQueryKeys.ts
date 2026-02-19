@@ -44,3 +44,14 @@ export const DEMERIT_POINT_KEYS = {
   list: (filters: any) =>
     [...DEMERIT_POINT_KEYS.lists(), { filters }] as const,
 };
+
+export const ASSESSMENT_KEYS = {
+  all: ["assessments"] as const,
+  lists: () => [...ASSESSMENT_KEYS.all, "list"] as const,
+  list: (filters: {
+    grade: string;
+    major: string;
+    section: string;
+    subjectId: number;
+  }) => [...ASSESSMENT_KEYS.lists(), { filters }] as const,
+};

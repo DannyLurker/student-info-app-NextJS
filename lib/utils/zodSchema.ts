@@ -291,6 +291,7 @@ const getStudentAssessmentSchema = z.object({
     .min(1, { message: "Must be filled" })
     .transform((val) => Number(val))
     .refine((val) => !isNaN(val), { message: "Must be a valid number" }),
+  page,
 });
 
 type GetStudentAssessmentSchema = z.infer<typeof getStudentAssessmentSchema>;

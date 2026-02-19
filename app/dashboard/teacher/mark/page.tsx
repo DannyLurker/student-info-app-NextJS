@@ -1,6 +1,6 @@
 import React from "react";
 import { auth } from "@/lib/auth/authNode";
-import MarkManagement from "@/components/dashboard/teacher/MarkManagement";
+import AssessmentManagement from "@/components/dashboard/teacher/AssessmentManagement";
 import { redirect } from "next/navigation";
 import { getRoleDashboard, isTeacherRole } from "@/lib/constants/roles";
 
@@ -13,7 +13,7 @@ const page = async () => {
     redirect(getRoleDashboard(session.user.role));
   }
 
-  return <MarkManagement session={session.user} />;
+  return <AssessmentManagement />;
 };
 
 export default page;

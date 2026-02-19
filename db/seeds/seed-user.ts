@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 export async function seedUsers(prisma: PrismaClient) {
-  console.log("\n👤 Seeding Users...");
+  console.log("\n👤 Seeding Users...")
 
   const passwordHash = await bcrypt.hash("Test@12345", 12);
 
