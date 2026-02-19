@@ -261,7 +261,7 @@ const queryStudentMarks = z.object({
 
 type QueryStudentMarksSchema = z.infer<typeof queryStudentMarks>;
 
-const DescriptionSchema = z.object({
+const descriptionSchema = z.object({
   givenAt: z.string({ message: "Given at Must be filled" }),
   dueAt: z.string({ message: "Due at Must be filled" }),
   title: z
@@ -269,37 +269,71 @@ const DescriptionSchema = z.object({
     .max(20, { message: "Title must not exceed 20 characters" }),
 });
 
-const createMarkColumnSchema = z.object({
+// CRUD Assessment Schema
+const createStudentAssessmentSchema = z.object({
   class: classSchema,
   subjectId: z.number({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
   assessmentType: AssessmentType,
-  description: DescriptionSchema,
+  description: descriptionSchema,
 });
 
-type CreateMarkColumnSchema = z.infer<typeof createMarkColumnSchema>;
+type CreateStudentAssessmentSchema = z.infer<
+  typeof createStudentAssessmentSchema
+>;
 
-const studentAssessments = z.object({
-  assessmentNumber: z.number({ message: "Must be number and filled" }),
-  score: z.number({ message: "Must be number and filled" }).nullable(),
+const getStudentAssessmentSchema = z.object({
+  grade: GradeEnum,
+  major: MajorEnum,
+  section: ClassSectionEnum,
+  subjectId: z
+    .string()
+    .min(1, { message: "Must be filled" })
+    .transform((val) => Number(val))
+    .refine((val) => !isNaN(val), { message: "Must be a valid number" }),
+});
+
+type GetStudentAssessmentSchema = z.infer<typeof getStudentAssessmentSchema>;
+
+const updateStudentAssessmentSchema = z.object({
+  assessmentId: z.number({ message: "Assessment id must be filled" }),
+  teachingAssignmentId: z.number({
+    message: "Teaching assignment id must be filled",
+  }),
+  assessmentType: AssessmentType,
+  descriptionSchema,
+});
+
+type UpdateStudentAssessmentSchema = z.infer<
+  typeof updateStudentAssessmentSchema
+>;
+
+// Assessment score
+const studentAssessmentScore = z.object({
+  assessmentScoreId: z.number({
+    message: "Assessment score id must be filled",
+  }),
+  score: z.number({ message: "Must be number and filled" }),
 });
 
 const studentMarkData = z.object({
-  studentId: z.string({ message: "Must be filled" }),
-  subjectName: z.string({ message: "Must be filled" }),
+  studentId: z.string({ message: "Studet id field must be filled" }),
   studentAssessments: z
-    .array(studentAssessments)
+    .array(studentAssessmentScore)
     .nonempty({ message: "Student assessments can't be empty" }),
 });
 
-const markRecords = z.object({
-  teacherId: z.string({ message: "Must be filled" }), // for validation
+const updateAssessmentScoresSchema = z.object({
+  subjectId: z.number({ message: "Subject id field must be filled" }),
+  classId: z.number({ message: "Class id field must be filled" }),
   students: z
     .array(studentMarkData)
     .nonempty({ message: "student data can't be empty" }),
 });
 
-type MarkRecordSchema = z.infer<typeof markRecords>;
+type UpdateAssessmentScoresSchema = z.infer<
+  typeof updateAssessmentScoresSchema
+>;
 
 export {
   studentQuerySchema,
@@ -318,8 +352,10 @@ export {
   studentAttendacesQueries,
   attendanceSummaryQueries,
   queryStudentMarks,
-  createMarkColumnSchema,
-  markRecords,
+  createStudentAssessmentSchema,
+  getStudentAssessmentSchema,
+  updateStudentAssessmentSchema,
+  updateAssessmentScoresSchema,
   updateDemeritPointSchema,
   demeritPointQuerySchema,
   classSchema,
@@ -339,8 +375,10 @@ export {
   type QueryStudentMarksSchema,
   type AttendanceSummaryQueriesSchema,
   type StudentAttendacesQueriesSchema,
-  type CreateMarkColumnSchema,
-  type MarkRecordSchema,
+  type CreateStudentAssessmentSchema,
+  type GetStudentAssessmentSchema,
+  type UpdateStudentAssessmentSchema,
+  type UpdateAssessmentScoresSchema,
   type UpdateDemeritPointSchema,
   type TeachingAssignmentInput,
 };
