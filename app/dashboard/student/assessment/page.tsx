@@ -1,9 +1,8 @@
+import StudentAssessmentView from "@/components/dashboard/assessment/StudentAssessmentView";
 import { auth } from "@/lib/auth/authNode";
 import { getRoleDashboard, isStudentRole } from "@/lib/constants/roles";
-import { prisma } from "@/db/prisma";
 import { redirect } from "next/navigation";
 import React from "react";
-import StudentMarkView from "@/components/dashboard/student/mark/StudentMarkView";
 
 const page = async () => {
   const session = await auth();
@@ -19,7 +18,7 @@ const page = async () => {
       <h1 className="text-3xl font-bold mb-6">
         {session.user.name.split(" ")[0]}'s Marks
       </h1>
-      <StudentMarkView session={session.user} />
+      <StudentAssessmentView session={session.user} />
     </div>
   );
 };

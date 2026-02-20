@@ -1,15 +1,17 @@
 "use client";
-import { GraduationCap, BookOpen, Calendar, AlertCircle } from "lucide-react";
+
+import { GraduationCap, BookOpen, Calendar } from "lucide-react";
 import { AttendanceChart } from "../attendance/AttendanceChart";
 import { DemeritPointChart } from "../demerit-point/DemeritPointChart";
 import { DemeritPointList } from "../demerit-point/DemeritPointList";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import axios from "axios";
-import { toast } from "sonner";
 import { getRoleDisplayName } from "@/lib/constants/roles";
 import { ValidInfractionType } from "@/lib/constants/discplinary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Session } from "@/lib/types/session";
+import { useQuery } from "@tanstack/react-query";
+import { STUDENT_KEY } from "@/lib/constants/tanStackQueryKeys";
 
 interface DashboardProps {
   session: Session;
@@ -17,42 +19,65 @@ interface DashboardProps {
 
 type AttendanceStats = {
   type: "ALPHA" | "SICK" | "PERMISSION" | "LATE";
-  date: number | Date;
+  date: string;
 };
 
 type DemeritPointData = {
   category: ValidInfractionType;
   description: string;
-  point: number;
-  date: string | Date;
+  points: number; // match backend
+  date: string;
 };
 
+interface StudentDashboardResponse {
+  message: string;
+  data: {
+    attendanceRecords: AttendanceStats[];
+    problemPointRecords: DemeritPointData[];
+    totalSubject: number;
+  };
+}
+
 const CATEGORY_COLORS_HEX: Record<string, string> = {
-  LATE: "#F97316", // Orange
-  UNIFORM: "#6B7280", // Gray
-  DISCIPLINE: "#EF4444", // Red
-  ACADEMIC: "#3B82F6", // Blue
-  SOCIAL: "#22C55E", // Green
-  OTHER: "#A855F7", // Purple
+  LATE: "#F97316",
+  UNIFORM: "#6B7280",
+  DISCIPLINE: "#EF4444",
+  ACADEMIC: "#3B82F6",
+  SOCIAL: "#22C55E",
+  OTHER: "#A855F7",
 };
 
 const StudentDashboard = ({ session }: DashboardProps) => {
   const role = getRoleDisplayName(session.role);
-  const [loading, setLoading] = useState(true);
-  const [subjects, setSubjects] = useState([]);
-  const [attendanceStats, setAttendanceStats] = useState({
-    sick: [],
-    permission: [],
-    alpha: [],
-    late: [],
+
+  const { data, isLoading } = useQuery<StudentDashboardResponse>({
+    queryKey: STUDENT_KEY.all,
+    queryFn: async () => {
+      const res = await axios.get<StudentDashboardResponse>(
+        "/api/student/profile",
+      );
+      return res.data;
+    },
+    enabled: !!session?.id,
   });
-  const [demeritPointRecords, setDemeritPointRecords] = useState<
-    DemeritPointData[]
-  >([]);
-  const [totalDemeritPoint, setTotalDemeritPoint] = useState(0);
-  const [demeritPointChartData, setDemeritPointChartData] = useState<
-    { name: string; value: number; color: string }[]
-  >([]);
+
+  const attendanceRecords = data?.data.attendanceRecords ?? [];
+  const problemPointRecords = data?.data.problemPointRecords ?? [];
+  const totalSubject = data?.data.totalSubject ?? 0;
+
+  const attendanceStats = attendanceRecords.reduce(
+    (acc, stat) => {
+      const key = stat.type.toLowerCase() as keyof typeof acc;
+      acc[key].push(stat);
+      return acc;
+    },
+    {
+      sick: [] as AttendanceStats[],
+      permission: [] as AttendanceStats[],
+      alpha: [] as AttendanceStats[],
+      late: [] as AttendanceStats[],
+    },
+  );
 
   const chartData = [
     { name: "Sick", value: attendanceStats.sick.length, color: "#FBBF24" },
@@ -71,105 +96,46 @@ const StudentDashboard = ({ session }: DashboardProps) => {
     attendanceStats.alpha.length +
     attendanceStats.late.length;
 
-  const fetchAttendanceAndDemeritPointData = async () => {
-    try {
-      const res = await axios.get(`/api/student/profile`, {
-        params: {
-          studentId: session.id,
-        },
-      });
+  const totalDemeritPoint = problemPointRecords.reduce(
+    (acc, record) => acc + record.points,
+    0,
+  );
 
-      console.log(res.data);
-      if (res.status === 200) {
-        // Group data by type in one operation
-        const groupedAttendance = res.data.data.attendanceRecords.reduce(
-          (acc: any, stat: AttendanceStats) => {
-            const type = stat.type as keyof typeof acc;
-            if (!acc[type.toString().toLowerCase()])
-              acc[type.toString().toLowerCase()] = [];
-            acc[type.toString().toLowerCase()].push(stat);
-            return acc;
-          },
-          { sick: [], permission: [], alpha: [], late: [] },
-        );
+  const demeritMap: Record<string, number> = {};
+  problemPointRecords.forEach((record) => {
+    demeritMap[record.category] =
+      (demeritMap[record.category] || 0) + record.points;
+  });
 
-        const records = res.data.data.problemPointRecords;
-        const totalPoint = records.reduce(
-          (acc: any, record: DemeritPointData) => {
-            return acc + record.point;
-          },
-          0,
-        );
+  const demeritPointChartData = Object.entries(demeritMap).map(
+    ([category, value]) => ({
+      name: category.replace(/_/g, " "),
+      value,
+      color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
+    }),
+  );
 
-        // Process Demerit Point Chart Data
-        const ppChartDataMap: Record<string, number> = {};
-        records.forEach((record: DemeritPointData) => {
-          ppChartDataMap[record.category] =
-            (ppChartDataMap[record.category] || 0) + record.point;
-        });
-
-        const ppChartData = Object.entries(ppChartDataMap).map(
-          ([category, value]) => ({
-            name: category.replace(/_/g, " "),
-            value,
-            color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
-          }),
-        );
-
-        setTotalDemeritPoint(totalPoint);
-        setDemeritPointRecords(records);
-        setDemeritPointChartData(ppChartData);
-        setAttendanceStats(groupedAttendance);
-      }
-    } catch (error) {
-      console.error(`Error at fetching attendace data :${error}`);
-      toast.error("Something went wrong. Can't retrieve attendance data");
+  const getStatusStyle = (status: any) => {
+    switch (status) {
+      case "SICK":
+        return "bg-yellow-100 text-yellow-800";
+      case "ALPHA":
+        return "bg-red-100 text-red-800";
+      case "PERMISSION":
+        return "bg-blue-100 text-blue-800";
+      case "LATE":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const fetchStudentSubjectsData = async () => {
-    try {
-      const res = await axios.get("/api/student/profile", {
-        params: {
-          studentId: session.id,
-        },
-      });
-
-      console.log(res.data);
-
-      if (res.status === 200) {
-        setSubjects(res.data.data.subjects.studentSubjects);
-      }
-      console.log(subjects);
-    } catch (error) {
-      console.error(`Error at fetching student subjects: ${error}`);
-      toast.error("something went wrong. Can't retrieve subjects data");
-    }
-  };
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      await Promise.all([
-        fetchAttendanceAndDemeritPointData(),
-        fetchStudentSubjectsData(),
-      ]);
-      setLoading(false);
-    }
-
-    fetchData();
-  }, [session.id]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-8">
         <div className="grid grid-cols-2 gap-4">
           <Skeleton className="h-32 rounded-2xl" />
           <Skeleton className="h-32 rounded-2xl" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          <Skeleton className="h-[400px] rounded-2xl" />
-          <Skeleton className="h-[400px] rounded-2xl" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <Skeleton className="h-[400px] rounded-2xl" />
@@ -181,23 +147,21 @@ const StudentDashboard = ({ session }: DashboardProps) => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2  gap-4">
-        {/* Card 1: Total Subjects */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+      {/* Top Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-blue-600" />
             </div>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            {subjects.length}
+            {totalSubject}
           </div>
           <div className="text-sm text-gray-500">Total Subjects</div>
         </div>
 
-        {/* Card 3: Profile (Spans 2 cols on mobile, 1 on desktop) */}
-        <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />
@@ -208,27 +172,20 @@ const StudentDashboard = ({ session }: DashboardProps) => {
         </div>
       </div>
 
-      {/* Attendance Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Attendance Statistics (Donut Chart) */}
-        <div className="bg-white rounded-2xl border max-h-[500px] border-[#E5E7EB] shadow-sm p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-6">
-            Attendance Statistics (Absences)
-          </h3>
-          <div className="flex items-center justify-center">
-            <AttendanceChart data={chartData} />
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-gray-500 text-sm">
-              Total Absences:{" "}
-              <span className="font-bold text-gray-900">{totalAbsence}</span>
-            </p>
+      {/* Attendance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border shadow-sm p-6">
+          <h3 className="text-xl font-bold mb-6">Attendance Statistics</h3>
+          <AttendanceChart data={chartData} />
+          <div className="mt-4 text-center text-sm text-gray-500">
+            Total Absences:{" "}
+            <span className="font-bold text-gray-900">{totalAbsence}</span>
           </div>
         </div>
 
-        {/* Attendance Information */}
-        <div className="bg-white rounded-lg shadow p-6 max-h-[500px] overflow-y-auto">
-          <h2 className="text-lg font-semibold mb-4">Attendance Information</h2>
+        <div className="bg-white rounded-2xl border shadow-sm p-6 max-h-[500px] overflow-y-auto">
+          <h3 className="text-xl font-bold mb-6">Attendance Information</h3>
+
           {totalAbsence === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -236,136 +193,51 @@ const StudentDashboard = ({ session }: DashboardProps) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Sick */}
-              {attendanceStats.sick.length > 0 && (
-                <div className="border-l-4 border-yellow-500 bg-yellow-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <h3 className="font-semibold text-yellow-800">
-                      Sick ({attendanceStats.sick.length})
-                    </h3>
-                  </div>
-                  <div className="space-y-1 ml-4">
-                    {attendanceStats.sick.map((stat: { date: Date }, index) => (
-                      <div key={index} className="text-sm text-yellow-700">
-                        {new Date(stat.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+              {Object.entries(attendanceStats).map(
+                ([key, records]) =>
+                  records.length > 0 && (
+                    <div
+                      key={key}
+                      className={`${getStatusStyle(records[0].type)} px-4 py-3 rounded-lg`}
+                    >
+                      <h4 className="font-semibold capitalize text-sm mb-2">
+                        {key.charAt(0).toUpperCase() + key.slice(1)} (
+                        {records.length})
+                      </h4>
+                      <div className="space-y-1">
+                        {records.map((stat, index) => (
+                          <div key={index} className="text-sm opacity-80">
+                            {new Date(stat.date).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Permission */}
-              {attendanceStats.permission.length > 0 && (
-                <div className="border-l-4 border-blue-500 bg-blue-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <h3 className="font-semibold text-blue-800">
-                      Permission ({attendanceStats.permission.length})
-                    </h3>
-                  </div>
-                  <div className="space-y-1 ml-4">
-                    {attendanceStats.permission.map(
-                      (stat: { date: Date }, index) => (
-                        <div key={index} className="text-sm text-blue-700">
-                          {new Date(stat.date).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Alpha */}
-              {attendanceStats.alpha.length > 0 && (
-                <div className="border-l-4 border-red-500 bg-red-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <h3 className="font-semibold text-red-800">
-                      Alpha/Unexcused ({attendanceStats.alpha.length})
-                    </h3>
-                  </div>
-                  <div className="space-y-1 ml-4">
-                    {attendanceStats.alpha.map(
-                      (stat: { date: Date }, index) => (
-                        <div key={index} className="text-sm text-red-700">
-                          {new Date(stat.date).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Late */}
-              {attendanceStats.late.length > 0 && (
-                <div className="border-l-4 border-orange-500 bg-orange-50 p-3 rounded">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    <h3 className="font-semibold text-orange-800">
-                      Late ({attendanceStats.late.length})
-                    </h3>
-                  </div>
-                  <div className="space-y-1 ml-4">
-                    {attendanceStats.late.map((stat: { date: Date }, index) => (
-                      <div key={index} className="text-sm text-orange-700">
-                        {new Date(stat.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  ),
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Demerit Points Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Chart */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-6">
-            Demerit Points Breakdown
-          </h3>
-          <div className="flex items-center justify-center">
-            <DemeritPointChart data={demeritPointChartData} />
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-gray-500 text-sm">
-              Total Demerit Points:{" "}
-              <span className="font-bold text-red-600">
-                {totalDemeritPoint}
-              </span>
-            </p>
+      {/* Demerit Points */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border shadow-sm p-6">
+          <h3 className="text-xl font-bold mb-6">Demerit Points Breakdown</h3>
+          <DemeritPointChart data={demeritPointChartData} />
+          <div className="mt-4 text-center text-sm text-gray-500">
+            Total Points:{" "}
+            <span className="font-bold text-red-600">{totalDemeritPoint}</span>
           </div>
         </div>
 
-        {/* List */}
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-6">
-            Demerit Points History
-          </h3>
-          <DemeritPointList data={demeritPointRecords} />
+        <div className="bg-white rounded-2xl border shadow-sm p-6">
+          <h3 className="text-xl font-bold mb-6">Demerit Points History</h3>
+          <DemeritPointList data={problemPointRecords} />
         </div>
       </div>
     </div>

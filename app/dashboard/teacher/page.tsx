@@ -2,8 +2,7 @@ import React from "react";
 import { auth } from "@/lib/auth/authNode";
 import { redirect } from "next/navigation";
 import { getRoleDashboard, isTeacherRole } from "@/lib/constants/roles";
-import TeachingClassesAndTeachingAssignments from "@/components/dashboard/teacher/TeachingClassesAndTeachingAssignments";
-import TeacherSummary from "@/components/dashboard/teacher/TeacherSummary";
+import TeacherDashboard from "@/components/dashboard/teacher/dashboard/TeacherDashboard";
 
 const page = async () => {
   const session = await auth();
@@ -16,8 +15,7 @@ const page = async () => {
 
   return (
     <div className="p-8 space-y-8">
-      <TeacherSummary session={session.user} />
-      <TeachingClassesAndTeachingAssignments session={session.user} />
+      <TeacherDashboard session={session.user} />
     </div>
   );
 };

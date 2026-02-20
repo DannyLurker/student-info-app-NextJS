@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { GRADES, MAJORS, CLASSNUMBERS } from "@/lib/constants/class";
+import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
 import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
 import { FileSpreadsheet, Download } from "lucide-react";
 import { Session } from "@/lib/types/session";
@@ -26,11 +26,11 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
   const [selectedClass, setSelectedClass] = useState({
     grade: "",
     major: "",
-    classNumber: "",
+    section: "",
   });
 
   const isClassSelected =
-    selectedClass.grade && selectedClass.major && selectedClass.classNumber;
+    selectedClass.grade && selectedClass.major && selectedClass.section;
 
   const handleDownload = async () => {
     if (!isClassSelected) {
@@ -43,10 +43,9 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
     try {
       const response = await axios.get("/api/staff/students", {
         params: {
-          staffId: session.id,
           grade: selectedClass.grade,
           major: selectedClass.major,
-          classNumber: selectedClass.classNumber,
+          section: selectedClass.section,
         },
         responseType: "blob",
       });
@@ -57,7 +56,7 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
       link.href = url;
 
       // Generate filename with class info
-      const fileName = `Students-${selectedClass.grade}-${selectedClass.major}-${selectedClass.classNumber}.xlsx`;
+      const fileName = `Students-${selectedClass.grade}-${selectedClass.major}-${selectedClass.section}.xlsx`;
       link.setAttribute("download", fileName);
 
       document.body.appendChild(link);
@@ -82,7 +81,7 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
     setSelectedClass({
       grade: "",
       major: "",
-      classNumber: "",
+      section: "",
     });
   };
 
@@ -162,16 +161,16 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
                 Class Number
               </label>
               <Select
-                value={selectedClass.classNumber}
+                value={selectedClass.section}
                 onValueChange={(val) =>
-                  setSelectedClass({ ...selectedClass, classNumber: val })
+                  setSelectedClass({ ...selectedClass, section: val })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLASSNUMBERS.map((c) => (
+                  {CLASS_SECTION.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c === "none" ? "None" : `Class ${c}`}
                     </SelectItem>
@@ -189,8 +188,8 @@ const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
               <span className="font-medium">Selected:</span>{" "}
               {GRADE_DISPLAY_MAP[selectedClass.grade]} -{" "}
               {MAJOR_DISPLAY_MAP[selectedClass.major]}
-              {selectedClass.classNumber !== "none" &&
-                ` - Class ${selectedClass.classNumber}`}
+              {selectedClass.section !== "none" &&
+                ` - Class ${selectedClass.section}`}
             </p>
           </div>
         )}

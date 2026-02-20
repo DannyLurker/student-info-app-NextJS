@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,33 +56,41 @@ interface AttendanceManagerProps {
   session: Session;
 }
 
+type SortOption = "name-asc" | "name-desc" | "status";
+
+const STATUS_OPTIONS = [
+  { value: "PRESENT", label: "PRESENT", color: "text-emerald-700" },
+  { value: "SICK", label: "SICK", color: "text-amber-700" },
+  { value: "PERMISSION", label: "PERMISSION", color: "text-blue-700" },
+  { value: "ALPHA", label: "ALPHA", color: "text-red-700" },
+  { value: "LATE", label: "LATE", color: "text-orange-700" },
+];
+/** Returns local date as "YYYY-MM-DD" — timezone safe, avoids UTC shift */
+const getLocalDateString = (date = new Date()): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
 const AttendanceManager = ({ session }: AttendanceManagerProps) => {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Filter/Sort State
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0],
+    getLocalDateString(), // ✅ local timezone, not UTC
   );
-  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "status">(
-    "name-asc",
-  );
+  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const effectiveSearchQuery =
     debouncedSearchQuery.length >= 3 ? debouncedSearchQuery : "";
   const [currentPage, setCurrentPage] = useState(0);
-
-  // Unsaved changes: local edits that persist across pages
   const [unsavedChanges, setUnsavedChanges] = useState<
     Record<string, AttendanceRecord>
   >({});
 
-  type SortOption = "name-asc" | "name-desc" | "status";
-
-  // Computed properties
-  const isFutureDate =
-    new Date(selectedDate) > new Date(new Date().toISOString().split("T")[0]);
+  // String comparison works for YYYY-MM-DD — no Date parsing, no timezone shift
+  const isFutureDate = selectedDate > getLocalDateString();
   const isValidDate = !isFutureDate;
 
   // Reset page when filters change
@@ -91,7 +98,11 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     setCurrentPage(0);
   }, [effectiveSearchQuery, sortBy, selectedDate]);
 
-  // Derived API params
+  // FIX: Reset unsaved changes when date changes
+  useEffect(() => {
+    setUnsavedChanges({});
+  }, [selectedDate]);
+
   const apiSortBy = sortBy === "status" ? "status" : "name";
   const apiSortOrder = sortBy === "name-desc" ? "desc" : "asc";
 
@@ -109,7 +120,12 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
     return data.data;
   };
 
-  const { data: attendanceData, isLoading: loading } = useQuery({
+  const {
+    data: attendanceData,
+    isLoading: loading,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ATTENDANCE_KEYS.list({
       homeroomTeacherId: session.homeroomTeacherId,
       date: selectedDate,
@@ -119,7 +135,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       searchQuery: effectiveSearchQuery,
     }),
     queryFn: fetchAttendance,
-    placeholderData: (previousData) => previousData,
+    staleTime: 0, // always consider data stale → refetch on queryKey change
     enabled:
       session?.role === STUDENT_POSITIONS.CLASS_SECRETARY ||
       (session.role === STAFF_POSITIONS.TEACHER &&
@@ -153,37 +169,37 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       (apiStats.sick + apiStats.permission + apiStats.alpha + apiStats.late),
   };
 
-  // Build server map for merging
+  // While fetching, use empty map so stale data from previous date doesn't bleed into rows
   const serverAttendanceMap: Record<string, AttendanceRecord> = {};
-  attendanceData?.studentAttendanceRecords.forEach((record: any) => {
-    if (record.attendances && record.attendances.length > 0) {
-      const att = record.attendances[0];
-      serverAttendanceMap[record.id] = {
-        studentId: record.id,
-        type: att.type,
-        description: att.description || "",
-      };
-    }
-  });
+  if (!isFetching) {
+    attendanceData?.studentAttendanceRecords.forEach((record: any) => {
+      const attendance = record.studentProfile?.attendance;
+      if (attendance && attendance.length > 0) {
+        const att = attendance[0];
+        serverAttendanceMap[record.id] = {
+          studentId: record.id,
+          type: att.type,
+          description: att.note || "",
+        };
+      }
+    });
+  }
 
   const saveMutation = useMutation({
     mutationFn: async (records: any[]) => {
-      await axios.post("/api/attendance", {
-        date: selectedDate,
-        records,
-      });
+      await axios.post("/api/attendance", { date: selectedDate, records });
     },
     onSuccess: () => {
       toast.success("Attendance saved successfully");
       setUnsavedChanges({});
-      queryClient.invalidateQueries({
-        queryKey: ATTENDANCE_KEYS.lists(),
-      });
+      refetch(); // directly refetch the current active query
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Something went wrong");
     },
   });
+
+  const NO_DESCRIPTION_TYPES = ["PRESENT", "ALPHA", "LATE"];
 
   const handleAttendanceChange = (
     studentId: string,
@@ -195,10 +211,14 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
       const currentRecord = prev[studentId] ||
         serverRecord || { studentId, type: "PRESENT" };
 
-      return {
-        ...prev,
-        [studentId]: { ...currentRecord, [field]: value },
-      };
+      const updated = { ...currentRecord, [field]: value };
+
+      // Clear description when switching to a type that doesn't need it
+      if (field === "type" && NO_DESCRIPTION_TYPES.includes(value)) {
+        updated.description = "";
+      }
+
+      return { ...prev, [studentId]: updated };
     });
   };
 
@@ -222,15 +242,16 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
   const handleSubmit = () => {
     const recordsToSave = Object.values(unsavedChanges).map((record) => ({
       studentId: record.studentId,
+      // API's normalizeAttendanceType converts "PRESENT" → null → deletes DB record
       attendanceType: record.type,
-      description: record.description,
+      description: NO_DESCRIPTION_TYPES.includes(record.type)
+        ? undefined
+        : record.description,
     }));
-
     if (recordsToSave.length === 0) {
       toast.success("No changes to save.");
       return;
     }
-
     saveMutation.mutate(recordsToSave);
   };
 
@@ -243,7 +264,7 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header Section */}
+      {/* Header */}
       <div className="m-8 mt-0 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-8 text-white shadow-lg">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -260,91 +281,106 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
             </div>
           </div>
 
-          {/* Statistics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20">
-              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-              <div className="text-xs sm:text-sm text-blue-100 mt-1">
-                Total Students
+            {[
+              {
+                value: stats.total,
+                label: "Total Students",
+                bg: "bg-white/10",
+                border: "border-white/20",
+                text: "text-blue-100",
+              },
+              {
+                value: stats.present,
+                label: "Present",
+                bg: "bg-emerald-500/20",
+                border: "border-emerald-400/30",
+                text: "text-emerald-100",
+              },
+              {
+                value: stats.sick,
+                label: "Sick",
+                bg: "bg-amber-500/20",
+                border: "border-amber-400/30",
+                text: "text-amber-100",
+              },
+              {
+                value: stats.permission,
+                label: "Permission",
+                bg: "bg-blue-500/20",
+                border: "border-blue-400/30",
+                text: "text-blue-100",
+              },
+              {
+                value: stats.alpha,
+                label: "Alpha",
+                bg: "bg-red-500/20",
+                border: "border-red-400/30",
+                text: "text-red-100",
+              },
+              {
+                value: stats.late,
+                label: "Late",
+                bg: "bg-orange-500/20",
+                border: "border-orange-400/30",
+                text: "text-orange-100",
+              },
+            ].map(({ value, label, bg, border, text }) => (
+              <div
+                key={label}
+                className={`${bg} backdrop-blur-sm rounded-xl p-3 sm:p-4 border ${border}`}
+              >
+                <div className="text-xl sm:text-2xl font-bold">{value}</div>
+                <div className={`text-xs sm:text-sm mt-1 ${text}`}>{label}</div>
               </div>
-            </div>
-            <div className="bg-emerald-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-emerald-400/30">
-              <div className="text-xl sm:text-2xl font-bold">
-                {stats.present}
-              </div>
-              <div className="text-xs sm:text-sm text-emerald-100 mt-1">
-                Present
-              </div>
-            </div>
-            <div className="bg-amber-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-amber-400/30">
-              <div className="text-xl sm:text-2xl font-bold">{stats.sick}</div>
-              <div className="text-xs sm:text-sm text-amber-100 mt-1">Sick</div>
-            </div>
-            <div className="bg-blue-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-blue-400/30">
-              <div className="text-xl sm:text-2xl font-bold">
-                {stats.permission}
-              </div>
-              <div className="text-xs sm:text-sm text-blue-100 mt-1">
-                Permission
-              </div>
-            </div>
-            <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-red-400/30">
-              <div className="text-xl sm:text-2xl font-bold">{stats.alpha}</div>
-              <div className="text-xs sm:text-sm text-red-100 mt-1">Alpha</div>
-            </div>
-            <div className="bg-orange-500/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-orange-400/30">
-              <div className="text-xl sm:text-2xl font-bold">{stats.late}</div>
-              <div className="text-xs sm:text-sm text-orange-100 mt-1">
-                Late
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Main Content Card */}
+      {/* Main Card */}
       <div className="mx-4 sm:mx-6 lg:mx-8">
         <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] overflow-hidden">
-          {/* Card Header & Controls */}
+          {/* Controls */}
           <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-[#E5E7EB] bg-[#F9FAFB]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="relative w-full lg:w-[250px]">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                  <Input
-                    placeholder="Search students..."
-                    className="pl-9 bg-white"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery.length > 0 && searchQuery.length < 3 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter at least 3 characters to search
-                    </p>
-                  )}
-                </div>
+              {/* Search */}
+              <div className="relative w-full md:w-[250px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search students..."
+                  className="pl-9 bg-white"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery.length > 0 && searchQuery.length < 3 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter at least 3 characters
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
+                {/* Sort */}
                 <Select
                   value={sortBy}
-                  onValueChange={(value) => setSortBy(value as SortOption)}
+                  onValueChange={(v) => setSortBy(v as SortOption)}
                 >
-                  <SelectTrigger className="sm:w-[180px] lg:w-[250px] bg-white">
-                    <ArrowUpDown className="w-4 h-4 mr-2 hidden lg:block" />
+                  <SelectTrigger className="w-full sm:w-[180px] bg-white">
+                    <ArrowUpDown className="w-4 h-4 mr-2 hidden sm:block" />
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="name-asc">Name (A-Z)</SelectItem>
                     <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                    {/* Status sorting might behave oddly if mixing server/local state, but passing to API is correct */}
                     <SelectItem value="status">Status</SelectItem>
                   </SelectContent>
                 </Select>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                  <div className="w-full sm:w-40 flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[#E5E7EB] shadow-sm">
-                    <Calendar className="w-4 h-4 text-gray-500" />
+                {/* Date + Save */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-[#E5E7EB] shadow-sm">
+                    <Calendar className="w-4 h-4 text-gray-500 shrink-0" />
                     <input
                       type="date"
                       value={selectedDate}
@@ -358,15 +394,15 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                     <Button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white w-full sm:w-40 font-semibold px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      className="bg-[#1E3A8A] hover:bg-[#1E3A8A]/90 text-white font-semibold px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                     >
                       <Save className="w-4 h-4" />
                       {isSubmitting
                         ? "Saving..."
-                        : `Save Changes ${unsavedCount > 0 ? `(${unsavedCount})` : ""}`}
+                        : `Save Changes${unsavedCount > 0 ? ` (${unsavedCount})` : ""}`}
                     </Button>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-200">
+                    <div className="flex items-center justify-center gap-2 bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-200 whitespace-nowrap">
                       <Lock className="w-4 h-4" />
                       <span className="font-medium text-sm">
                         Future dates locked
@@ -378,185 +414,79 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
             </div>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[#F9FAFB] border-b-2 border-[#E5E7EB]">
-                <tr>
-                  <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    Student Name
-                  </th>
-                  <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    Attendance Status
-                  </th>
-                  <th className="px-6 lg:px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                    Notes
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
-                {studentList.map((student, index) => {
-                  // Merge: Unsaved > Server > Default
-                  const unsaved = unsavedChanges[student.id];
-                  const server = serverAttendanceMap[student.id];
-                  const record = unsaved ||
-                    server || {
-                      studentId: student.id,
-                      type: "PRESENT",
-                      description: "",
-                    };
+          {/* ── Unified List (replaces separate desktop table + mobile cards) ── */}
 
-                  return (
-                    <tr
-                      key={student.id}
-                      className="hover:bg-blue-50/30 transition-colors duration-150"
-                    >
-                      <td className="px-6 lg:px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#3B82F6] text-white flex items-center justify-center font-semibold text-sm">
-                            {/* Adjust index for pagination */}
-                            {currentPage * ITEMS_PER_PAGE + index + 1}
-                          </div>
-                          <span className="font-semibold text-[#111827]">
-                            {abbreviateName(student.name)}
-                            {unsaved && (
-                              <span className="ml-2 text-xs text-amber-600 font-normal">
-                                (Edited)
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 lg:px-8 py-5">
-                        {isValidDate ? (
-                          <Select
-                            value={record.type || "PRESENT"}
-                            onValueChange={(value) =>
-                              handleAttendanceChange(student.id, "type", value)
-                            }
-                          >
-                            <SelectTrigger
-                              className={`w-40 h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}
-                            >
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="PRESENT">
-                                <span className="font-semibold text-emerald-700">
-                                  PRESENT
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="SICK">
-                                <span className="font-semibold text-amber-700">
-                                  SICK
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="PERMISSION">
-                                <span className="font-semibold text-blue-700">
-                                  PERMISSION
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="ALPHA">
-                                <span className="font-semibold text-red-700">
-                                  ALPHA
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="LATE">
-                                <span className="font-semibold text-orange-700">
-                                  LATE
-                                </span>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span
-                            className={`inline-flex px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border ${getStatusColor(record.type)}`}
-                          >
-                            {record.type}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 lg:px-8 py-5">
-                        {isValidDate &&
-                        record.type !== "ALPHA" &&
-                        record.type !== "PRESENT" &&
-                        record.type !== "LATE" ? (
-                          <Input
-                            placeholder="Add optional description..."
-                            value={record.description || ""}
-                            onChange={(e) =>
-                              handleAttendanceChange(
-                                student.id,
-                                "description",
-                                e.target.value,
-                              )
-                            }
-                            className="h-10 max-w-md text-sm border-gray-200 focus:border-[#3B82F6] focus:ring-[#3B82F6]"
-                          />
-                        ) : !isValidDate && record.description ? (
-                          <span className="text-gray-600 text-sm italic">
-                            {record.description}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {studentList.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={3} className="px-8 py-16">
-                      <div className="text-center space-y-3">
-                        <Users className="w-12 h-12 text-gray-300 mx-auto" />
-                        <p className="text-gray-400 font-medium">
-                          No students found in this class
-                        </p>
-                        <p className="text-gray-400 text-sm">
-                          Please check your homeroom assignment
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* Column headers — visible on sm+ */}
+          <div className="hidden sm:grid sm:grid-cols-[2fr_1.5fr_2fr] gap-4 px-6 lg:px-8 py-3 bg-[#F9FAFB] border-b-2 border-[#E5E7EB]">
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+              Student Name
+            </span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+              Status
+            </span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+              Notes
+            </span>
           </div>
 
-          {/* Mobile Card View */}
-          <div className="sm:hidden divide-y divide-[#E5E7EB]">
-            {studentList.map((student, index) => {
-              const unsaved = unsavedChanges[student.id];
-              const server = serverAttendanceMap[student.id];
-              const record = unsaved ||
-                server || {
-                  studentId: student.id,
-                  type: "PRESENT",
-                  description: "",
-                };
+          <div
+            className={`divide-y divide-[#E5E7EB] relative transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : "opacity-100"}`}
+          >
+            {studentList.length === 0 && !loading ? (
+              <div className="px-8 py-16 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-400 font-medium">
+                  No students found in this class
+                </p>
+                <p className="text-gray-400 text-sm">
+                  Please check your homeroom assignment
+                </p>
+              </div>
+            ) : (
+              studentList.map((student, index) => {
+                const unsaved = unsavedChanges[student.id];
+                const server = serverAttendanceMap[student.id];
+                const record = unsaved ||
+                  server || {
+                    studentId: student.id,
+                    type: "PRESENT" as const,
+                    description: "",
+                  };
 
-              return (
-                <div
-                  key={student.id}
-                  className="p-4 hover:bg-blue-50/30 transition-colors"
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-[#3B82F6] text-white flex items-center justify-center font-semibold text-xs">
+                const showNoteInput =
+                  isValidDate &&
+                  record.type !== "ALPHA" &&
+                  record.type !== "PRESENT" &&
+                  record.type !== "LATE";
+
+                return (
+                  <div
+                    key={student.id}
+                    className="
+                      px-4 sm:px-6 lg:px-8 py-4
+                      hover:bg-blue-50/30 transition-colors duration-150
+                      grid grid-cols-1 sm:grid-cols-[2fr_1.5fr_2fr]
+                      gap-3 sm:gap-4 sm:items-center
+                    "
+                  >
+                    {/* Name */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-[#3B82F6] text-white flex items-center justify-center font-semibold text-sm shrink-0">
                         {currentPage * ITEMS_PER_PAGE + index + 1}
                       </div>
-                      <span className="font-semibold text-[#111827] text-sm truncate">
-                        {student.name}
+                      <span className="font-semibold text-[#111827] text-sm sm:text-base truncate">
+                        {abbreviateName(student.name)}
                       </span>
                       {unsaved && (
-                        <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
+                        <span className="shrink-0 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
                           Edited
                         </span>
                       )}
                     </div>
 
-                    {isValidDate && (
-                      <div className="pt-2">
+                    {/* Status */}
+                    <div>
+                      {isValidDate ? (
                         <Select
                           value={record.type || "PRESENT"}
                           onValueChange={(value) =>
@@ -564,42 +494,34 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                           }
                         >
                           <SelectTrigger
-                            className={`w-full h-10 font-semibold ${getStatusColor(record.type || "PRESENT")}`}
+                            className={`w-full sm:w-36 h-9 font-semibold text-sm ${getStatusColor(record.type || "PRESENT")}`}
                           >
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="PRESENT">
-                              <span className="font-semibold text-emerald-700">
-                                PRESENT
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="SICK">
-                              <span className="font-semibold text-amber-700">
-                                SICK
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="PERMISSION">
-                              <span className="font-semibold text-blue-700">
-                                PERMISSION
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="ALPHA">
-                              <span className="font-semibold text-red-700">
-                                ALPHA
-                              </span>
-                            </SelectItem>
+                            {STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <span className={`font-semibold ${opt.color}`}>
+                                  {opt.label}
+                                </span>
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
-                      </div>
-                    )}
+                      ) : (
+                        <span
+                          className={`inline-flex px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide border ${getStatusColor(record.type)}`}
+                        >
+                          {record.type}
+                        </span>
+                      )}
+                    </div>
 
-                    <div className="col-span-2 pt-2">
-                      {isValidDate &&
-                      record.type !== "ALPHA" &&
-                      record.type !== "PRESENT" ? (
+                    {/* Notes */}
+                    <div>
+                      {showNoteInput ? (
                         <Input
-                          placeholder="Add note..."
+                          placeholder="Add optional description..."
                           value={record.description || ""}
                           onChange={(e) =>
                             handleAttendanceChange(
@@ -608,33 +530,25 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                               e.target.value,
                             )
                           }
-                          className="h-9 w-full text-sm border-gray-200 focus:border-[#3B82F6] focus:ring-[#3B82F6]"
+                          className="h-9 text-sm border-gray-200 focus:border-[#3B82F6] focus:ring-[#3B82F6]"
                         />
                       ) : !isValidDate && record.description ? (
-                        <p className="text-gray-600 text-sm italic bg-gray-50 p-2 rounded">
+                        <span className="text-gray-600 text-sm italic">
                           {record.description}
-                        </p>
-                      ) : null}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm hidden sm:inline">
+                          —
+                        </span>
+                      )}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {studentList.length === 0 && !loading && (
-              <div className="p-8">
-                <div className="text-center space-y-3">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto" />
-                  <p className="text-gray-400 font-medium">No students found</p>
-                  <p className="text-gray-400 text-sm">
-                    Please check your homeroom assignment
-                  </p>
-                </div>
-              </div>
+                );
+              })
             )}
           </div>
 
-          {/* Pagination Controls */}
+          {/* Pagination */}
           {totalPages > 1 && (
             <div className="px-4 sm:px-6 lg:px-8 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-sm text-gray-600">
@@ -646,14 +560,11 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(0, prev - 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                   disabled={currentPage === 0 || loading}
                   className="flex items-center gap-1"
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  Previous
+                  <ChevronLeft className="w-4 h-4" /> Previous
                 </Button>
                 <span className="text-sm font-medium text-gray-700 px-3">
                   Page {currentPage + 1} of {totalPages}
@@ -662,13 +573,12 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
+                    setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
                   }
                   disabled={currentPage >= totalPages - 1 || loading}
                   className="flex items-center gap-1"
                 >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
+                  Next <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>

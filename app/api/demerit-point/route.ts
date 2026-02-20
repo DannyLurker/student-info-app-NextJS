@@ -229,6 +229,7 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    validateTeacherSession();
     const body = await req.json();
     const data = updateDemeritPointSchema.parse(body);
 

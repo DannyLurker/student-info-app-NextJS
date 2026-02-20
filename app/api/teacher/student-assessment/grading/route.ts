@@ -25,8 +25,6 @@ export async function PATCH(req: Request) {
 
     if (!teachingAssignment) throw notFound("Teaching assignment not found");
 
-    console.log(data.students.map((student) => student.studentAssessments));
-
     await prisma.$transaction(
       async (tx) => {
         // Flatten the nested data into a linear array for easier processing within a single transaction.

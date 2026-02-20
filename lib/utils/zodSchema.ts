@@ -1,9 +1,15 @@
-import { string, z } from "zod";
+import { z } from "zod";
 
 const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
-const AttendanceTypesEnum = z.enum(["ALPHA", "SICK", "PERMISSION", "LATE"]);
+const AttendanceTypesEnum = z.enum([
+  "ALPHA",
+  "SICK",
+  "PERMISSION",
+  "LATE",
+  "PRESENT",
+]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
 const SortByEnum = z.enum(["name", "status"]);
 const SortOrderEnum = z.enum(["asc", "desc"]);
@@ -336,6 +342,13 @@ type UpdateAssessmentScoresSchema = z.infer<
   typeof updateAssessmentScoresSchema
 >;
 
+// EXPORT student into excel for easier assessment management
+const getStudentExportSchema = z.object({
+  grade: GradeEnum,
+  major: MajorEnum,
+  section: ClassSectionEnum,
+});
+
 export {
   studentQuerySchema,
   createClassSchema,
@@ -360,6 +373,7 @@ export {
   updateDemeritPointSchema,
   demeritPointQuerySchema,
   classSchema,
+  getStudentExportSchema,
   type CreateClassSchema,
   type CreateSubjectInput,
   type UpdateClassSchema,

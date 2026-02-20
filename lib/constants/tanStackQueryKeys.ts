@@ -19,6 +19,15 @@ export const TEACHER_KEYS = {
   listsAll: () => [...TEACHER_KEYS.all, "list", "all"] as const,
 };
 
+export const STUDENT_KEY = {
+  all: ["teachers"] as const,
+  lists: () => [...STUDENT_KEY.all, "list"] as const,
+  list: (filters: any) => [...STUDENT_KEY.lists(), { filters }] as const,
+  details: () => [...STUDENT_KEY.all, "detail"] as const,
+  detail: (id: string) => [...STUDENT_KEY.details(), id] as const,
+  listsAll: () => [...STUDENT_KEY.all, "list", "all"] as const,
+};
+
 export const CLASSROOM_KEYS = {
   all: ["classrooms"] as const,
   nonHomeroom: () => [...CLASSROOM_KEYS.all, "nonHomeroom"] as const,
@@ -41,8 +50,7 @@ export const ATTENDANCE_KEYS = {
 export const DEMERIT_POINT_KEYS = {
   all: ["demeritPoints"] as const,
   lists: () => [...DEMERIT_POINT_KEYS.all, "list"] as const,
-  list: (filters: any) =>
-    [...DEMERIT_POINT_KEYS.lists(), { filters }] as const,
+  list: (filters: any) => [...DEMERIT_POINT_KEYS.lists(), { filters }] as const,
 };
 
 export const ASSESSMENT_KEYS = {

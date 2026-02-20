@@ -1,41 +1,48 @@
-import { badRequest, handleError, notFound } from "@/lib/errors";
-import { classSchema } from "@/lib/utils/zodSchema";
+import { handleError, notFound } from "@/lib/errors";
+import { getStudentExportSchema } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import * as XLSX from "xlsx";
+import { validateManagementSession } from "@/lib/validation/guards";
 
 export async function GET(req: Request) {
   try {
+    validateManagementSession();
+
     const { searchParams } = new URL(req.url);
 
-    const staffIdParam = searchParams.get("staffId");
+    const rawData = Object.fromEntries(searchParams.entries());
 
-    const data = classSchema.parse({
-      grade: searchParams.get("grade"),
-      major: searchParams.get("major"),
-      classNumber: searchParams.get("classNumber"),
-    });
+    const data = getStudentExportSchema.parse(rawData);
 
-    if (!staffIdParam) {
-      throw badRequest("Staff id is missing");
-    }
-
-    const studentRecords = await prisma.student.findMany({
+    const studentRecords = await prisma.classroom.findUnique({
       where: {
-        grade: data.grade,
-        major: data.major,
-        classNumber: data.classNumber,
+        grade_major_section: {
+          grade: data.grade,
+          major: data.major,
+          section: data.section,
+        },
       },
       select: {
-        id: true,
-        name: true,
+        students: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    if (studentRecords.length === 0) {
+    if (studentRecords?.students.length === 0) {
       throw notFound("Student not found");
     }
 
-    const studentsWorksheet = XLSX.utils.json_to_sheet(studentRecords);
+    const studentsWorksheet = XLSX.utils.json_to_sheet(
+      studentRecords?.students.map((student) => student.user) as [],
+    );
     const studentWorkbook = XLSX.utils.book_new();
 
     XLSX.utils.book_append_sheet(

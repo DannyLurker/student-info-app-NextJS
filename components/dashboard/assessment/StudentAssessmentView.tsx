@@ -21,11 +21,11 @@ interface Subject {
   subjectName: string;
 }
 
-interface StudentMarkViewProps {
+interface StudentAssessmentViewProps {
   session: Session;
 }
 
-const StudentMarkView = ({ session }: StudentMarkViewProps) => {
+const StudentAssessmentView = ({ session }: StudentAssessmentViewProps) => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [marks, setMarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,4 +146,4 @@ const StudentMarkView = ({ session }: StudentMarkViewProps) => {
   );
 };
 
-export default StudentMarkView;
+export default StudentAssessmentView;

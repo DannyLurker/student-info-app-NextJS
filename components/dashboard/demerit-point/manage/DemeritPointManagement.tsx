@@ -65,6 +65,8 @@ export default function DemeritPointManagement() {
     placeholderData: (previousData) => previousData,
   });
 
+  console.log(responseData);
+
   const data = responseData?.data || [];
   const totalRecords = responseData?.totalRecords || 0;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);

@@ -5,7 +5,7 @@ import { BadgeAlert, Clock, AlertTriangle } from "lucide-react";
 interface DemeritPointRecord {
   category: string;
   description: string;
-  point: number;
+  points: number;
   date: string | Date;
 }
 
@@ -65,7 +65,7 @@ export const DemeritPointList = ({ data }: DemeritPointListProps) => {
                   {item.category.replace(/_/g, " ")}
                 </h4>
                 <span className="text-red-600 font-bold whitespace-nowrap">
-                  +{item.point} pts
+                  +{item.points} pts
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-1 line-clamp-2">

@@ -12,6 +12,7 @@ import {
   getDayBounds,
   getSemester,
   getSemesterDateRange,
+  parseDateString,
 } from "@/lib/utils/date";
 import {
   MIN_SEARCH_LENGTH,
@@ -64,6 +65,8 @@ export async function POST(req: Request) {
     const rawData = await req.json();
     const { date, records } = bulkAttendanceSchema.parse(rawData);
 
+    console.log("Date: " + date);
+
     if (records.length === 0) {
       return Response.json(
         { message: "No records to process." },
@@ -72,11 +75,10 @@ export async function POST(req: Request) {
     }
 
     // VALIDATION: Date logic
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    const attendanceDate = parseDateString(date);
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(23, 59, 59, 59);
 
     if (attendanceDate > today) {
       throw badRequest("Attendance date cannot be in the future.");
@@ -161,8 +163,6 @@ export async function POST(req: Request) {
       for (const record of normalizedRecords) {
         const existing = attendanceMap.get(record.studentId);
 
-        console.log(existing);
-
         if (record.type === null) {
           // Present = if there is a record, Delete attendance record
           if (existing) {
@@ -227,7 +227,10 @@ export async function GET(req: Request) {
 
     const data = studentAttendacesQueries.parse(rawParams);
 
-    const targetDate = new Date(data.date);
+    const targetDate = parseDateString(data.date);
+
+    console.log("Target Date (GET): " + targetDate);
+
     const { startOfDay, endOfDay } = getDayBounds(targetDate);
 
     let studentAttendanceRecords;

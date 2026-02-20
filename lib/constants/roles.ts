@@ -49,7 +49,7 @@ export const isClassSecretaryRole = (role: string): role is StudentPosition =>
   role === STUDENT_POSITIONS.CLASS_SECRETARY;
 
 export const isTeacherRole = (role: string): role is StaffPosition =>
-  STAFF_POSITIONS.TEACHER === role;
+  STAFF_POSITIONS_ARRAY.includes(role);
 
 export const hasManagementAccess = (role: string): role is ManagementPosition =>
   MANAGEMENT_POSITIONS_ARRAY.includes(role as ManagementPosition);

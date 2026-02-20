@@ -11,7 +11,13 @@ export async function GET(req: Request) {
         teacherId: teacherSession.userId,
       },
       select: {
-        class: true,
+        class: {
+          select: {
+            grade: true,
+            major: true,
+            section: true,
+          },
+        },
         subject: {
           select: {
             id: true,

@@ -4,6 +4,7 @@ import { unauthorized, notFound, forbidden, badRequest } from "@/lib/errors";
 import {
   hasManagementAccess,
   isClassSecretaryRole,
+  isStudentRole,
   isTeacherRole,
 } from "@/lib/constants/roles";
 
@@ -60,38 +61,6 @@ export async function validateManagementSession() {
   }
 
   return teacherProfile;
-}
-
-export async function validateSecretarySession() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw unauthorized("You haven't logged in yet");
-  }
-
-  const studentProfile = await prisma.student.findUnique({
-    where: { userId: session.user.id },
-    select: {
-      userId: true,
-      studentRole: true,
-      classId: true,
-      user: {
-        select: { name: true },
-      },
-    },
-  });
-
-  if (!studentProfile) {
-    throw notFound("Student secretary profile not found");
-  }
-
-  const canAccess = isClassSecretaryRole(studentProfile.studentRole);
-
-  if (!canAccess) {
-    throw forbidden("You're not allowed to access this");
-  }
-
-  return studentProfile;
 }
 
 export async function validateHomeroomTeacherSession() {
@@ -157,4 +126,68 @@ export async function validateTeacherSession() {
   }
 
   return teacherProfile;
+}
+
+export async function validateSecretarySession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const studentProfile = await prisma.student.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      studentRole: true,
+      classId: true,
+      user: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!studentProfile) {
+    throw notFound("Student secretary profile not found");
+  }
+
+  const canAccess = isClassSecretaryRole(studentProfile.studentRole);
+
+  if (!canAccess) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return studentProfile;
+}
+
+export async function validateStudentSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const studentProfile = await prisma.student.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      studentRole: true,
+      classId: true,
+      user: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!studentProfile) {
+    throw notFound("Student profile not found");
+  }
+
+  const canAccess = isStudentRole(studentProfile.studentRole);
+
+  if (!canAccess) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return studentProfile;
 }
