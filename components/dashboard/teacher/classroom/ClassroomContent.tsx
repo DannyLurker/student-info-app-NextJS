@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { ClipboardList, BarChart3, Users } from "lucide-react";
 import AttendanceManagerModal from "../../attendance/AttendanceManagerModal";
 import AttendanceSummaryModal from "../../attendance/AttendanceSummaryModal";
-import { Session } from "@/lib/types/session";
+import { Session } from "../../../../lib/types/session";
 
 interface ClassroomContentProps {
   session: Session;

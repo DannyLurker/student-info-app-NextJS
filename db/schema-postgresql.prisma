@@ -228,7 +228,7 @@ model Assessment {
     type  AssessmentType @default(SCHOOLWORK)
 
     teachingAssignmentId Int
-    assignment   TeachingAssignment @relation(fields: [teachingAssignmentId], references: [id], onDelete: Cascade)
+    assignment           TeachingAssignment @relation(fields: [teachingAssignmentId], references: [id], onDelete: Cascade)
 
     scores AssessmentScore[]
 

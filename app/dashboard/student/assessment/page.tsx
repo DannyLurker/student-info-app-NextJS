@@ -1,6 +1,9 @@
-import StudentAssessmentView from "@/components/dashboard/assessment/StudentAssessmentView";
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, isStudentRole } from "@/lib/constants/roles";
+import StudentAssessmentView from "../../../../components/dashboard/assessment/StudentAssessmentView";
+import { auth } from "../../../../lib/auth/authNode";
+import {
+  getRoleDashboard,
+  isStudentRole,
+} from "../../../../lib/constants/roles";
 import { redirect } from "next/navigation";
 import React from "react";
 

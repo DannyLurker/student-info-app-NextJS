@@ -1,14 +1,19 @@
 "use client";
 
-import { ClassSection, Grade, Major } from "@/lib/constants/class";
+import { ClassSection, Grade, Major } from "../../../../lib/constants/class";
 import React from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../../../../components/ui/card";
 import { GraduationCap, BookOpen } from "lucide-react";
 import axios from "axios";
-import { getFullClassLabel } from "@/lib/utils/labels";
+import { getFullClassLabel } from "../../../../lib/utils/labels";
 import { useQuery } from "@tanstack/react-query";
-import { ASSESSMENT_KEYS } from "@/lib/constants/tanStackQueryKeys";
-import { Session } from "@/lib/types/session";
+import { ASSESSMENT_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
+import { Session } from "../../../../lib/types/session";
 
 interface TeachingAssignment {
   class: {

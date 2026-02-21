@@ -4,14 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../../components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../../../components/ui/select";
 import {
   Form,
   FormControl,
@@ -19,20 +19,20 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Spinner } from "@/components/ui/spinner";
+} from "../../../../components/ui/form";
+import { Spinner } from "../../../../components/ui/spinner";
 import { createPortal } from "react-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
+import { CLASS_SECTION, GRADES, MAJORS } from "../../../../lib/constants/class";
 import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
   SECTION_DISPLAY_MAP,
-} from "@/lib/utils/labels";
+} from "../../../../lib/utils/labels";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
-import { CLASSROOM_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { CLASSROOM_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
 
 // Single classroom schema. NOTES: What's the difference between classScheam in the zod file is that classroomSchema(In this file) has homeroomTeacherId
 const classroomSchema = z.object({

@@ -1,10 +1,6 @@
-import { auth } from "@/lib/auth/authNode";
+import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";
-import {
-
-  isStudentRole,
-  getRoleDashboard,
-} from "@/lib/constants/roles";
+import { isStudentRole, getRoleDashboard } from "../../../lib/constants/roles";
 
 export default async function StudentDashboardLayout({
   children,
@@ -19,9 +15,5 @@ export default async function StudentDashboardLayout({
     redirect(getRoleDashboard(session.user.role));
   }
 
-  return (
-    <div>
-      {children}
-    </div>
-  );
+  return <div>{children}</div>;
 }

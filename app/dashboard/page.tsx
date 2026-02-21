@@ -1,5 +1,5 @@
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard } from "@/lib/constants/roles";
+import { auth } from "../../lib/auth/authNode";
+import { getRoleDashboard } from "../../lib/constants/roles";
 import { redirect } from "next/navigation";
 import React from "react";
 

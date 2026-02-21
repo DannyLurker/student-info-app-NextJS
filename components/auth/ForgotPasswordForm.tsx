@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import Link from "next/link";
 import { Mail, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ const ForgotPasswordForm = () => {
       console.error("Forgot password error:", error);
       if (error instanceof AxiosError) {
         toast.error(
-          error.response?.data?.message || "Failed to send reset link"
+          error.response?.data?.message || "Failed to send reset link",
         );
       } else {
         toast.error("An unexpected error occurred");

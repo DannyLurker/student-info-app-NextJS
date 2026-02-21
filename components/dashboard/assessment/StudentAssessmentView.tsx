@@ -8,18 +8,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../../components/ui/select";
 import AssessmentStatsCards from "./AssessmentStatsCards";
 import AssessmentTable from "./AssessmentTable";
 import AssessmentSkeleton from "./AssessmentSkeleton";
 import { toast } from "sonner";
-import { Session } from "@/lib/types/session";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  ASSESSMENT_KEYS,
-  SUBJECT_KEYS,
-} from "@/lib/constants/tanStackQueryKeys";
-import { AssessmentType } from "@/lib/constants/assessments";
+import { SUBJECT_KEYS } from "../../../lib/constants/tanStackQueryKeys";
+import { AssessmentType } from "../../../lib/constants/assessments";
 
 interface Subject {
   id: number;

@@ -1,7 +1,10 @@
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, hasManagementAccess } from "@/lib/constants/roles";
+import { auth } from "../../../../lib/auth/authNode";
+import {
+  getRoleDashboard,
+  hasManagementAccess,
+} from "../../../../lib/constants/roles";
 import { redirect } from "next/navigation";
-import ExportStudentExcel from "@/components/dashboard/staff/ExportStudentExcel";
+import ExportStudentExcel from "../../../../components/dashboard/staff/ExportStudentExcel";
 
 const Page = async () => {
   const session = await auth();

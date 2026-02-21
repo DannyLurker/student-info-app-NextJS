@@ -1,8 +1,11 @@
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, isParentRole } from "@/lib/constants/roles";
+import { auth } from "../../../../lib/auth/authNode";
+import {
+  getRoleDashboard,
+  isParentRole,
+} from "../../../../lib/constants/roles";
 import { redirect } from "next/navigation";
 import React from "react";
-import ParentAssessmentWrapper from "@/components/dashboard/parent/assessment/ParentAssessmentWrapper";
+import ParentAssessmentWrapper from "../../../../components/dashboard/parent/assessment/ParentAssessmentWrapper";
 
 const page = async () => {
   const session = await auth();

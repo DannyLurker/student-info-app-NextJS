@@ -4,9 +4,9 @@ import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
+import { Button } from "../../../../components/ui/button";
+import { Spinner } from "../../../../components/ui/spinner";
+import { ITEMS_PER_PAGE } from "../../../../lib/constants/pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "../../../../components/ui/alert-dialog";
 import {
   BadgeAlert,
   Clock,
@@ -27,8 +27,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import DemeritPointForm from "../create/DemeritPointForm";
-import { DEMERIT_POINT_KEYS } from "@/lib/constants/tanStackQueryKeys";
-import { abbreviateName } from "@/lib/utils/nameFormatter";
+import { DEMERIT_POINT_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
+import { abbreviateName } from "../../../../lib/utils/nameFormatter";
 
 const CATEGORY_COLORS: Record<string, string> = {
   LATE: "bg-orange-100 text-orange-700",

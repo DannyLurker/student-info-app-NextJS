@@ -5,16 +5,16 @@ import { toast } from "sonner";
 import { Plus, Save, Info, BookOpen } from "lucide-react";
 import axios from "axios";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Card, CardContent } from "../../../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../../components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,12 +22,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../../../components/ui/table";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "../../../components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -36,20 +36,23 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+} from "../../../components/ui/dialog";
+import { Label } from "../../../components/ui/label";
 
-import { ExcelImport } from "@/components/dashboard/teacher/ExcelImport";
-import { ASSESSMENT_TYPES, AssessmentType } from "@/lib/constants/assessments";
-import { getFullClassLabel } from "@/lib/utils/labels";
-import { Grade, Major, ClassSection } from "@/lib/constants/class";
+import { ExcelImport } from "../../../components/dashboard/teacher/ExcelImport";
+import {
+  ASSESSMENT_TYPES,
+  AssessmentType,
+} from "../../../lib/constants/assessments";
+import { getFullClassLabel } from "../../../lib/utils/labels";
+import { Grade, Major, ClassSection } from "../../../lib/constants/class";
 import {
   useAssessments,
   useCreateAssessment,
   useDeleteAssessment,
   useUpdateAssessment,
   useUpdateAssessmentScores,
-} from "@/hooks/useAssessment";
+} from "../../../hooks/useAssessment";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,8 +62,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { UpdateStudentAssessmentSchema } from "@/lib/utils/zodSchema";
+} from "../../../components/ui/alert-dialog";
+import { UpdateStudentAssessmentSchema } from "../../../lib/utils/zodSchema";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

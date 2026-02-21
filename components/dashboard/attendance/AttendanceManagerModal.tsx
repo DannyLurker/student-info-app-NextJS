@@ -6,10 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "../../../components/ui/dialog";
 import AttendanceManager from "./AttendanceManager";
-import { Button } from "@/components/ui/button";
-import { Session } from "@/lib/types/session";
+import { Button } from "../../../components/ui/button";
+import { Session } from "../../../lib/types/session";
 
 interface AttendanceManagerModalProps {
   open: boolean;

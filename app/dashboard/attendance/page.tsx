@@ -1,10 +1,10 @@
-import AttendanceManager from "@/components/dashboard/attendance/AttendanceManager";
-import { auth } from "@/lib/auth/authNode";
+import AttendanceManager from "../../../components/dashboard/attendance/AttendanceManager";
+import { auth } from "../../../lib/auth/authNode";
 import {
   getRoleDashboard,
   isClassSecretaryRole,
   isTeacherRole,
-} from "@/lib/constants/roles";
+} from "../../../lib/constants/roles";
 import { redirect } from "next/navigation";
 
 import React from "react";

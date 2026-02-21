@@ -1,9 +1,9 @@
 import React from "react";
-import StudentDashboard from "@/components/dashboard/student/StudentDashboard";
+import StudentDashboard from "../../../components/dashboard/student/StudentDashboard";
 
-import { auth } from "@/lib/auth/authNode";
+import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";
-import { getRoleDashboard, isStudentRole } from "@/lib/constants/roles";
+import { getRoleDashboard, isStudentRole } from "../../../lib/constants/roles";
 
 const page = async () => {
   const session = await auth();

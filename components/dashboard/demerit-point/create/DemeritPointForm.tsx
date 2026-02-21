@@ -4,21 +4,24 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { GRADES, MAJORS, CLASS_SECTION } from "@/lib/constants/class";
-import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
+} from "../../../../components/ui/select";
+import { Spinner } from "../../../../components/ui/spinner";
+import { GRADES, MAJORS, CLASS_SECTION } from "../../../../lib/constants/class";
+import {
+  GRADE_DISPLAY_MAP,
+  MAJOR_DISPLAY_MAP,
+} from "../../../../lib/utils/labels";
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
-import { DEMERIT_POINT_KEYS } from "@/lib/constants/tanStackQueryKeys";
-import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import { DEMERIT_POINT_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
+import { getErrorMessage } from "../../../../lib/utils/getErrorMessage";
 
 interface Student {
   id: string;

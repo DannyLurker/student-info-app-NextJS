@@ -3,19 +3,22 @@
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
-import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
+} from "../../../components/ui/select";
+import { Spinner } from "../../../components/ui/spinner";
+import { CLASS_SECTION, GRADES, MAJORS } from "../../../lib/constants/class";
+import {
+  GRADE_DISPLAY_MAP,
+  MAJOR_DISPLAY_MAP,
+} from "../../../lib/utils/labels";
 import { FileSpreadsheet, Download } from "lucide-react";
-import { Session } from "@/lib/types/session";
+import { Session } from "../../../lib/types/session";
 
 interface ExportStudentExcelProps {
   session: Session;

@@ -1,11 +1,11 @@
 "use client";
 
-import { SignOut } from "@/components/auth/SignOut";
+import { SignOut } from "../../components/auth/SignOut";
 import {
   GENERAL_ROLES,
   STAFF_POSITIONS,
   STUDENT_POSITIONS,
-} from "@/lib/constants/roles";
+} from "../../lib/constants/roles";
 import {
   BookOpen,
   GraduationCap,

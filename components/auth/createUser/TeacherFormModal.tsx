@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
 import {
   Select,
   SelectTrigger,
@@ -10,13 +10,13 @@ import {
   SelectValue,
   SelectGroup,
   SelectLabel,
-} from "@/components/ui/select";
+} from "../../ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../../ui/dialog";
 import {
   ChangeEvent,
   FormEvent,
@@ -43,20 +43,23 @@ import { Spinner } from "../../ui/spinner";
 import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
-} from "@/lib/utils/labels";
+} from "../../../lib/utils/labels";
 
-import { CLASS_SECTION, GRADES, MAJORS } from "@/lib/constants/class";
+import { CLASS_SECTION, GRADES, MAJORS } from "../../../lib/constants/class";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SUBJECT_KEYS, TEACHER_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import {
+  SUBJECT_KEYS,
+  TEACHER_KEYS,
+} from "../../../lib/constants/tanStackQueryKeys";
 import {
   TeacherSignUpSchema,
   TeachingAssignmentInput,
-} from "@/lib/utils/zodSchema";
-import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+} from "../../../lib/utils/zodSchema";
+import { getErrorMessage } from "../../../lib/utils/getErrorMessage";
 import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
-} from "@/lib/constants/allowedExtensions";
+} from "../../../lib/constants/allowedExtensions";
 import { createPortal } from "react-dom";
 
 type GroupedSubjects = Record<string, any[]>;

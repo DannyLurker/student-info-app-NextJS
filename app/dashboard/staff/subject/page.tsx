@@ -1,7 +1,10 @@
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, isAllStaffRole } from "@/lib/constants/roles";
+import { auth } from "../../../../lib/auth/authNode";
+import {
+  getRoleDashboard,
+  isAllStaffRole,
+} from "../../../../lib/constants/roles";
 import { redirect } from "next/navigation";
-import SubjectPageClient from "@/components/dashboard/staff/subject/SubjectPageClient";
+import SubjectPageClient from "../../../../components/dashboard/staff/subject/SubjectPageClient";
 
 const Page = async () => {
   const session = await auth();

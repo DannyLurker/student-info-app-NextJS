@@ -8,13 +8,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../../../components/ui/select";
 import AssessmentStatsCards from "../../assessment/AssessmentStatsCards";
 import AssessmentTable from "../../assessment/AssessmentTable";
 import AssessmentSkeleton from "../../assessment/AssessmentSkeleton";
 import { toast } from "sonner";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AssessmentType } from "@/lib/constants/assessments";
+import { AssessmentType } from "../../../../lib/constants/assessments";
 
 interface Subject {
   id: number;
@@ -51,8 +51,13 @@ interface AssessmentScoreResponse {
   totalRecords?: number;
 }
 
-const ParentAssessmentView = ({ subjects, studentInfo }: ParentMarkAssessmentProps) => {
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+const ParentAssessmentView = ({
+  subjects,
+  studentInfo,
+}: ParentMarkAssessmentProps) => {
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
+    null,
+  );
   const [page, setPage] = useState(0);
 
   // Initialize selected subject with first available
@@ -65,7 +70,7 @@ const ParentAssessmentView = ({ subjects, studentInfo }: ParentMarkAssessmentPro
   const fetchAssessmentScores = async (
     studentId: string,
     subjectId: number,
-    page: number
+    page: number,
   ): Promise<AssessmentScoreResponse> => {
     const response = await axios.get("/api/parent/student-assessment-score", {
       params: {
@@ -75,14 +80,24 @@ const ParentAssessmentView = ({ subjects, studentInfo }: ParentMarkAssessmentPro
       },
     });
 
-    console.log(response.data)
+    console.log(response.data);
 
     return response.data;
   };
 
-  const { data, isLoading: loading, isError } = useQuery<AssessmentScoreResponse>({
-    queryKey: ["parentAssessmentScores", studentInfo.id, selectedSubjectId, page],
-    queryFn: () => fetchAssessmentScores(studentInfo.id, selectedSubjectId!, page),
+  const {
+    data,
+    isLoading: loading,
+    isError,
+  } = useQuery<AssessmentScoreResponse>({
+    queryKey: [
+      "parentAssessmentScores",
+      studentInfo.id,
+      selectedSubjectId,
+      page,
+    ],
+    queryFn: () =>
+      fetchAssessmentScores(studentInfo.id, selectedSubjectId!, page),
     enabled: !!selectedSubjectId && !!studentInfo.id,
     placeholderData: keepPreviousData,
   });

@@ -1,7 +1,7 @@
-import { auth } from "@/lib/auth/authNode";
-import { getRoleDashboard, isAllStaffRole } from "@/lib/constants/roles";
+import { auth } from "../../../lib/auth/authNode";
+import { getRoleDashboard, isAllStaffRole } from "../../../lib/constants/roles";
 import { redirect } from "next/navigation";
-import DemeritPointPageClient from "@/components/dashboard/demerit-point/DemeritPointPageClient";
+import DemeritPointPageClient from "../../../components/dashboard/demerit-point/DemeritPointPageClient";
 
 const Page = async () => {
   const session = await auth();

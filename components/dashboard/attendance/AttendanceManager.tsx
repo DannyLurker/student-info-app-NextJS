@@ -5,15 +5,15 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AttendanceManagerSkeleton from "./AttendanceManagerSkeleton";
-import { Input } from "@/components/ui/input";
+import { Input } from "../../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+} from "../../../components/ui/select";
+import { Button } from "../../../components/ui/button";
 import {
   Calendar,
   Users,
@@ -24,12 +24,15 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { STUDENT_POSITIONS, STAFF_POSITIONS } from "@/lib/constants/roles";
-import { Session } from "@/lib/types/session";
-import { abbreviateName } from "@/lib/utils/nameFormatter";
-import { ITEMS_PER_PAGE } from "@/lib/constants/pagination";
-import { ATTENDANCE_KEYS } from "@/lib/constants/tanStackQueryKeys";
-import { useDebounce } from "@/hooks/useDebounce";
+import {
+  STUDENT_POSITIONS,
+  STAFF_POSITIONS,
+} from "../../../lib/constants/roles";
+import { Session } from "../../../lib/types/session";
+import { abbreviateName } from "../../../lib/utils/nameFormatter";
+import { ITEMS_PER_PAGE } from "../../../lib/constants/pagination";
+import { ATTENDANCE_KEYS } from "../../../lib/constants/tanStackQueryKeys";
+import { useDebounce } from "../../../hooks/useDebounce";
 
 interface Student {
   id: string;

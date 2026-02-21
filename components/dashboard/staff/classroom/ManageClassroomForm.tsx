@@ -4,9 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Input } from "../../../../components/ui/input";
+import { Button } from "../../../../components/ui/button";
+import { Spinner } from "../../../../components/ui/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "../../../../components/ui/alert-dialog";
 import {
   Search,
   Pencil,
@@ -29,9 +29,9 @@ import {
   GRADE_DISPLAY_MAP,
   MAJOR_DISPLAY_MAP,
   SECTION_DISPLAY_MAP,
-} from "@/lib/utils/labels";
+} from "../../../../lib/utils/labels";
 import ClassroomForm from "./ClassroomForm";
-import { CLASSROOM_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { CLASSROOM_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);

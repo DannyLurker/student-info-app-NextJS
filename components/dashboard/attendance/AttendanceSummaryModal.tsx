@@ -6,13 +6,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "../../../components/ui/dialog";
+import { Button } from "../../../components/ui/button";
 import { BarChart3 } from "lucide-react";
 import AttendanceSummary from "./AttendanceSummary";
-import { Session } from "@/lib/types/session";
-import { getFullClassLabel } from "@/lib/utils/labels";
-import { ClassSection, Grade, Major } from "@/lib/constants/class";
+import { Session } from "../../../lib/types/session";
+import { getFullClassLabel } from "../../../lib/utils/labels";
+import { ClassSection, Grade, Major } from "../../../lib/constants/class";
 
 interface AttendanceSummaryModalProps {
   isOpen: boolean;

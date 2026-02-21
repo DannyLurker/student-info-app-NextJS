@@ -5,11 +5,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from "../../../components/ui/table";
+import { Button } from "../../../components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import React from "react";
-import { AssessmentType } from "@/lib/constants/assessments";
+import { AssessmentType } from "../../../lib/constants/assessments";
 interface AssessmentScore {
   score: number;
   assessment: {

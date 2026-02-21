@@ -1,20 +1,20 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../ui/input";
 import {
   Select,
   SelectTrigger,
   SelectItem,
   SelectContent,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "../../ui/dialog";
 import { ChangeEvent, FormEvent, useRef, useState, useEffect } from "react";
 import axios from "axios";
 import { Upload, UserPlus, FileSpreadsheet, GraduationCap } from "lucide-react";
@@ -27,25 +27,26 @@ import {
   Grade,
   CLASS_SECTION,
   ClassSection,
-} from "@/lib/constants/class";
+  Major,
+} from "../../../lib/constants/class";
 import {
   MAJOR_DISPLAY_MAP,
   GRADE_DISPLAY_MAP,
   STUDENT_ROLES_MAP,
-} from "@/lib/utils/labels";
+} from "../../../lib/utils/labels";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { StudentSignUpSchema } from "@/lib/utils/zodSchema";
-import { Major } from "@/db/prisma/src/generated/prisma/enums";
-import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import { StudentSignUpSchema } from "../../../lib/utils/zodSchema";
+
+import { getErrorMessage } from "../../../lib/utils/getErrorMessage";
 import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
-} from "@/lib/constants/allowedExtensions";
+} from "../../../lib/constants/allowedExtensions";
 import { createPortal } from "react-dom";
 import {
   STUDENT_POSITIONS_ARRAY,
   StudentPosition,
-} from "@/lib/constants/roles";
+} from "../../../lib/constants/roles";
 
 interface StudentFormModalProps {
   open: boolean;
