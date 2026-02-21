@@ -63,3 +63,9 @@ export const ASSESSMENT_KEYS = {
     subjectId: number;
   }) => [...ASSESSMENT_KEYS.lists(), { filters }] as const,
 };
+
+export const PARENT_KEYS = {
+  all: ["parent"] as const,
+  profiles: () => [...PARENT_KEYS.all, "profile"] as const,
+  profile: () => [...PARENT_KEYS.profiles()] as const,
+};

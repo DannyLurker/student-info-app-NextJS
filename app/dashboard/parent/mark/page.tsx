@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth/authNode";
 import { getRoleDashboard, isParentRole } from "@/lib/constants/roles";
 import { redirect } from "next/navigation";
 import React from "react";
-import ParentMarkWrapper from "@/components/dashboard/parent/mark/ParentMarkWrapper";
+import ParentAssessmentWrapper from "@/components/dashboard/parent/assessment/ParentAssessmentWrapper";
 
 const page = async () => {
   const session = await auth();
@@ -15,7 +15,7 @@ const page = async () => {
 
   return (
     <div className="p-6">
-      <ParentMarkWrapper session={session.user} />
+      <ParentAssessmentWrapper session={session.user} />
     </div>
   );
 };

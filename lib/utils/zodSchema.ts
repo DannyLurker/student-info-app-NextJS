@@ -342,6 +342,17 @@ type UpdateAssessmentScoresSchema = z.infer<
   typeof updateAssessmentScoresSchema
 >;
 
+// getStudnetAssessmentScore based on the subject
+const getStudnetAssessmentScore = z.object({
+  subjectId: z
+    .string()
+    .min(1)
+    .transform((value) => Number(value)),
+  page,
+});
+
+type GetStudnetAssessmentScore = z.infer<typeof getStudentAssessmentSchema>;
+
 // EXPORT student into excel for easier assessment management
 const getStudentExportSchema = z.object({
   grade: GradeEnum,
@@ -370,6 +381,7 @@ export {
   getStudentAssessmentSchema,
   updateStudentAssessmentSchema,
   updateAssessmentScoresSchema,
+  getStudnetAssessmentScore,
   updateDemeritPointSchema,
   demeritPointQuerySchema,
   classSchema,
@@ -393,6 +405,7 @@ export {
   type CreateStudentAssessmentSchema,
   type GetStudentAssessmentSchema,
   type UpdateStudentAssessmentSchema,
+  type GetStudnetAssessmentScore,
   type UpdateAssessmentScoresSchema,
   type UpdateDemeritPointSchema,
   type TeachingAssignmentInput,

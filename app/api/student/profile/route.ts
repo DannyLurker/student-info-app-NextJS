@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     );
   } catch (error) {
     console.error("API_ERROR", {
-      route: "(GET )/api/student/profile",
+      route: "(GET) /api/student/profile",
       message: error instanceof Error ? error.message : String(error),
     });
     return handleError(error);

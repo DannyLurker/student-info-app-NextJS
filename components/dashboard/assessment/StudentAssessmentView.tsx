@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import {
   Select,
@@ -9,93 +9,89 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import MarkStatsCards from "./MarkStatsCards";
-import MarkTable from "./MarkTable";
-import MarkSkeleton from "./MarkSkeleton";
-import { SUBJECT_DISPLAY_MAP } from "@/lib/utils/labels";
+import AssessmentStatsCards from "./AssessmentStatsCards";
+import AssessmentTable from "./AssessmentTable";
+import AssessmentSkeleton from "./AssessmentSkeleton";
 import { toast } from "sonner";
 import { Session } from "@/lib/types/session";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  ASSESSMENT_KEYS,
+  SUBJECT_KEYS,
+} from "@/lib/constants/tanStackQueryKeys";
+import { AssessmentType } from "@/lib/constants/assessments";
 
 interface Subject {
   id: number;
-  subjectName: string;
+  name: string;
 }
 
-interface StudentAssessmentViewProps {
-  session: Session;
+interface SubjectResponse {
+  subjects: Subject[];
 }
 
-const StudentAssessmentView = ({ session }: StudentAssessmentViewProps) => {
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [marks, setMarks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+interface AssessmentScore {
+  score: number;
+  assessment: {
+    givenAt: string;
+    dueAt: string;
+    title: string;
+    type: AssessmentType;
+  };
+}
+
+const StudentAssessmentView = () => {
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
+    null,
+  );
   const [page, setPage] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+
+  const fetchSubjects = async (): Promise<Subject[]> => {
+    const response = await axios.get<SubjectResponse>("/api/student/subject");
+    return response.data.subjects;
+  };
+
+  const {
+    data: subjectData = [],
+    isLoading: subjectsLoading,
+    isError: subjectsError,
+  } = useQuery({
+    queryKey: SUBJECT_KEYS.all,
+    queryFn: fetchSubjects,
+  });
 
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await axios.get("/api/student/profile", {
-          params: {
-            studentId: session.id,
-          },
-        });
+    if (subjectsError) {
+      toast.error("Failed to retrieve subjects");
+    }
+  }, [subjectsError]);
 
-        if (response.status === 200) {
-          const subjectsData = response.data?.data?.subjects.studentSubjects;
+  // ======================
 
-          console.log(subjectsData);
-          if (Array.isArray(subjectsData)) {
-            setSubjects(subjectsData);
-          }
-        }
-      } catch (error) {
-        setSubjects([]);
-        toast.error("Something went wrong. Can't retrieve subjects data");
-      }
-    };
+  const selectedSubjectName = useMemo(() => {
+    return subjectData.find((s) => s.id === selectedSubjectId)?.name || "";
+  }, [subjectData, selectedSubjectId]);
 
-    fetchSubjects();
-  }, []);
+  const fetchAssessmentScores = async (subjectId: number, page: number) => {
+    const response = await axios.get("/api/student/assessment-score", {
+      params: {
+        subjectId,
+        page,
+      },
+    });
 
-  useEffect(() => {
-    if (!selectedSubject) return;
+    return response.data.assessmentScores;
+  };
 
-    const fetchMarks = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get("/api/student/profile", {
-          params: {
-            studentId: session.id,
-            subjectName: selectedSubject,
-            isMarkPage: true,
-            page,
-          },
-        });
-
-        if (response.status === 200) {
-          const data = response.data.data.marks;
-
-          let marksData: any[] = [];
-          if (data.studentMarkRecords?.subjectMarks?.[0]?.marks) {
-            marksData = data.studentMarkRecords.subjectMarks[0].marks;
-          }
-
-          setMarks(marksData);
-          setTotalRecords(data.totalMarks || 0);
-        }
-      } catch (error) {
-        console.error("Failed to fetch marks", error);
-        toast.error("Failed to fetch marks data");
-        setMarks([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMarks();
-  }, [selectedSubject, page, session.id]);
+  const { data: assessmentScoreData = [], isLoading: loading } = useQuery<
+    AssessmentScore[]
+  >({
+    queryKey: ["assessmentScores", selectedSubjectId, page],
+    queryFn: () => fetchAssessmentScores(selectedSubjectId!, page),
+    enabled: !!selectedSubjectId,
+    placeholderData: keepPreviousData,
+  });
 
   const recordsPerPage = 10;
   const hasMore = (page + 1) * recordsPerPage < totalRecords;
@@ -105,40 +101,40 @@ const StudentAssessmentView = ({ session }: StudentAssessmentViewProps) => {
       {/* Subject Dropdown */}
       <div className="w-[250px]">
         <Select
-          value={selectedSubject}
+          value={selectedSubjectId ? String(selectedSubjectId) : ""}
           onValueChange={(val) => {
-            setSelectedSubject(val);
-            setPage(0); // Reset page on subject change
+            setSelectedSubjectId(Number(val));
+            setPage(0);
           }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select Subject" />
           </SelectTrigger>
           <SelectContent>
-            {subjects.map((sub) => (
-              <SelectItem key={sub.id} value={sub.subjectName}>
-                {SUBJECT_DISPLAY_MAP[sub.subjectName]}
+            {subjectData.map((sub) => (
+              <SelectItem key={sub.id} value={String(sub.id)}>
+                {sub.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {loading && marks.length === 0 ? (
-        <MarkSkeleton />
+      {subjectsLoading && assessmentScoreData.length === 0 ? (
+        <AssessmentSkeleton />
       ) : (
         <div>
-          <MarkStatsCards
-            subjectName={SUBJECT_DISPLAY_MAP[selectedSubject]}
+          <AssessmentStatsCards
+            subjectName={selectedSubjectName}
             totalAssignments={totalRecords}
           />
 
-          <MarkTable
-            marks={marks}
+          <AssessmentTable
+            marks={assessmentScoreData}
             page={page}
             hasMore={hasMore}
             onPageChange={setPage}
-            isLoading={loading}
+            isLoading={subjectsLoading}
           />
         </div>
       )}

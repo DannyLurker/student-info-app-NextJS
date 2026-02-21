@@ -18,7 +18,7 @@ const page = async () => {
       <h1 className="text-3xl font-bold mb-6">
         {session.user.name.split(" ")[0]}'s Marks
       </h1>
-      <StudentAssessmentView session={session.user} />
+      <StudentAssessmentView />
     </div>
   );
 };

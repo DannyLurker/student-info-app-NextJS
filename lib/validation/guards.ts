@@ -4,6 +4,7 @@ import { unauthorized, notFound, forbidden, badRequest } from "@/lib/errors";
 import {
   hasManagementAccess,
   isClassSecretaryRole,
+  isParentRole,
   isStudentRole,
   isTeacherRole,
 } from "@/lib/constants/roles";
@@ -173,6 +174,7 @@ export async function validateStudentSession() {
       userId: true,
       studentRole: true,
       classId: true,
+      class: true,
       user: {
         select: { name: true },
       },
@@ -190,4 +192,53 @@ export async function validateStudentSession() {
   }
 
   return studentProfile;
+}
+
+export async function validateParentSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw unauthorized("You haven't logged in yet");
+  }
+
+  const parentProfile = await prisma.parent.findUnique({
+    where: { userId: session.user.id },
+    select: {
+      userId: true,
+      studentId: true,
+      user: {
+        select: {
+          role: true,
+        },
+      },
+      student: {
+        select: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+          class: {
+            select: {
+              grade: true,
+              major: true,
+              section: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!parentProfile) {
+    throw notFound("Parent profile not found");
+  }
+
+  const canAccess = isParentRole(parentProfile.user.role);
+
+  if (!canAccess) {
+    throw forbidden("You're not allowed to access this");
+  }
+
+  return parentProfile;
 }

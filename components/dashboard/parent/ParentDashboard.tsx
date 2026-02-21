@@ -3,12 +3,14 @@ import { GraduationCap, BookOpen, Calendar } from "lucide-react";
 import { AttendanceChart } from "../attendance/AttendanceChart";
 import { DemeritPointChart } from "../demerit-point/DemeritPointChart";
 import { DemeritPointList } from "../demerit-point/DemeritPointList";
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { ValidInfractionType } from "@/lib/constants/discplinary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Session } from "@/lib/types/session";
+import { useQuery } from "@tanstack/react-query";
+import { PARENT_KEYS } from "@/lib/constants/tanStackQueryKeys";
 
 interface DashboardProps {
   session: Session;
@@ -22,7 +24,7 @@ type AttendanceStats = {
 type DemeritPointData = {
   category: ValidInfractionType;
   description: string;
-  point: number;
+  points: number;
   date: string | Date;
 };
 
@@ -36,22 +38,46 @@ const CATEGORY_COLORS_HEX: Record<string, string> = {
 };
 
 export default function ParentDashboard({ session }: DashboardProps) {
-  const [loading, setLoading] = useState(true);
-  const [subjects, setSubjects] = useState([]);
-  const [studentName, setStudentName] = useState("");
-  const [attendanceStats, setAttendanceStats] = useState({
-    sick: [],
-    permission: [],
-    alpha: [],
-    late: [],
+  const {
+    data: profileData,
+    isLoading: loading,
+    isError,
+  } = useQuery({
+    queryKey: PARENT_KEYS.profile(),
+    queryFn: async () => {
+      const res = await axios.get(`/api/parent/student-profile`);
+
+      return res.data;
+    },
   });
-  const [demeritPointRecords, setDemeritPointRecords] = useState<
-    DemeritPointData[]
-  >([]);
-  const [totalDemeritPoint, setTotalDemeritPoint] = useState(0);
-  const [demeritPointChartData, setDemeritPointChartData] = useState<
-    { name: string; value: number; color: string }[]
-  >([]);
+
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Something went wrong. Can't retrieve dashboard data");
+    }
+  }, [isError]);
+
+  const {
+    studentName = "",
+    studentSubjects = 0,
+    attendanceStats: rawAttendance = [],
+    problemPointRecords: rawDemeritPoints = [],
+  } = profileData?.data || {};
+
+  const subjects = studentSubjects;
+
+  const attendanceStats = useMemo(() => {
+    return rawAttendance.reduce(
+      (acc: any, stat: AttendanceStats) => {
+        const type = stat.type as keyof typeof acc;
+        if (!acc[type.toString().toLowerCase()])
+          acc[type.toString().toLowerCase()] = [];
+        acc[type.toString().toLowerCase()].push(stat);
+        return acc;
+      },
+      { sick: [], permission: [], alpha: [], late: [] },
+    );
+  }, [rawAttendance]);
 
   const chartData = [
     { name: "Sick", value: attendanceStats.sick.length, color: "#FBBF24" },
@@ -70,80 +96,36 @@ export default function ParentDashboard({ session }: DashboardProps) {
     attendanceStats.alpha.length +
     attendanceStats.late.length;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`/api/parent`, {
-        params: {
-          parentId: session.id,
+  const { totalDemeritPoint, demeritPointChartData, demeritPointRecords } =
+    useMemo(() => {
+      const records = rawDemeritPoints;
+      const totalPoint = records.reduce(
+        (acc: number, record: DemeritPointData) => {
+          return acc + (record.points || 0);
         },
+        0,
+      );
+
+      const ppChartDataMap: Record<string, number> = {};
+      records.forEach((record: DemeritPointData) => {
+        ppChartDataMap[record.category] =
+          (ppChartDataMap[record.category] || 0) + (record.points || 0);
       });
 
-      if (res.status === 200) {
-        const {
-          studentName,
-          studentSubjects,
-          attendanceStats,
-          problemPointRecords,
-        } = res.data.data;
+      const ppChartData = Object.entries(ppChartDataMap).map(
+        ([category, value]) => ({
+          name: category.replace(/_/g, " "),
+          value,
+          color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
+        }),
+      );
 
-        setStudentName(studentName);
-        setSubjects(studentSubjects || []);
-
-        // Group attendance data
-        const grouped = attendanceStats.reduce(
-          (acc: any, stat: AttendanceStats) => {
-            const type = stat.type as keyof typeof acc;
-            if (!acc[type.toString().toLowerCase()])
-              acc[type.toString().toLowerCase()] = [];
-            acc[type.toString().toLowerCase()].push(stat);
-            return acc;
-          },
-          { sick: [], permission: [], alpha: [], late: [] },
-        );
-
-        setAttendanceStats(grouped);
-
-        // Process Demerit Points
-        if (problemPointRecords) {
-          const records = problemPointRecords;
-          const totalPoint = records.reduce(
-            (acc: any, record: DemeritPointData) => {
-              return acc + record.point;
-            },
-            0,
-          );
-
-          const ppChartDataMap: Record<string, number> = {};
-          records.forEach((record: DemeritPointData) => {
-            ppChartDataMap[record.category] =
-              (ppChartDataMap[record.category] || 0) + record.point;
-          });
-
-          const ppChartData = Object.entries(ppChartDataMap).map(
-            ([category, value]) => ({
-              name: category.replace(/_/g, " "),
-              value,
-              color: CATEGORY_COLORS_HEX[category] || "#9CA3AF",
-            }),
-          );
-
-          setTotalDemeritPoint(totalPoint);
-          setDemeritPointRecords(records);
-          setDemeritPointChartData(ppChartData);
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching parent dashboard data: ${error}`);
-      toast.error("Something went wrong. Can't retrieve dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [session.id]);
+      return {
+        totalDemeritPoint: totalPoint,
+        demeritPointChartData: ppChartData,
+        demeritPointRecords: records,
+      };
+    }, [rawDemeritPoints]);
 
   if (loading) {
     return (
@@ -169,27 +151,27 @@ export default function ParentDashboard({ session }: DashboardProps) {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         {/* Card 1: Total Subjects */}
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white p-6 col-span-2 sm:col-span-1 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-blue-600" />
             </div>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            {subjects.length}
+            {subjects}
           </div>
           <div className="text-sm text-gray-500">Total Subjects</div>
         </div>
 
         {/* Card 2: Student Profile */}
-        <div className="bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm hover:shadow-md transition-shadow">
+        <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] p-6 rounded-2xl text-white shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
           </div>
           <div className="truncate text-xl font-bold mb-1">
-            {`${studentName} Peformance` || "Loading..."}
+            {`${studentName} Performance` || "Loading..."}
           </div>
           <div className="text-sm text-blue-100">Student</div>
         </div>
@@ -217,8 +199,8 @@ export default function ParentDashboard({ session }: DashboardProps) {
         <div className="bg-white rounded-lg shadow p-6 max-h-[500px] overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4">Attendance Information</h2>
           {totalAbsence === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <div className="flex flex-col items-center justify-center text-gray-500 text-center">
+              <Calendar className="w-12 h-12 mb-2 opacity-50" />
               <p>No absence records found</p>
             </div>
           ) : (
@@ -233,16 +215,18 @@ export default function ParentDashboard({ session }: DashboardProps) {
                     </h3>
                   </div>
                   <div className="space-y-1 ml-4">
-                    {attendanceStats.sick.map((stat: { date: Date }, index) => (
-                      <div key={index} className="text-sm text-yellow-700">
-                        {new Date(stat.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </div>
-                    ))}
+                    {attendanceStats.sick.map(
+                      (stat: { date: Date }, index: number) => (
+                        <div key={index} className="text-sm text-yellow-700">
+                          {new Date(stat.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -258,7 +242,7 @@ export default function ParentDashboard({ session }: DashboardProps) {
                   </div>
                   <div className="space-y-1 ml-4">
                     {attendanceStats.permission.map(
-                      (stat: { date: Date }, index) => (
+                      (stat: { date: Date }, index: number) => (
                         <div key={index} className="text-sm text-blue-700">
                           {new Date(stat.date).toLocaleDateString("en-US", {
                             weekday: "short",
@@ -284,7 +268,7 @@ export default function ParentDashboard({ session }: DashboardProps) {
                   </div>
                   <div className="space-y-1 ml-4">
                     {attendanceStats.alpha.map(
-                      (stat: { date: Date }, index) => (
+                      (stat: { date: Date }, index: number) => (
                         <div key={index} className="text-sm text-red-700">
                           {new Date(stat.date).toLocaleDateString("en-US", {
                             weekday: "short",
@@ -309,16 +293,18 @@ export default function ParentDashboard({ session }: DashboardProps) {
                     </h3>
                   </div>
                   <div className="space-y-1 ml-4">
-                    {attendanceStats.late.map((stat: { date: Date }, index) => (
-                      <div key={index} className="text-sm text-orange-700">
-                        {new Date(stat.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </div>
-                    ))}
+                    {attendanceStats.late.map(
+                      (stat: { date: Date }, index: number) => (
+                        <div key={index} className="text-sm text-orange-700">
+                          {new Date(stat.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
