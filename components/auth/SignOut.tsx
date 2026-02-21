@@ -4,7 +4,7 @@ import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
-const SignOut = () => {
+const Signout = () => {
   const handleSignOut = async () => {
     toast.success("Successfully signed out, redirecting...");
 
@@ -28,4 +28,4 @@ const SignOut = () => {
   );
 };
 
-export default SignOut;
+export default Signout;
