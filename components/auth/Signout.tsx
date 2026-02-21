@@ -28,4 +28,4 @@ const SignOut = () => {
   );
 };
 
-export { SignOut };
+export default SignOut;
