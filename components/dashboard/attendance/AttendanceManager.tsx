@@ -5,15 +5,15 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AttendanceManagerSkeleton from "./AttendanceManagerSkeleton";
-import { Input } from "../../../components/ui/input";
+import { Input } from "../../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
-import { Button } from "../../../components/ui/button";
+} from "../../ui/select";
+import { Button } from "../../ui/button";
 import {
   Calendar,
   Users,

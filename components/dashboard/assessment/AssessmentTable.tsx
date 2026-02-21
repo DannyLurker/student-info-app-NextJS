@@ -5,8 +5,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../../components/ui/table";
-import { Button } from "../../../components/ui/button";
+} from "../../ui/table";
+import { Button } from "../../ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import React from "react";
 import { AssessmentType } from "../../../lib/constants/assessments";

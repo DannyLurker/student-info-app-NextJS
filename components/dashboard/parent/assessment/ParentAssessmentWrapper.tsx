@@ -2,7 +2,7 @@
 
 import React from "react";
 import axios from "axios";
-import { Skeleton } from "../../../../components/ui/skeleton";
+import { Skeleton } from "../../../ui/skeleton";
 import { toast } from "sonner";
 import { Session } from "../../../../lib/types/session";
 import { useQuery } from "@tanstack/react-query";

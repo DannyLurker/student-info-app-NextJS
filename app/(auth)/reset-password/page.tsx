@@ -1,8 +1,8 @@
-import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
+import ResetPasswordForm from "../../../components/auth/ResetPasswordForm";
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth/authNode";
+import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";
-import { getRoleDashboard } from "@/lib/constants/roles";
+import { getRoleDashboard } from "../../../lib/constants/roles";
 
 export const metadata: Metadata = {
   title: "Reset Password | Student Info App",

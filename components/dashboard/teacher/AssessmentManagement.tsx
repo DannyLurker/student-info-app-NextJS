@@ -5,16 +5,16 @@ import { toast } from "sonner";
 import { Plus, Save, Info, BookOpen } from "lucide-react";
 import axios from "axios";
 
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Card, CardContent } from "../../../components/ui/card";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import { Card, CardContent } from "../../ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
+} from "../../ui/select";
 import {
   Table,
   TableBody,

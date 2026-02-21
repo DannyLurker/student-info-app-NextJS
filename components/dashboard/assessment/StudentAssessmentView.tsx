@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
+} from "../../ui/select";
 import AssessmentStatsCards from "./AssessmentStatsCards";
 import AssessmentTable from "./AssessmentTable";
 import AssessmentSkeleton from "./AssessmentSkeleton";

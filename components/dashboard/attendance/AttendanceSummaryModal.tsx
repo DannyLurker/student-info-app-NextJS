@@ -6,8 +6,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../../../components/ui/dialog";
-import { Button } from "../../../components/ui/button";
+} from "../../ui/dialog";
+import { Button } from "../../ui/button";
 import { BarChart3 } from "lucide-react";
 import AttendanceSummary from "./AttendanceSummary";
 import { Session } from "../../../lib/types/session";

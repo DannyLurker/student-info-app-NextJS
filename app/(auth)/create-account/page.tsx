@@ -1,8 +1,11 @@
-import CreateAccountPage from "@/components/auth/createUser/CreateAccountPage";
-import { auth } from "@/lib/auth/authNode";
+import CreateAccountPage from "../../../components/auth/createUser/CreateAccountPage";
+import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";
-import { getRoleDashboard, hasManagementAccess } from "@/lib/constants/roles";
-import { Sidebar } from "@/components/dashboard/Sidebar";
+import {
+  getRoleDashboard,
+  hasManagementAccess,
+} from "../../../lib/constants/roles";
+import { Sidebar } from "../../../components/dashboard/Sidebar";
 
 const Page = async () => {
   const session = await auth();

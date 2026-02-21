@@ -1,24 +1,30 @@
 "use client";
 
-import { Grade, Major } from "@/lib/constants/class";
-import { SubjectType } from "@/lib/constants/subject";
-import { SUBJECT_KEYS } from "@/lib/constants/tanStackQueryKeys";
-import { CreateSubjectInput, PatchSubjectInput } from "@/lib/utils/zodSchema";
+import { Grade, Major } from "../../../../lib/constants/class";
+import { SubjectType } from "../../../../lib/constants/subject";
+import { SUBJECT_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
+import {
+  CreateSubjectInput,
+  PatchSubjectInput,
+} from "../../../../lib/utils/zodSchema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "../../../ui/button";
+import { Input } from "../../../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
-import { GRADE_DISPLAY_MAP, MAJOR_DISPLAY_MAP } from "@/lib/utils/labels";
+} from "../../../ui/select";
+import { Spinner } from "../../../ui/spinner";
+import {
+  GRADE_DISPLAY_MAP,
+  MAJOR_DISPLAY_MAP,
+} from "../../../../lib/utils/labels";
 import { Plus, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 

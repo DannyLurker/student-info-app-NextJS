@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "../../../../components/ui/button";
-import { Input } from "../../../../components/ui/input";
+import { Button } from "../../../ui/button";
+import { Input } from "../../../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../../components/ui/select";
-import { Spinner } from "../../../../components/ui/spinner";
+} from "../../../ui/select";
+import { Spinner } from "../../../ui/spinner";
 import { GRADES, MAJORS, CLASS_SECTION } from "../../../../lib/constants/class";
 import {
   GRADE_DISPLAY_MAP,

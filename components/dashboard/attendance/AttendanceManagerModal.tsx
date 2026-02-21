@@ -6,9 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../../../components/ui/dialog";
+} from "../../ui/dialog";
 import AttendanceManager from "./AttendanceManager";
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../ui/button";
 import { Session } from "../../../lib/types/session";
 
 interface AttendanceManagerModalProps {

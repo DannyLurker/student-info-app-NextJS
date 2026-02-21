@@ -8,7 +8,7 @@ import React from "react";
 import axios from "axios";
 import { getRoleDisplayName } from "../../../lib/constants/roles";
 import { ValidInfractionType } from "../../../lib/constants/discplinary";
-import { Skeleton } from "../../../components/ui/skeleton";
+import { Skeleton } from "../../ui/skeleton";
 import { Session } from "../../../lib/types/session";
 import { useQuery } from "@tanstack/react-query";
 import { STUDENT_KEY } from "../../../lib/constants/tanStackQueryKeys";

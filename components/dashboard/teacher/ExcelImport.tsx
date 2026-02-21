@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Upload } from "lucide-react";
 import * as XLSX from "xlsx";
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,8 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
-} from "../../../components/ui/dialog";
-import { Input } from "../../../components/ui/input";
+} from "../../ui/dialog";
+import { Input } from "../../ui/input";
 import { toast } from "sonner";
 
 interface Prop {

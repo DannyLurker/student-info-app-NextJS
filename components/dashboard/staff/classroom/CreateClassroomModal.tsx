@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../../../../components/ui/dialog";
+} from "../../../ui/dialog";
 import ClassroomForm from "./ClassroomForm";
 
 interface CreateClassroomModalProps {

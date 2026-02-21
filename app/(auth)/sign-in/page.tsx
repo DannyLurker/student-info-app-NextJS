@@ -1,8 +1,8 @@
 import React from "react";
-import SignIn from "@/components/auth/SignIn";
-import { auth } from "@/lib/auth/authNode";
+import SignIn from "../../../components/auth/SignIn";
+import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";
-import { getRoleDashboard } from "@/lib/constants/roles";
+import { getRoleDashboard } from "../../../lib/constants/roles";
 
 const page = async () => {
   const session = await auth();
@@ -18,4 +18,3 @@ const page = async () => {
 };
 
 export default page;
-

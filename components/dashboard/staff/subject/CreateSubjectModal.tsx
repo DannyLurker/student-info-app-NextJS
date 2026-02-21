@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "../../../ui/dialog";
 import SubjectForm from "./SubjectForm";
 
 interface CreateSubjectModalProps {

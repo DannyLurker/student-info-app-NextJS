@@ -7,7 +7,7 @@ import React, { useMemo } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { ValidInfractionType } from "../../../lib/constants/discplinary";
-import { Skeleton } from "../../../components/ui/skeleton";
+import { Skeleton } from "../../ui/skeleton";
 import { Session } from "../../../lib/types/session";
 import { useQuery } from "@tanstack/react-query";
 import { PARENT_KEYS } from "../../../lib/constants/tanStackQueryKeys";

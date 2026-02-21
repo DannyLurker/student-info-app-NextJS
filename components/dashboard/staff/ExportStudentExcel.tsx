@@ -3,15 +3,15 @@
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Button } from "../../../components/ui/button";
+import { Button } from "../../ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
-import { Spinner } from "../../../components/ui/spinner";
+} from "../../ui/select";
+import { Spinner } from "../../ui/spinner";
 import { CLASS_SECTION, GRADES, MAJORS } from "../../../lib/constants/class";
 import {
   GRADE_DISPLAY_MAP,

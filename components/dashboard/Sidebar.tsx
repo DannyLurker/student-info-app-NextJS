@@ -1,6 +1,6 @@
 "use client";
 
-import { SignOut } from "../../components/auth/SignOut";
+import { SignOut } from "../auth/SignOut";
 import {
   GENERAL_ROLES,
   STAFF_POSITIONS,

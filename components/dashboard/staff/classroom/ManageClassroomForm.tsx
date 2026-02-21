@@ -4,9 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Input } from "../../../../components/ui/input";
-import { Button } from "../../../../components/ui/button";
-import { Spinner } from "../../../../components/ui/spinner";
+import { Input } from "../../../ui/input";
+import { Button } from "../../../ui/button";
+import { Spinner } from "../../../ui/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "../../../../components/ui/alert-dialog";
+} from "../../../ui/alert-dialog";
 import {
   Search,
   Pencil,

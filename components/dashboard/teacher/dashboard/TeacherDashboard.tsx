@@ -2,12 +2,7 @@
 
 import { ClassSection, Grade, Major } from "../../../../lib/constants/class";
 import React from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "../../../../components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../ui/card";
 import { GraduationCap, BookOpen } from "lucide-react";
 import axios from "axios";
 import { getFullClassLabel } from "../../../../lib/utils/labels";
