@@ -1,13 +1,13 @@
-import { auth } from "@/lib/auth/authNode";
-import { prisma } from "@/db/prisma";
-import { unauthorized, notFound, forbidden } from "@/lib/errors";
+import { auth } from "../../lib/auth/authNode";
+import { prisma } from "../../db/prisma";
+import { unauthorized, notFound, forbidden } from "../../lib/errors";
 import {
   hasManagementAccess,
   isClassSecretaryRole,
   isParentRole,
   isStudentRole,
   isTeacherRole,
-} from "@/lib/constants/roles";
+} from "../../lib/constants/roles";
 
 export async function validateLoginSession() {
   const session = await auth();

@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/db/prisma";
+import { prisma } from "../../db/prisma";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { notFound } from "../errors";
 import { StaffPosition, StudentPosition } from "../constants/roles";

@@ -1,12 +1,12 @@
-import { handleError } from "@/lib/errors";
+import { handleError } from "../../../../lib/errors";
 import {
   MIN_SEARCH_LENGTH,
   OFFSET,
   TAKE_RECORDS,
-} from "@/lib/constants/pagination";
-import { attendanceSummaryQueries } from "@/lib/utils/zodSchema";
-import { prisma } from "@/db/prisma";
-import { validateHomeroomTeacherSession } from "@/lib/validation/guards";
+} from "../../../../lib/constants/pagination";
+import { attendanceSummaryQueries } from "../../../../lib/utils/zodSchema";
+import { prisma } from "../../../../db/prisma";
+import { validateHomeroomTeacherSession } from "../../../../lib/validation/guards";
 
 export async function GET(req: Request) {
   try {
