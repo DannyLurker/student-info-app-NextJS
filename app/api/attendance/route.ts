@@ -114,8 +114,8 @@ export async function POST(req: Request) {
         s,
       ]),
     );
-    const attendanceMap = new Map(
-      existingAttendances.map((a: any) => [a.studentId, a]),
+    const attendanceMap = new Map<string, { id: number; studentId: string; type: ValidAttendanceType; note: string; date: Date }>(
+      existingAttendances.map((a) => [a.studentId, { id: a.id, studentId: a.studentId, type: a.type as ValidAttendanceType, note: a.note || "", date: a.date }]),
     );
 
     const validationErrors: string[] = [];
@@ -187,7 +187,7 @@ export async function POST(req: Request) {
           await tx.attendance.create({
             data: {
               studentId: record.studentId,
-              type: record.type as ValidAttendanceType,
+              type: record.type,
               note: record.description,
               date: attendanceDate,
             },
