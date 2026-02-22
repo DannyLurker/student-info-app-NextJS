@@ -58,7 +58,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const studentIds = students.map((student) => student.id);
+    const studentIds = students.map((student: { id: string }) => student.id);
 
     const stats = await prisma.attendance.groupBy({
       by: ["type", "studentId"],
