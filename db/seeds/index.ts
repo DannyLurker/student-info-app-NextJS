@@ -1,7 +1,7 @@
 import { seedUsers } from "./seed-user";
 import { seedClassrooms } from "./seed-classroom";
 import { seedSubjects } from "./seed-subject";
-import { PrismaClient } from "../prisma/src/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

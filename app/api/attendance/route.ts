@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 
     const studentMap = new Map(existingStudents.map((s: any) => [s.userId, s]));
     const attendanceMap = new Map(
-      existingAttendances.map((a) => [a.studentId, a]),
+      existingAttendances.map((a: any) => [a.studentId, a]),
     );
 
     const validationErrors: string[] = [];
