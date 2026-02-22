@@ -1,6 +1,6 @@
 import { badRequest, forbidden, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, AttendanceType } from "@prisma/client";
 import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       ]),
     );
     const attendanceMap = new Map<string, { id: number; studentId: string; type: ValidAttendanceType; note: string; date: Date }>(
-      existingAttendances.map((a) => [a.studentId, { id: a.id, studentId: a.studentId, type: a.type as ValidAttendanceType, note: a.note || "", date: a.date }]),
+      existingAttendances.map((a: { id: number; studentId: string; type: AttendanceType; note: string | null; date: Date }) => [a.studentId, { id: a.id, studentId: a.studentId, type: a.type as ValidAttendanceType, note: a.note || "", date: a.date }]),
     );
 
     const validationErrors: string[] = [];
