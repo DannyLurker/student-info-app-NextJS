@@ -109,7 +109,7 @@ const ForgotPasswordForm = () => {
             </Link>
             <h1 className="text-3xl font-bold">Forgot Password?</h1>
             <p className="text-blue-100 mt-2">
-              No worries, we'll send you reset instructions.
+              No worries, we&apos;ll send you reset instructions.
             </p>
           </div>
 

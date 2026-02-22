@@ -6,7 +6,7 @@ import { createClassSchema, updateClassSchema } from "@/lib/utils/zodSchema";
 import { compareClassAtributes } from "@/lib/validation/classroomValidators";
 import { validateManagementSession } from "@/lib/validation/guards";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     validateManagementSession();
 

@@ -2,7 +2,7 @@ import { handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
 import { validateStudentSession } from "@/lib/validation/guards";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const studentSession = await validateStudentSession();
 

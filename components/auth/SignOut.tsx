@@ -12,6 +12,7 @@ const Signout = () => {
       try {
         await signOut({ callbackUrl: "/sign-in" });
       } catch (error) {
+        console.error("Sign out error:", error);
         toast.error("Failed to sign out");
       }
     }, 1000);

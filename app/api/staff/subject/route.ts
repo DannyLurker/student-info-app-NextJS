@@ -138,7 +138,7 @@ export async function POST(req: Request) {
           );
         }
 
-        let potentialConfig = await tx.subjectConfig.findMany({
+        const potentialConfig = await tx.subjectConfig.findMany({
           where: {
             AND: [
               { type: subjectConfig.subjectType },

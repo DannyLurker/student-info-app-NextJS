@@ -72,7 +72,6 @@ export async function POST(req: Request) {
     const classroomMap = new Map(
       allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
     );
-    const subjectMap = new Map(allSubjects.map((s) => [s.name, s.id]));
 
     // PREPARE COLLECTIONS
     const usersToCreate: UserCreateManyInput[] = [];
@@ -81,7 +80,6 @@ export async function POST(req: Request) {
     const gradebooksToCreate: GradebookCreateManyInput[] = [];
     const parentAccountsForExcel: any[] = [];
 
-    const academicYear = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
     const semester = getSemester(new Date()) === 1 ? "FIRST" : "SECOND";
 
     // Student Password

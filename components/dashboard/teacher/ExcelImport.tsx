@@ -9,7 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogDescription,
 } from "../../ui/dialog";
 import { Input } from "../../ui/input";
 import { toast } from "sonner";

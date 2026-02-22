@@ -8,13 +8,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import { ValidInfractionType } from "../../../lib/constants/discplinary";
 import { Skeleton } from "../../ui/skeleton";
-import { Session } from "../../../lib/types/session";
 import { useQuery } from "@tanstack/react-query";
 import { PARENT_KEYS } from "../../../lib/constants/tanStackQueryKeys";
-
-interface DashboardProps {
-  session: Session;
-}
 
 type AttendanceStats = {
   type: "ALPHA" | "SICK" | "PERMISSION" | "LATE";
@@ -37,7 +32,7 @@ const CATEGORY_COLORS_HEX: Record<string, string> = {
   OTHER: "#A855F7",
 };
 
-export default function ParentDashboard({ session }: DashboardProps) {
+export default function ParentDashboard() {
   const {
     data: profileData,
     isLoading: loading,

@@ -18,13 +18,10 @@ import {
   MAJOR_DISPLAY_MAP,
 } from "../../../lib/utils/labels";
 import { FileSpreadsheet, Download } from "lucide-react";
-import { Session } from "../../../lib/types/session";
 
-interface ExportStudentExcelProps {
-  session: Session;
-}
 
-const ExportStudentExcel = ({ session }: ExportStudentExcelProps) => {
+
+const ExportStudentExcel = () => {
   const [loading, setLoading] = useState(false);
   const [selectedClass, setSelectedClass] = useState({
     grade: "",

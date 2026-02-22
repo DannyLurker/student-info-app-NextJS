@@ -158,7 +158,7 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
         teacherData,
       );
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       toast.success("Teacher account created successfully!");
       // automatic refresh teachers table in background if needed
       queryClient.invalidateQueries({ queryKey: TEACHER_KEYS.all });

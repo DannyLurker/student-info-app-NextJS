@@ -227,7 +227,7 @@ export async function POST(req: Request) {
             throw badRequest(`Row ${i + 1}: ${classLabel} not found`);
           }
 
-          const { id, homeroomTeacherId } = classroom;
+          const { id } = classroom;
 
           // From DB
           const subjectMapData = subjectMap.get(subjectName);

@@ -19,7 +19,7 @@ const page = async () => {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">
-        {session.user.name.split(" ")[0]}'s Marks
+        {session.user.name.split(" ")[0]}&apos;s Marks
       </h1>
       <StudentAssessmentView />
     </div>

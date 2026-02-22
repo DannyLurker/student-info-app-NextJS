@@ -77,8 +77,6 @@ const getLocalDateString = (date = new Date()): string => {
 };
 
 const AttendanceManager = ({ session }: AttendanceManagerProps) => {
-  const queryClient = useQueryClient();
-
   const [selectedDate, setSelectedDate] = useState<string>(
     getLocalDateString(), // ✅ local timezone, not UTC
   );
@@ -451,10 +449,10 @@ const AttendanceManager = ({ session }: AttendanceManagerProps) => {
                 const server = serverAttendanceMap[student.id];
                 const record = unsaved ||
                   server || {
-                    studentId: student.id,
-                    type: "PRESENT" as const,
-                    description: "",
-                  };
+                  studentId: student.id,
+                  type: "PRESENT" as const,
+                  description: "",
+                };
 
                 const showNoteInput =
                   isValidDate &&

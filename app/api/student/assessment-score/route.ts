@@ -35,34 +35,42 @@ export async function GET(req: Request) {
 
     if (!gradebook?.id) throw notFound("Gradebook not found");
 
-    const assessmentScores = await prisma.assessmentScore.findMany({
-      where: {
-        gradebookId: gradebook.id,
-      },
-      select: {
-        score: true,
-        assessment: {
-          select: {
-            givenAt: true,
-            dueAt: true,
-            title: true,
-            type: true,
+    const [assessmentScores, totalRecords] = await Promise.all([
+      prisma.assessmentScore.findMany({
+        where: {
+          gradebookId: gradebook.id,
+        },
+        select: {
+          score: true,
+          assessment: {
+            select: {
+              givenAt: true,
+              dueAt: true,
+              title: true,
+              type: true,
+            },
           },
         },
-      },
-      skip: data.page * OFFSET,
-      take: TAKE_RECORDS,
-      orderBy: {
-        assessment: {
-          createdAt: "asc",
+        skip: data.page * OFFSET,
+        take: TAKE_RECORDS,
+        orderBy: {
+          assessment: {
+            createdAt: "asc",
+          },
         },
-      },
-    });
+      }),
+      prisma.assessmentScore.count({
+        where: {
+          gradebookId: gradebook.id,
+        },
+      }),
+    ]);
 
     return Response.json(
       {
         message: "Successfully retrieved assessment score data",
         assessmentScores,
+        totalRecords,
       },
       { status: 200 },
     );

@@ -36,12 +36,16 @@ interface AssessmentScore {
   };
 }
 
+interface AssessmentScoreResponse {
+  assessmentScores: AssessmentScore[];
+  totalRecords?: number;
+}
+
 const StudentAssessmentView = () => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
     null,
   );
   const [page, setPage] = useState(0);
-  const [totalRecords, setTotalRecords] = useState(0);
 
   const fetchSubjects = async (): Promise<Subject[]> => {
     const response = await axios.get<SubjectResponse>("/api/student/subject");
@@ -69,7 +73,10 @@ const StudentAssessmentView = () => {
     return subjectData.find((s) => s.id === selectedSubjectId)?.name || "";
   }, [subjectData, selectedSubjectId]);
 
-  const fetchAssessmentScores = async (subjectId: number, page: number) => {
+  const fetchAssessmentScores = async (
+    subjectId: number,
+    page: number,
+  ): Promise<AssessmentScoreResponse> => {
     const response = await axios.get("/api/student/assessment-score", {
       params: {
         subjectId,
@@ -77,17 +84,18 @@ const StudentAssessmentView = () => {
       },
     });
 
-    return response.data.assessmentScores;
+    return response.data;
   };
 
-  const { data: assessmentScoreData = [], isLoading: loading } = useQuery<
-    AssessmentScore[]
-  >({
+  const { data, isLoading: loading } = useQuery<AssessmentScoreResponse>({
     queryKey: ["assessmentScores", selectedSubjectId, page],
     queryFn: () => fetchAssessmentScores(selectedSubjectId!, page),
     enabled: !!selectedSubjectId,
     placeholderData: keepPreviousData,
   });
+
+  const assessmentScoreData = data?.assessmentScores || [];
+  const totalRecords = data?.totalRecords || assessmentScoreData.length;
 
   const recordsPerPage = 10;
   const hasMore = (page + 1) * recordsPerPage < totalRecords;
