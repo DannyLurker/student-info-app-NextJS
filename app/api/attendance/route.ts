@@ -51,11 +51,11 @@ export async function POST(req: Request) {
 
     try {
       secretarySession = await validateSecretarySession();
-    } catch {}
+    } catch { }
 
     try {
       homeroomTeacherSession = await validateHomeroomTeacherSession();
-    } catch {}
+    } catch { }
 
     if (!secretarySession && !homeroomTeacherSession) {
       throw forbidden("You're not allowed to access this");
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    const studentMap = new Map(
+    const studentMap = new Map<string, { userId: string; classId: number | null }>(
       existingStudents.map((s: { userId: string; classId: number | null }) => [
         s.userId,
         s,
@@ -215,11 +215,11 @@ export async function GET(req: Request) {
 
     try {
       secretarySession = await validateSecretarySession();
-    } catch {}
+    } catch { }
 
     try {
       homeroomTeacherSession = await validateHomeroomTeacherSession();
-    } catch {}
+    } catch { }
 
     if (!secretarySession && !homeroomTeacherSession) {
       throw forbidden("You're not allowed to access this");
