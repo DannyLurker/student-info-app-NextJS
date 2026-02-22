@@ -1,4 +1,4 @@
-import { Prisma } from "@/db/prisma/src/generated/prisma/client";
+import { Prisma } from "@prisma/client";
 import AppError from "./AppError";
 import { ZodError } from "zod";
 import { primsaNotFoundCode } from "../constants/prismaErrorCode";

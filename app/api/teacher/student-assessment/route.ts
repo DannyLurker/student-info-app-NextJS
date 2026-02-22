@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import { validateTeacherSession } from "@/lib/validation/guards";
-import { AssessmentScoreCreateManyInput } from "@/db/prisma/src/generated/prisma/models";
+import { Prisma } from "@prisma/client";
 import { ClassSection, Grade, Major } from "@/lib/constants/class";
 
 export async function POST(req: Request) {
@@ -78,7 +78,8 @@ export async function POST(req: Request) {
       },
     });
 
-    const assessmentScoresToCreate: AssessmentScoreCreateManyInput[] = [];
+    const assessmentScoresToCreate: Prisma.AssessmentScoreCreateManyInput[] =
+      [];
 
     for (const student of studentRecords) {
       assessmentScoresToCreate.push({

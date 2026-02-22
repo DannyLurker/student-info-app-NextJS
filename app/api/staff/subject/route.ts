@@ -1,5 +1,4 @@
 import { prisma } from "@/db/prisma";
-import { Prisma } from "@/db/prisma/src/generated/prisma/client";
 import { Grade, Major } from "@/lib/constants/class";
 import {
   MIN_SEARCH_LENGTH,
@@ -21,6 +20,7 @@ import {
 } from "@/lib/utils/zodSchema";
 import { validateManagementSession } from "@/lib/validation/guards";
 import { compareSubjectConfig } from "@/lib/validation/subjectValidators";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
