@@ -1,5 +1,6 @@
 import { badRequest, forbidden, handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
+import { Prisma } from "@prisma/client";
 import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
       throw badRequest(`Validation failed: ${validationErrors.join("; ")}`);
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       let created = 0;
       let updated = 0;
       let deleted = 0;
