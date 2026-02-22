@@ -1,15 +1,15 @@
-import { badRequest, handleError, notFound } from "@/lib/errors";
-import { prisma } from "@/db/prisma";
-import hashing from "@/lib/utils/hashing";
+import { badRequest, handleError, notFound } from "../../../../../../lib/errors";
+import { prisma } from "../../../../../../db/prisma";
+import hashing from "../../../../../../lib/utils/hashing";
 import {
   StudentSignUpSchema,
   studentSignUpSchema,
-} from "@/lib/utils/zodSchema";
+} from "../../../../../../lib/utils/zodSchema";
 import crypto from "crypto";
-import { getSemester } from "@/lib/utils/date";
-import { ClassSection, Grade, Semester } from "@/lib/constants/class";
-import { validateManagementSession } from "@/lib/validation/guards";
-import { Major } from "@/db/prisma/src/generated/prisma/enums";
+import { getSemester } from "../../../../../../lib/utils/date";
+import { ClassSection, Grade, Major, Semester } from "../../../../../../lib/constants/class";
+import { validateManagementSession } from "../../../../../../lib/validation/guards";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const existingStudent = await tx.user.findUnique({
         where: { email: data.email },
       });

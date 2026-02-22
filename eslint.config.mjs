@@ -25,10 +25,10 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-implicit-any": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "prefer-const": "off",
-      "react/no-unescaped-entities": "off",
+      // "@typescript-eslint/no-implicit-any": "off",
+      // "@typescript-eslint/no-unused-vars": "off",
+      // "prefer-const": "off",
+      // "react/no-unescaped-entities": "off",
     },
   },
 ]);

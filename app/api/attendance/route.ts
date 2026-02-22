@@ -1,29 +1,29 @@
-import { badRequest, forbidden, handleError } from "@/lib/errors";
+import { badRequest, forbidden, handleError } from "../../../lib/errors";
 import { prisma } from "@/db/prisma";
-import { Prisma } from "@prisma/client";
 import {
   VALID_ATTENDANCE_TYPES,
   ValidAttendanceType,
-} from "@/lib/constants/attendance";
+} from "../../../lib/constants/attendance";
 import {
   bulkAttendanceSchema,
   studentAttendacesQueries,
-} from "@/lib/utils/zodSchema";
+} from "../../../lib/utils/zodSchema";
 import {
   getDayBounds,
   getSemester,
   getSemesterDateRange,
   parseDateString,
-} from "@/lib/utils/date";
+} from "../../../lib/utils/date";
 import {
   MIN_SEARCH_LENGTH,
   OFFSET,
   TAKE_RECORDS,
-} from "@/lib/constants/pagination";
+} from "../../../lib/constants/pagination";
 import {
   validateHomeroomTeacherSession,
   validateSecretarySession,
-} from "@/lib/validation/guards";
+} from "../../../lib/validation/guards";
+import { Prisma } from "@prisma/client";
 
 /**
  * Validates and normalizes the attendance type.

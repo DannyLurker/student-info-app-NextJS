@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     }
 
     const studentsWorksheet = XLSX.utils.json_to_sheet(
-      studentRecords?.students.map((student) => student.user) as [],
+      studentRecords?.students.map((student: { user: { id: string; name: string; }; }) => student.user) as [],
     );
     const studentWorkbook = XLSX.utils.book_new();
 

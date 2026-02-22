@@ -1,23 +1,18 @@
-import { badRequest, handleError } from "@/lib/errors";
+import { badRequest, handleError } from "../../../../../../lib/errors";
 import { prisma } from "@/db/prisma";
-import hashing from "@/lib/utils/hashing";
+import hashing from "../../../../../../lib/utils/hashing";
 import * as XLSX from "xlsx";
-import { ClassSection, Grade, Major } from "@/lib/constants/class";
+import { ClassSection, Grade, Major } from "../../../../../../lib/constants/class";
 import crypto from "crypto";
-import { getSemester } from "@/lib/utils/date";
+import { getSemester } from "../../../../../../lib/utils/date";
 import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
-} from "@/lib/constants/allowedExtensions";
-import { validateManagementSession } from "@/lib/validation/guards";
+} from "../../../../../../lib/constants/allowedExtensions";
+import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { createId } from "@paralleldrive/cuid2"; // Using cuid2 for pre-generating IDs
-import {
-  GradebookCreateManyInput,
-  ParentCreateManyInput,
-  StudentCreateManyInput,
-  UserCreateManyInput,
-} from "@/db/prisma/src/generated/prisma/models";
-import { StudentPosition } from "@/lib/constants/roles";
+import { StudentPosition } from "../../../../../../lib/constants/roles";
+import { Prisma } from "@prisma/client";
 
 type StudentExcelRow = {
   username: string;
@@ -68,16 +63,16 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    const existingEmailSet = new Set(existingUsers.map((u) => u.email));
-    const classroomMap = new Map(
+    const existingEmailSet = new Set(existingUsers.map((u: { email: string }) => u.email));
+    const classroomMap = new Map<string, number>(
       allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
     );
 
     // PREPARE COLLECTIONS
-    const usersToCreate: UserCreateManyInput[] = [];
-    const studentProfilesToCreate: StudentCreateManyInput[] = [];
-    const parentsToCreate: ParentCreateManyInput[] = [];
-    const gradebooksToCreate: GradebookCreateManyInput[] = [];
+    const usersToCreate: Prisma.UserCreateManyInput[] = [];
+    const studentProfilesToCreate: Prisma.StudentCreateManyInput[] = [];
+    const parentsToCreate: Prisma.ParentCreateManyInput[] = [];
+    const gradebooksToCreate: Prisma.GradebookCreateManyInput[] = [];
     const parentAccountsForExcel: any[] = [];
 
     const semester = getSemester(new Date()) === 1 ? "FIRST" : "SECOND";
@@ -150,7 +145,6 @@ export async function POST(req: Request) {
         role: "STUDENT" as const,
       });
 
-      // Student Profile
       studentProfilesToCreate.push({
         userId: studentUserId,
         classId: classId,
@@ -203,7 +197,7 @@ export async function POST(req: Request) {
 
     // SEQUENTIAL BULK TRANSACTION
     await prisma.$transaction(
-      async (tx) => {
+      async (tx: Prisma.TransactionClient) => {
         await tx.user.createMany({ data: usersToCreate });
         await tx.student.createMany({ data: studentProfilesToCreate });
         await tx.parent.createMany({ data: parentsToCreate });

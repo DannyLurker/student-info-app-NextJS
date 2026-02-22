@@ -12,11 +12,8 @@ import {
 } from "@/lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
 import { validateTeacherSession } from "@/lib/validation/guards";
-import {
-  DemeritPointCreateManyInput,
-  DemeritPointWhereInput,
-} from "@/db/prisma/src/generated/prisma/models";
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
+import { Prisma } from "@prisma/client";
 
 // The funcionality of "category is SinglePerDayCategories" is if the function return true, the category must be "LATE" or "INCOMPLETE_ATTRIBUTES"
 function isSinglePerDayCategory(
@@ -44,7 +41,7 @@ export async function POST(req: Request) {
       const semesterNum = getSemester(today);
       throw badRequest(
         `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-          `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
+        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
       );
     }
 
@@ -75,7 +72,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const demeritPointsToCreate: DemeritPointCreateManyInput[] = [];
+    const demeritPointsToCreate: Prisma.DemeritPointCreateManyInput[] = [];
 
     if (students.length === 0) {
       throw notFound("No student data found");
@@ -84,7 +81,7 @@ export async function POST(req: Request) {
     for (const student of students) {
       if (isSinglePerDayCategory(data.demeritCategory)) {
         const lateDemeritRecord = student.studentProfile!.demerits.find(
-          (d) => d.category == "LATE",
+          (d: { category: ValidInfractionType }) => d.category == "LATE",
         );
 
         if (lateDemeritRecord?.category) {
@@ -94,7 +91,7 @@ export async function POST(req: Request) {
         }
 
         const attributesDemeritRecord = student.studentProfile!.demerits.find(
-          (d) => d.category == "UNIFORM",
+          (d: { category: ValidInfractionType }) => d.category == "UNIFORM",
         );
 
         if (attributesDemeritRecord?.category) {
@@ -141,7 +138,7 @@ export async function GET(req: Request) {
 
     const page = Number(searchParams.get("page"));
 
-    const whereFilter: DemeritPointWhereInput = {
+    const whereFilter: Prisma.DemeritPointWhereInput = {
       recordedById: teacherSession.userId,
     };
 
@@ -265,7 +262,7 @@ export async function PATCH(req: Request) {
     });
 
     const findSingleCategory = demeritPointRecords.find(
-      (record) => record.category === existingDemeritPoint.category,
+      (record: { category: ValidInfractionType }) => record.category === existingDemeritPoint.category,
     );
 
     if (
@@ -289,7 +286,7 @@ export async function PATCH(req: Request) {
       const semesterNum = getSemester(today);
       throw badRequest(
         `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-          `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
+        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
       );
     }
 

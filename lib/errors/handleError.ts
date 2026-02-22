@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client";
 import AppError from "./AppError";
 import { ZodError } from "zod";
 import { primsaNotFoundCode } from "../constants/prismaErrorCode";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 export function handleError(error: unknown) {
   console.error("[API_ERROR]", {
@@ -10,8 +10,9 @@ export function handleError(error: unknown) {
   });
 
   // Di dalam file utils/handleError.ts atau sejenisnya
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === primsaNotFoundCode) {
+  if (error instanceof PrismaClientKnownRequestError) {
+    const prismaError = error as { code: string };
+    if (prismaError.code === primsaNotFoundCode) {
       return Response.json({ message: "Record not found" }, { status: 404 });
     }
   }

@@ -102,8 +102,7 @@ export async function POST(req: Request) {
     });
 
     uniqueSubjectNames.forEach((name) => {
-      existingSubjects.forEach((existingName) => {
-        console.log(existingName);
+      existingSubjects.forEach((existingName: { name: string }) => {
         if (
           existingName.name.toLocaleLowerCase() === name.toLocaleLowerCase()
         ) {
@@ -121,14 +120,14 @@ export async function POST(req: Request) {
     }
 
     const existingSubjectNames = existingSubjects.map(
-      (subject) => subject.name,
+      (subject: { name: string }) => subject.name,
     );
 
     const missingSubjectNames = uniqueSubjectNames.filter(
-      (subjectName) => !existingSubjectNames.includes(subjectName),
+      (subjectName: string) => !existingSubjectNames.includes(subjectName),
     );
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const subjectName of missingSubjectNames) {
         const subjectConfig = subjectMap.get(subjectName);
 
@@ -149,7 +148,7 @@ export async function POST(req: Request) {
         });
 
         let targetConfig = potentialConfig.find(
-          (config) =>
+          (config: { type: SubjectType; allowedMajors: Major[]; allowedGrades: Grade[] }) =>
             config.type === subjectConfig.subjectType &&
             config.allowedMajors.length === subjectConfig.major.length &&
             config.allowedGrades.length === subjectConfig.grade.length,
@@ -291,14 +290,6 @@ export async function DELETE(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    // Prisma error code P2025 means "Record to delete does not exist."
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2025"
-    ) {
-      return Response.json({ message: "Subject not found" }, { status: 404 });
-    }
-
     console.error("API_ERROR", {
       route: "(DELETE) /api/staff/subject",
       message: error instanceof Error ? error.message : String(error),
@@ -367,7 +358,7 @@ export async function PATCH(req: Request) {
       });
 
       let targetConfig = potentialConfig.find(
-        (config) =>
+        (config: { type: SubjectType; allowedMajors: Major[]; allowedGrades: Grade[] }) =>
           subjectConfig.type === config.type &&
           subjectConfig.allowedGrades.length === config.allowedGrades.length &&
           subjectConfig.allowedMajors.length === config.allowedMajors.length,

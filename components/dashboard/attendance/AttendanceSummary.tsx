@@ -20,12 +20,12 @@ import {
 import { abbreviateName } from "../../../lib/utils/nameFormatter";
 import { Session } from "../../../lib/types/session";
 import axios from "axios";
-import { AttendanceType } from "../../../db/prisma/src/generated/prisma/enums";
 import { ITEMS_PER_PAGE } from "../../../lib/constants/pagination";
 import { SortOrder } from "../../../lib/constants/sortingAndFilltering";
 import { useQuery } from "@tanstack/react-query";
 import { ATTENDANCE_KEYS } from "../../../lib/constants/tanStackQueryKeys";
 import { useDebounce } from "../../../hooks/useDebounce";
+import { ValidAttendanceType } from "@/lib/constants/attendance";
 
 type StudentClient = {
   name: string;
@@ -41,7 +41,7 @@ type StudentServer = {
   name: string;
   attendanceSummary: [
     {
-      type: AttendanceType;
+      type: ValidAttendanceType;
       count: number;
     },
   ];

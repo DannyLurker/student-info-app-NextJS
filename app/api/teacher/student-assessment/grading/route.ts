@@ -1,7 +1,8 @@
-import { handleError, notFound } from "@/lib/errors";
-import { updateAssessmentScoresSchema } from "@/lib/utils/zodSchema";
+import { handleError, notFound } from "../../../../../lib/errors";
+import { updateAssessmentScoresSchema } from "../../../../../lib/utils/zodSchema";
 import { prisma } from "@/db/prisma";
-import { validateTeacherSession } from "@/lib/validation/guards";
+import { validateTeacherSession } from "../../../../../lib/validation/guards";
+import { Prisma } from "@prisma/client";
 
 export async function PATCH(req: Request) {
   try {
@@ -26,7 +27,7 @@ export async function PATCH(req: Request) {
     if (!teachingAssignment) throw notFound("Teaching assignment not found");
 
     await prisma.$transaction(
-      async (tx) => {
+      async (tx: Prisma.TransactionClient) => {
         // Flatten the nested data into a linear array for easier processing within a single transaction.
         const updatePromises = data.students.flatMap((student) =>
           student.studentAssessments.map((assessment) => {

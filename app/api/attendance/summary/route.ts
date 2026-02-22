@@ -5,8 +5,8 @@ import {
   TAKE_RECORDS,
 } from "../../../../lib/constants/pagination";
 import { attendanceSummaryQueries } from "../../../../lib/utils/zodSchema";
-import { prisma } from "../../../../db/prisma";
 import { validateHomeroomTeacherSession } from "../../../../lib/validation/guards";
+import { prisma } from "@/db/prisma";
 
 export async function GET(req: Request) {
   try {
@@ -70,10 +70,10 @@ export async function GET(req: Request) {
       _count: true,
     });
 
-    const studentAttendanceSummaries = students.map((student) => {
+    const studentAttendanceSummaries = students.map((student: { id: string; name: string }) => {
       const summary = stats
-        .filter((s) => s.studentId === student.id)
-        .map((s) => ({ type: s.type, count: s._count }));
+        .filter((s: { studentId: string }) => s.studentId === student.id)
+        .map((s: { type: string; _count: number }) => ({ type: s.type, count: s._count }));
 
       return {
         id: student.id,

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       ),
     );
 
-    data.forEach((d) => {
+    data.forEach((d: { grade: Grade; major: Major; section: ClassSection }) => {
       const classroomKey = `${d.grade}-${d.major}-${d.section}`;
 
       if (classroomSet.has(classroomKey)) {

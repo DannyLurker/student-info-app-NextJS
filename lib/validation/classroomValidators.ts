@@ -1,5 +1,4 @@
-import { Major } from "@/db/prisma/src/generated/prisma/enums";
-import { ClassSection, Grade } from "../constants/class";
+import { ClassSection, Grade, Major } from "../constants/class";
 
 type classServer = {
   id: number;

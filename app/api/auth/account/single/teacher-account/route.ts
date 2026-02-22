@@ -1,10 +1,11 @@
-import { badRequest, handleError, notFound } from "@/lib/errors";
-import { prisma } from "@/db/prisma";
-import hashing from "@/lib/utils/hashing";
-import { teacherSignUpSchema } from "@/lib/utils/zodSchema";
-import { getFullClassLabel } from "@/lib/utils/labels";
-import { validateManagementSession } from "@/lib/validation/guards";
-import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
+import { badRequest, handleError, notFound } from "../../../../../../lib/errors";
+import { prisma } from "../../../../../../db/prisma";
+import hashing from "../../../../../../lib/utils/hashing";
+import { teacherSignUpSchema } from "../../../../../../lib/utils/zodSchema";
+import { getFullClassLabel } from "../../../../../../lib/utils/labels";
+import { validateManagementSession } from "../../../../../../lib/validation/guards";
+import { validateTeachingStructure } from "../../../../../../lib/validation/teachingValidators";
+import { Prisma } from "@prisma/client";
 
 type ResolvedTeachingAssignments = {
   teacherId: string;
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
 
     const hashedPassword = await hashing(data.passwordSchema.password);
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // create teacher account
       const teacher = await tx.user.create({
         data: {

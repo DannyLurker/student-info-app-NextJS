@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.teachingAssignment.update({
         where: {
           teacherId_subjectId_classId: {

@@ -1,6 +1,6 @@
-import { badRequest, handleError } from "@/lib/errors";
-import { prisma } from "@/db/prisma";
-import hashing from "@/lib/utils/hashing";
+import { badRequest, handleError } from "../../../../../../lib/errors";
+import { prisma } from "../../../../../../db/prisma";
+import hashing from "../../../../../../lib/utils/hashing";
 import * as XLSX from "xlsx";
 import {
   ClassSection,
@@ -8,15 +8,12 @@ import {
   GRADES,
   Major,
   MAJORS,
-} from "@/lib/constants/class";
-import { getFullClassLabel } from "@/lib/utils/labels";
-import { validateManagementSession } from "@/lib/validation/guards";
-import {
-  TeacherCreateManyInput,
-  TeachingAssignmentCreateManyInput,
-  UserCreateManyInput,
-} from "@/db/prisma/src/generated/prisma/models";
+} from "../../../../../../lib/constants/class";
+import { getFullClassLabel } from "../../../../../../lib/utils/labels";
+import { validateManagementSession } from "../../../../../../lib/validation/guards";
+
 import { createId } from "@paralleldrive/cuid2";
+import { Prisma } from "@prisma/client";
 
 type TeacherAccountExcel = {
   name: string;
@@ -61,21 +58,21 @@ export async function POST(req: Request) {
         select: { id: true, name: true, config: true },
       }),
     ]);
-    const existingEmailSet = new Set(existingUsers.map((u) => u.email));
+    const existingEmailSet = new Set(existingUsers.map((u: { email: string }) => u.email));
     const classroomMap = new Map(
       allClassrooms.map((c) => [
         `${c.grade}-${c.major}-${c.section}`,
         { id: c.id, homeroomTeacherId: c.homeroomTeacherId },
-      ]),
+      ] as const),
     );
     const subjectMap = new Map(
-      allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }]),
+      allSubjects.map((s) => [s.name, { subjectId: s.id, config: s.config }] as const),
     );
 
     // PREPARE COLLECTIONS
-    const usersToCreate: UserCreateManyInput[] = [];
-    const teacherProfilesToCreate: TeacherCreateManyInput[] = [];
-    const teachingAssignmentsToCreate: TeachingAssignmentCreateManyInput[] = [];
+    const usersToCreate: Prisma.UserCreateManyInput[] = [];
+    const teacherProfilesToCreate: Prisma.TeacherCreateManyInput[] = [];
+    const teachingAssignmentsToCreate: Prisma.TeachingAssignmentCreateManyInput[] = [];
     const classroomsToUpdate: {
       where: { id: number };
       data: { homeroomTeacherId: string };
@@ -214,8 +211,7 @@ export async function POST(req: Request) {
             }
           }
 
-          const classroomKey = `${grade}-${major}-${section}`;
-          const classroom = classroomMap.get(classroomKey);
+          const classroom = classroomMap.get(`${grade as Grade}-${major as Major}-${section as ClassSection}`);
 
           const classLabel = getFullClassLabel(
             grade as Grade,
@@ -258,7 +254,7 @@ export async function POST(req: Request) {
     }
 
     // Process each teacher
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.user.createMany({ data: usersToCreate });
       await tx.teacher.createMany({ data: teacherProfilesToCreate });
       if (classroomsToUpdate.length > 0) {
