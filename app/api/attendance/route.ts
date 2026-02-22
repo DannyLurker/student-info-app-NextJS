@@ -23,7 +23,6 @@ import {
   validateHomeroomTeacherSession,
   validateSecretarySession,
 } from "@/lib/validation/guards";
-import { AttendanceType } from "@/db/prisma/src/generated/prisma/enums";
 
 /**
  * Validates and normalizes the attendance type.
@@ -173,7 +172,7 @@ export async function POST(req: Request) {
           await tx.attendance.update({
             where: { id: existing.id },
             data: {
-              type: record.type as AttendanceType,
+              type: record.type as ValidAttendanceType,
               note: record.description,
             },
           });
@@ -182,7 +181,7 @@ export async function POST(req: Request) {
           await tx.attendance.create({
             data: {
               studentId: record.studentId,
-              type: record.type as AttendanceType,
+              type: record.type as ValidAttendanceType,
               note: record.description,
               date: attendanceDate,
             },

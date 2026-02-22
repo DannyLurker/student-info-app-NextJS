@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth/authNode";
 import { prisma } from "@/db/prisma";
-import { unauthorized, notFound, forbidden, badRequest } from "@/lib/errors";
+import { unauthorized, notFound, forbidden } from "@/lib/errors";
 import {
   hasManagementAccess,
   isClassSecretaryRole,
