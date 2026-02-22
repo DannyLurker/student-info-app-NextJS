@@ -42,31 +42,40 @@ export type ManagementPosition =
 
 export type allCombinedPosition = StaffPosition | StudentPosition | GeneralRole;
 
-export const isStudentRole = (role: string): role is StudentPosition =>
+export const isStudentRole = (
+  role: allCombinedPosition,
+): role is StudentPosition =>
   STUDENT_POSITIONS_ARRAY.includes(role as StudentPosition);
 
-export const isClassSecretaryRole = (role: string): role is StudentPosition =>
-  role === STUDENT_POSITIONS.CLASS_SECRETARY;
+export const isClassSecretaryRole = (
+  role: allCombinedPosition,
+): role is StudentPosition => role === STUDENT_POSITIONS.CLASS_SECRETARY;
 
-export const isTeacherRole = (role: string): role is StaffPosition =>
-  STAFF_POSITIONS_ARRAY.includes(role);
-
-export const hasManagementAccess = (role: string): role is ManagementPosition =>
-  MANAGEMENT_POSITIONS_ARRAY.includes(role as ManagementPosition);
-
-export const isAllStaffRole = (role: string): role is StaffPosition =>
+export const isTeacherRole = (
+  role: allCombinedPosition,
+): role is StaffPosition =>
   STAFF_POSITIONS_ARRAY.includes(role as StaffPosition);
 
-export const isParentRole = (role: string): role is GeneralRole =>
+export const hasManagementAccess = (
+  role: allCombinedPosition,
+): role is ManagementPosition =>
+  MANAGEMENT_POSITIONS_ARRAY.includes(role as ManagementPosition);
+
+export const isAllStaffRole = (
+  role: allCombinedPosition,
+): role is StaffPosition =>
+  STAFF_POSITIONS_ARRAY.includes(role as StaffPosition);
+
+export const isParentRole = (role: allCombinedPosition): role is GeneralRole =>
   role === GENERAL_ROLES.PARENT;
 
-export const isAdminRole = (role: string): role is GeneralRole =>
+export const isAdminRole = (role: allCombinedPosition): role is GeneralRole =>
   role === GENERAL_ROLES.ADMIN;
 
-export const hasHomeroomTeacher = (role: string): boolean =>
+export const hasHomeroomTeacher = (role: allCombinedPosition): boolean =>
   isStudentRole(role);
 
-export const getRoleDashboard = (role: string): string => {
+export const getRoleDashboard = (role: allCombinedPosition): string => {
   if (isStudentRole(role)) return "/dashboard/student";
   if (isTeacherRole(role)) return "/dashboard/teacher";
   if (hasManagementAccess(role)) return "/dashboard/staff";
