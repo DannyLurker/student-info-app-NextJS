@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    const studentMap = new Map(existingStudents.map((s) => [s.userId, s]));
+    const studentMap = new Map(existingStudents.map((s: any) => [s.userId, s]));
     const attendanceMap = new Map(
       existingAttendances.map((a) => [a.studentId, a]),
     );
