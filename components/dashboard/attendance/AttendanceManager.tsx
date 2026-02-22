@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import axios from "axios";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import AttendanceManagerSkeleton from "./AttendanceManagerSkeleton";
 import { Input } from "../../ui/input";
 import {

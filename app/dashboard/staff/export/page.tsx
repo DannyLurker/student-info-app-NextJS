@@ -19,7 +19,7 @@ const Page = async () => {
 
   return (
     <div className="m-4">
-      <ExportStudentExcel session={session.user} />;
+      <ExportStudentExcel />
     </div>
   );
 };

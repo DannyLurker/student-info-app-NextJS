@@ -87,7 +87,7 @@ const StudentAssessmentView = () => {
     return response.data;
   };
 
-  const { data, isLoading: loading } = useQuery<AssessmentScoreResponse>({
+  const { data } = useQuery<AssessmentScoreResponse>({
     queryKey: ["assessmentScores", selectedSubjectId, page],
     queryFn: () => fetchAssessmentScores(selectedSubjectId!, page),
     enabled: !!selectedSubjectId,

@@ -7,7 +7,8 @@ export const getErrorMessage = async (error: any) => {
     try {
       const text = await data.text();
       data = JSON.parse(text);
-    } catch (_) {
+    } catch (error) {
+      console.error(error);
       return "Gagal membaca pesan error dari file.";
     }
   }

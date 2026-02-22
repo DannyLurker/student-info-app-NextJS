@@ -15,7 +15,7 @@ const page = async () => {
 
   return (
     <div>
-      <ParentDashboard session={session.user} />
+      <ParentDashboard />
     </div>
   );
 };
