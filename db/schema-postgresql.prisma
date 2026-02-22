@@ -3,9 +3,16 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+// Local
+// generator client {
+//     provider = "prisma-client"
+//     output   = "prisma/src/generated/prisma"
+// }
+
+// Server (Vercel)
 generator client {
-    provider = "prisma-client"
-    output   = "prisma/src/generated/prisma"
+    provider      = "prisma-client-js"
+    binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 // --- Enums ---
