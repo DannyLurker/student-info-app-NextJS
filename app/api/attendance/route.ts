@@ -47,8 +47,8 @@ function normalizeAttendanceType(type: string): ValidAttendanceType | null {
 
 export async function POST(req: Request) {
   try {
-    let secretarySession = null;
-    let homeroomTeacherSession = null;
+    let secretarySession: null | any = null;
+    let homeroomTeacherSession: null | any = null;
 
     try {
       secretarySession = await validateSecretarySession();
@@ -211,8 +211,8 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    let secretarySession = null;
-    let homeroomTeacherSession = null;
+    let secretarySession: null | any = null;
+    let homeroomTeacherSession: null | any = null;
 
     try {
       secretarySession = await validateSecretarySession();
