@@ -194,8 +194,6 @@ const SubjectForm = ({
       ...prev,
       subjectRecords: prev.subjectRecords.map((s, i) => {
         if (i !== setIndex) return s;
-        // If switching to MAJOR type, cap allowedMajors to at most 1
-        // When switching to MAJOR type, reset majors so the checkbox starts fresh
         const allowedMajors =
           val === "MAJOR" ? [] : s.subjectConfig.allowedMajors;
         return {
@@ -206,7 +204,7 @@ const SubjectForm = ({
     }));
   };
 
-  // ─── Grade toggle (checkbox) ────────────────────────────────────────────
+  // ─── Grade toggle (checkbox) ──────────────────────────────────────────────
 
   const handleGradeToggle = (setIndex: number, grade: Grade) => {
     setSubjectData((prev) => ({
@@ -225,7 +223,25 @@ const SubjectForm = ({
     }));
   };
 
-  // ─── Major slot helpers (radio) ───────────────────────────────────────────
+  // ─── Major toggle (checkbox) ──────────────────────────────────────────────
+
+  const handleMajorToggle = (setIndex: number, major: Major) => {
+    setSubjectData((prev) => ({
+      ...prev,
+      subjectRecords: prev.subjectRecords.map((s, i) => {
+        if (i !== setIndex) return s;
+        const current = s.subjectConfig.allowedMajors;
+        const isChecked = current.includes(major);
+        const updated = isChecked
+          ? current.filter((m) => m !== major)
+          : [...current, major];
+        return {
+          ...s,
+          subjectConfig: { ...s.subjectConfig, allowedMajors: updated },
+        };
+      }),
+    }));
+  };
 
   // ─── Submit ───────────────────────────────────────────────────────────────
 
@@ -418,44 +434,28 @@ const SubjectForm = ({
                 Major(s)
               </label>
               <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {majors.map((mj) => {
+                {majors.map((major) => {
                   const checked =
-                    record.subjectConfig.allowedMajors.includes(mj);
+                    record.subjectConfig.allowedMajors.includes(major);
                   const atLimit = isMajorType
                     ? record.subjectConfig.allowedMajors.length >= 1 && !checked
                     : record.subjectConfig.allowedMajors.length >= 2 &&
                       !checked;
                   return (
-                    <div key={mj} className="flex items-center gap-2">
+                    <div key={major} className="flex items-center gap-2">
                       <Checkbox
-                        id={`major-${setIndex}-${mj}`}
+                        id={`major-${setIndex}-${major}`}
                         checked={checked}
                         disabled={atLimit}
-                        onCheckedChange={() => {
-                          setSubjectData((prev) => ({
-                            ...prev,
-                            subjectRecords: prev.subjectRecords.map((s, i) => {
-                              if (i !== setIndex) return s;
-                              const current = s.subjectConfig.allowedMajors;
-                              const updated = checked
-                                ? current.filter((m) => m !== mj)
-                                : [...current, mj];
-                              return {
-                                ...s,
-                                subjectConfig: {
-                                  ...s.subjectConfig,
-                                  allowedMajors: updated,
-                                },
-                              };
-                            }),
-                          }));
-                        }}
+                        onCheckedChange={() =>
+                          handleMajorToggle(setIndex, major)
+                        }
                       />
                       <Label
-                        htmlFor={`major-${setIndex}-${mj}`}
+                        htmlFor={`major-${setIndex}-${major}`}
                         className={atLimit ? "text-gray-400" : ""}
                       >
-                        {MAJOR_DISPLAY_MAP[mj]}
+                        {MAJOR_DISPLAY_MAP[major]}
                       </Label>
                     </div>
                   );
