@@ -9,7 +9,7 @@ import {
 } from "../../../../lib/utils/zodSchema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../../../ui/button";
 import { Input } from "../../../ui/input";
@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../ui/select";
+import { Checkbox } from "../../../ui/checkbox";
+import { Label } from "../../../ui/label";
 import { Spinner } from "../../../ui/spinner";
 import {
   GRADE_DISPLAY_MAP,
@@ -27,8 +29,6 @@ import {
 } from "../../../../lib/utils/labels";
 import { Plus, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-
-type ConfigType = "MAJOR" | "GRADE";
 
 const grades = ["TENTH", "ELEVENTH", "TWELFTH"] as Grade[];
 const majors = ["SOFTWARE_ENGINEERING", "ACCOUNTING"] as Major[];
@@ -56,7 +56,6 @@ const SubjectForm = ({
   onSuccess,
   onCancel,
 }: SubjectFormProps) => {
-  //  State management
   const [subjectData, setSubjectData] = useState<CreateSubjectInput>({
     subjectRecords: [],
   });
@@ -66,11 +65,8 @@ const SubjectForm = ({
       setSubjectData({
         subjectRecords: [
           {
-            // Gunakan ?? "" untuk memastikan subjectNames selalu berisi string
             subjectNames: [initialData.subjectName ?? ""],
-
             subjectConfig: {
-              // Berikan fallback untuk setiap properti di dalam config
               allowedGrades: initialData.subjectConfig?.allowedGrades ?? [],
               allowedMajors: initialData.subjectConfig?.allowedMajors ?? [],
               type: initialData.subjectConfig?.type ?? "GENERAL",
@@ -84,33 +80,25 @@ const SubjectForm = ({
   }, [mode, initialData]);
 
   const [errorMessage, setErrorMessage] = useState("");
-
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      // Jangan wrap dengan toast.promise di sini
       const response = await axios.post("/api/staff/subject", subjectData);
       return response.data;
     },
     onSuccess: (data) => {
-      // Success handling
       toast.success(`${data.details} has been created`);
       setSubjectData({ subjectRecords: [INITIAL_SUBJECT_RECORD] });
-      setErrorMessage(""); // Clear error
+      setErrorMessage("");
       queryClient.invalidateQueries({ queryKey: SUBJECT_KEYS.all });
-      if (onSuccess) onSuccess(); // Tutup modal di sini
+      if (onSuccess) onSuccess();
     },
     onError: (err: any) => {
-      // Error handling
       let errorMsg = "Failed to create subject";
-
-      if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response?.data?.errors?.[0]?.message) {
+      if (err.response?.data?.message) errorMsg = err.response.data.message;
+      else if (err.response?.data?.errors?.[0]?.message)
         errorMsg = err.response.data.errors[0].message;
-      }
-
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     },
@@ -126,230 +114,129 @@ const SubjectForm = ({
       setSubjectData({ subjectRecords: [] });
       setErrorMessage("");
       queryClient.invalidateQueries({ queryKey: SUBJECT_KEYS.lists() });
-      if (onSuccess) onSuccess(); // Tutup modal di sini
+      if (onSuccess) onSuccess();
     },
     onError: (err: any) => {
       let errorMsg = "Failed to update subject";
-
-      if (err.response?.data?.message) {
-        errorMsg = err.response.data.message;
-      } else if (err.response?.data?.errors?.[0]?.message) {
+      if (err.response?.data?.message) errorMsg = err.response.data.message;
+      else if (err.response?.data?.errors?.[0]?.message)
         errorMsg = err.response.data.errors[0].message;
-      }
-
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     },
   });
 
+  // ─── Subject Set helpers ──────────────────────────────────────────────────
+
   const addSubjectSet = () => {
-    setSubjectData((prev) => {
-      // If prev is undefined, we create the initial object
-      if (!prev) {
-        return { subjectRecords: [INITIAL_SUBJECT_RECORD] };
-      }
-
-      return {
-        ...prev,
-        subjectRecords: [...prev.subjectRecords, INITIAL_SUBJECT_RECORD],
-      };
-    });
-  };
-
-  const addExtraSubjectName = (subjectSetIndex: number) => {
-    setSubjectData((prev) => {
-      if (!prev) return prev;
-
-      const updatedSubjectRecords = prev.subjectRecords.map(
-        (subject, index) => {
-          if (index === subjectSetIndex) {
-            return {
-              ...subject,
-              subjectNames: [...subject.subjectNames, ""],
-            };
-          }
-          return subject;
-        },
-      );
-
-      return {
-        ...prev,
-        subjectRecords: updatedSubjectRecords,
-      };
-    });
-  };
-
-  const addExtraSubjectConfig = (
-    subjectSetIndex: number,
-    configType: ConfigType,
-  ) => {
-    setSubjectData((prev) => {
-      if (!prev) return prev;
-
-      const updatedSubjectRecords = prev.subjectRecords.map(
-        (subject, index) => {
-          if (index === subjectSetIndex) {
-            const majorLimitReached =
-              configType === "MAJOR" &&
-              subject.subjectConfig.allowedMajors.length < 3;
-
-            const gradeLimitReached =
-              configType === "GRADE" &&
-              subject.subjectConfig.allowedGrades.length < 4;
-
-            return {
-              ...subject,
-              subjectConfig: {
-                allowedMajors: majorLimitReached
-                  ? ([...subject.subjectConfig.allowedMajors, ""] as Major[])
-                  : ([...subject.subjectConfig.allowedMajors] as Major[]),
-                allowedGrades: gradeLimitReached
-                  ? ([...subject.subjectConfig.allowedGrades, ""] as Grade[])
-                  : ([...subject.subjectConfig.allowedGrades] as Grade[]),
-                type: subject.subjectConfig.type as SubjectType,
-              },
-            };
-          }
-          return subject;
-        },
-      );
-
-      return {
-        ...prev,
-        subjectRecords: updatedSubjectRecords,
-      };
-    });
-  };
-
-  const handleSubjectNameChange = (
-    e: ChangeEvent<HTMLInputElement>,
-    subjectSetIndex: number,
-    subjectNameIndex: number,
-  ) => {
-    setSubjectData((prev) => {
-      const updatedSubjectRecords = prev.subjectRecords.map(
-        (subject, index) => {
-          if (index === subjectSetIndex) {
-            return {
-              ...subject,
-              subjectNames: subject.subjectNames.map((name, nameIndex) => {
-                if (subjectNameIndex === nameIndex) {
-                  name = e.target.value;
-                }
-                return name;
-              }),
-            };
-          }
-
-          return subject;
-        },
-      );
-
-      return {
-        ...prev,
-        subjectRecords: updatedSubjectRecords,
-      };
-    });
-  };
-
-  const handleSubjectConfigChange = (
-    e: ChangeEvent<HTMLInputElement>,
-    subjectSetIndex: number,
-    configType: ConfigType,
-    subjectConfigIndex: number,
-  ) => {
-    const key = configType === "GRADE" ? "allowedGrades" : "allowedMajors";
-
     setSubjectData((prev) => ({
       ...prev,
-      subjectRecords: prev.subjectRecords.map((subject, sIdx) =>
-        sIdx === subjectSetIndex
-          ? {
-              ...subject,
-              subjectConfig: {
-                ...subject.subjectConfig,
-                [key]: subject.subjectConfig[key].map((val, cIdx) =>
-                  cIdx === subjectConfigIndex ? e.target.value : val,
-                ),
-              },
-            }
-          : subject,
+      subjectRecords: [...prev.subjectRecords, INITIAL_SUBJECT_RECORD],
+    }));
+  };
+
+  const deleteSubjectSet = (setIndex: number) => {
+    setSubjectData((prev) => ({
+      ...prev,
+      subjectRecords: prev.subjectRecords.filter((_, i) => i !== setIndex),
+    }));
+  };
+
+  // ─── Subject Name helpers ─────────────────────────────────────────────────
+
+  const addExtraSubjectName = (setIndex: number) => {
+    setSubjectData((prev) => ({
+      ...prev,
+      subjectRecords: prev.subjectRecords.map((s, i) =>
+        i === setIndex ? { ...s, subjectNames: [...s.subjectNames, ""] } : s,
       ),
     }));
   };
 
-  const deleteSubjectConfig = (
-    subjectSetIndex: number,
-    configType: ConfigType,
-    subjectConfigIndex: number,
+  const handleSubjectNameChange = (
+    value: string,
+    setIndex: number,
+    nameIndex: number,
   ) => {
     setSubjectData((prev) => ({
       ...prev,
-      subjectRecords: prev.subjectRecords.map((subject, index) => {
-        if (index === subjectSetIndex) {
-          const key =
-            configType === "GRADE" ? "allowedGrades" : "allowedMajors";
-          return {
-            ...subject,
-            subjectConfig: {
-              ...subject.subjectConfig,
-              [key]: subject.subjectConfig[key].filter(
-                (_, i) => i !== subjectConfigIndex,
+      subjectRecords: prev.subjectRecords.map((s, i) =>
+        i === setIndex
+          ? {
+              ...s,
+              subjectNames: s.subjectNames.map((n, ni) =>
+                ni === nameIndex ? value : n,
               ),
-            },
-          };
-        }
-        return subject;
+            }
+          : s,
+      ),
+    }));
+  };
+
+  const deleteSubjectName = (setIndex: number, nameIndex: number) => {
+    setSubjectData((prev) => ({
+      ...prev,
+      subjectRecords: prev.subjectRecords.map((s, i) =>
+        i === setIndex
+          ? {
+              ...s,
+              subjectNames: s.subjectNames.filter((_, ni) => ni !== nameIndex),
+            }
+          : s,
+      ),
+    }));
+  };
+
+  // ─── Subject Type helper ──────────────────────────────────────────────────
+
+  const handleTypeChange = (setIndex: number, val: SubjectType) => {
+    setSubjectData((prev) => ({
+      ...prev,
+      subjectRecords: prev.subjectRecords.map((s, i) => {
+        if (i !== setIndex) return s;
+        // If switching to MAJOR type, cap allowedMajors to at most 1
+        // When switching to MAJOR type, reset majors so the checkbox starts fresh
+        const allowedMajors =
+          val === "MAJOR" ? [] : s.subjectConfig.allowedMajors;
+        return {
+          ...s,
+          subjectConfig: { ...s.subjectConfig, type: val, allowedMajors },
+        };
       }),
     }));
   };
 
-  const deleteSubjectSet = (subjectSetIndex: number) => {
+  // ─── Grade toggle (checkbox) ────────────────────────────────────────────
+
+  const handleGradeToggle = (setIndex: number, grade: Grade) => {
     setSubjectData((prev) => ({
       ...prev,
-      subjectRecords: prev.subjectRecords.filter(
-        (_, index) => index !== subjectSetIndex,
-      ),
+      subjectRecords: prev.subjectRecords.map((s, i) => {
+        if (i !== setIndex) return s;
+        const current = s.subjectConfig.allowedGrades;
+        const updated = current.includes(grade)
+          ? current.filter((g) => g !== grade)
+          : [...current, grade];
+        return {
+          ...s,
+          subjectConfig: { ...s.subjectConfig, allowedGrades: updated },
+        };
+      }),
     }));
   };
 
-  const deleteSubjectName = (
-    subjectSetIndex: number,
-    subjectNameIndex: number,
-  ) => {
-    setSubjectData((prev) => {
-      if (!prev) return prev;
-      const newRecords = prev.subjectRecords.map((record, index) => {
-        if (index === subjectSetIndex) {
-          // We return a copy of the record with a FILTERED name array
-          return {
-            ...record,
-            subjectNames: record.subjectNames.filter(
-              (_, i) => i !== subjectNameIndex,
-            ),
-          };
-        }
-        return record;
-      });
+  // ─── Major slot helpers (radio) ───────────────────────────────────────────
 
-      return {
-        ...prev,
-        subjectRecords: newRecords,
-      };
-    });
-  };
+  // ─── Submit ───────────────────────────────────────────────────────────────
 
   const handleSubmit = () => {
     setErrorMessage("");
 
-    // ALl data must be filled
     const isValid = subjectData.subjectRecords.every((subject, index) => {
-      // Check names
       if (subject.subjectNames.some((name) => name.trim() === "")) {
         setErrorMessage(`Set ${index + 1}: Names cannot be empty.`);
         return false;
       }
-      // Check config
       if (
         subject.subjectConfig.allowedGrades.length === 0 ||
         subject.subjectConfig.allowedMajors.length === 0
@@ -359,16 +246,22 @@ const SubjectForm = ({
         );
         return false;
       }
+      if (
+        subject.subjectConfig.allowedMajors.some((m) => !majors.includes(m))
+      ) {
+        setErrorMessage(
+          `Set ${index + 1}: Please select a value for every Major slot.`,
+        );
+        return false;
+      }
       return true;
     });
 
-    // Gunakan logic validation yang sudah kamu buat (isValid)
     if (!isValid) return;
 
     if (mode === "create") {
       createMutation.mutate();
     } else if (mode === "edit" && initialData) {
-      // Pastikan payload update menyertakan ID yang ingin diubah
       const updatePayload = {
         subjectId: initialData.subjectId,
         subjectName: subjectData.subjectRecords[0].subjectNames[0],
@@ -380,10 +273,10 @@ const SubjectForm = ({
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
-      {/* Error Message */}
-
       {isLoading &&
         createPortal(
           <div className="fixed inset-0 z-[9999] bg-black/30 flex items-center justify-center">
@@ -391,224 +284,189 @@ const SubjectForm = ({
           </div>,
           document.body,
         )}
+
       {errorMessage && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           {errorMessage}
         </div>
       )}
 
-      {/* Subject Sets */}
-      {subjectData.subjectRecords.map((record, setIndex) => (
-        <div
-          key={setIndex}
-          className="bg-white p-6 rounded-xl border shadow-sm space-y-5"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {mode === "edit" ? "Edit Subject" : `Subject Set ${setIndex + 1}`}
-            </h3>
-            {mode === "create" && subjectData.subjectRecords.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={() => deleteSubjectSet(setIndex)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-
-          {/* Subject Names */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-600">
-              Subject Name(s)
-            </label>
-            {record.subjectNames.map((name, nameIndex) => (
-              <div key={nameIndex} className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter subject name..."
-                  value={name}
-                  onChange={(e) =>
-                    handleSubjectNameChange(e, setIndex, nameIndex)
-                  }
-                />
-                {mode === "create" && record.subjectNames.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-red-500"
-                    onClick={() => deleteSubjectName(setIndex, nameIndex)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            {mode === "create" && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addExtraSubjectName(setIndex)}
-                className="flex items-center gap-1 text-xs"
-              >
-                <Plus className="w-3 h-3" />
-                Add Name
-              </Button>
-            )}
-          </div>
-
-          {/* Subject Type */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-600">
-              Subject Type
-            </label>
-            <Select
-              value={record.subjectConfig.type}
-              onValueChange={(val) => {
-                setSubjectData((prev) => ({
-                  ...prev,
-                  subjectRecords: prev.subjectRecords.map((s, i) =>
-                    i === setIndex
-                      ? {
-                          ...s,
-                          subjectConfig: {
-                            ...s.subjectConfig,
-                            type: val as SubjectType,
-                          },
-                        }
-                      : s,
-                  ),
-                }));
-              }}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjectTypes.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Grade Config */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-600">
-              Grade(s)
-            </label>
-            {record.subjectConfig.allowedGrades.map((g, gIdx) => (
-              <div key={gIdx} className="flex items-center gap-2">
-                <Select
-                  value={g}
-                  onValueChange={(val) => {
-                    const e = {
-                      target: { value: val },
-                    } as ChangeEvent<HTMLInputElement>;
-                    handleSubjectConfigChange(e, setIndex, "GRADE", gIdx);
-                  }}
+      {subjectData.subjectRecords.map((record, setIndex) => {
+        const isMajorType = record.subjectConfig.type === "MAJOR";
+        return (
+          <div
+            key={setIndex}
+            className="bg-white p-6 rounded-xl border shadow-sm space-y-5"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {mode === "edit"
+                  ? "Edit Subject"
+                  : `Subject Set ${setIndex + 1}`}
+              </h3>
+              {mode === "create" && subjectData.subjectRecords.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => deleteSubjectSet(setIndex)}
                 >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select grade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {grades.map((gr) => (
-                      <SelectItem key={gr} value={gr}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Subject Names */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-600">
+                Subject Name(s)
+              </label>
+              {record.subjectNames.map((name, nameIndex) => (
+                <div key={nameIndex} className="flex items-center gap-2">
+                  <Input
+                    placeholder="Enter subject name..."
+                    value={name}
+                    onChange={(e) =>
+                      handleSubjectNameChange(
+                        e.target.value,
+                        setIndex,
+                        nameIndex,
+                      )
+                    }
+                  />
+                  {mode === "create" && record.subjectNames.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-400 hover:text-red-500"
+                      onClick={() => deleteSubjectName(setIndex, nameIndex)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {mode === "create" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addExtraSubjectName(setIndex)}
+                  className="flex items-center gap-1 text-xs"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Name
+                </Button>
+              )}
+            </div>
+
+            {/* Subject Type */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                Subject Type
+              </label>
+              <Select
+                value={record.subjectConfig.type}
+                onValueChange={(val) =>
+                  handleTypeChange(setIndex, val as SubjectType)
+                }
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjectTypes.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Grade Config — Checkboxes */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                Grade(s)
+              </label>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {grades.map((gr) => {
+                  const checked =
+                    record.subjectConfig.allowedGrades.includes(gr);
+                  return (
+                    <div key={gr} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`grade-${setIndex}-${gr}`}
+                        checked={checked}
+                        onCheckedChange={() => handleGradeToggle(setIndex, gr)}
+                      />
+                      <Label htmlFor={`grade-${setIndex}-${gr}`}>
                         {GRADE_DISPLAY_MAP[gr]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {record.subjectConfig.allowedGrades.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-red-500"
-                    onClick={() => deleteSubjectConfig(setIndex, "GRADE", gIdx)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-            {record.subjectConfig.allowedGrades.length < 3 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addExtraSubjectConfig(setIndex, "GRADE")}
-                className="flex items-center gap-1 text-xs"
-              >
-                <Plus className="w-3 h-3" />
-                Add Grade
-              </Button>
-            )}
-          </div>
+            </div>
 
-          {/* Major Config */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-600">
-              Major(s)
-            </label>
-            {record.subjectConfig.allowedMajors.map((m, mIdx) => (
-              <div key={mIdx} className="flex items-center gap-2">
-                <Select
-                  value={m}
-                  onValueChange={(val) => {
-                    const e = {
-                      target: { value: val },
-                    } as ChangeEvent<HTMLInputElement>;
-                    handleSubjectConfigChange(e, setIndex, "MAJOR", mIdx);
-                  }}
-                >
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Select major" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {majors.map((mj) => (
-                      <SelectItem key={mj} value={mj}>
+            {/* Major Config — Checkboxes */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                Major(s)
+              </label>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {majors.map((mj) => {
+                  const checked =
+                    record.subjectConfig.allowedMajors.includes(mj);
+                  const atLimit = isMajorType
+                    ? record.subjectConfig.allowedMajors.length >= 1 && !checked
+                    : record.subjectConfig.allowedMajors.length >= 2 &&
+                      !checked;
+                  return (
+                    <div key={mj} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`major-${setIndex}-${mj}`}
+                        checked={checked}
+                        disabled={atLimit}
+                        onCheckedChange={() => {
+                          setSubjectData((prev) => ({
+                            ...prev,
+                            subjectRecords: prev.subjectRecords.map((s, i) => {
+                              if (i !== setIndex) return s;
+                              const current = s.subjectConfig.allowedMajors;
+                              const updated = checked
+                                ? current.filter((m) => m !== mj)
+                                : [...current, mj];
+                              return {
+                                ...s,
+                                subjectConfig: {
+                                  ...s.subjectConfig,
+                                  allowedMajors: updated,
+                                },
+                              };
+                            }),
+                          }));
+                        }}
+                      />
+                      <Label
+                        htmlFor={`major-${setIndex}-${mj}`}
+                        className={atLimit ? "text-gray-400" : ""}
+                      >
                         {MAJOR_DISPLAY_MAP[mj]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {record.subjectConfig.allowedMajors.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-red-500"
-                    onClick={() => deleteSubjectConfig(setIndex, "MAJOR", mIdx)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-            {record.subjectConfig.allowedMajors.length < 2 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addExtraSubjectConfig(setIndex, "MAJOR")}
-                className="flex items-center gap-1 text-xs"
-              >
-                <Plus className="w-3 h-3" />
-                Add Major
-              </Button>
-            )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {/* Add Subject Set Button (Create mode only) */}
+      {/* Add Subject Set (create mode only) */}
       {mode === "create" && (
         <Button
           type="button"
@@ -628,10 +486,7 @@ const SubjectForm = ({
             Cancel
           </Button>
         )}
-        <Button
-          onClick={handleSubmit}
-          disabled={createMutation.isPending || updateMutation.isPending}
-        >
+        <Button onClick={handleSubmit} disabled={isLoading}>
           {isLoading && <Spinner className="mr-2" />}
           {mode === "edit" ? "Update Subject" : "Create Subjects"}
         </Button>
