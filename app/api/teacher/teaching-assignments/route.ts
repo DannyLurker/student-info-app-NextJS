@@ -11,6 +11,7 @@ export async function GET() {
         teacherId: teacherSession.userId,
       },
       select: {
+        classId: true,
         class: {
           select: {
             grade: true,

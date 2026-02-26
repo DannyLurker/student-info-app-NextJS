@@ -64,6 +64,7 @@ import {
   AlertDialogTitle,
 } from "../../../components/ui/alert-dialog";
 import { UpdateStudentAssessmentSchema } from "../../../lib/utils/zodSchema";
+import { Session } from "@/lib/types/session";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -196,7 +197,11 @@ function getAssignmentLabel(assignment: TeachingAssignment): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const AssessmentManagement = () => {
+interface AssessmentManagementProps {
+  session: Session;
+}
+
+const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
   // Modal state
   const [isOpenEditModal, setIsOpenEditModal] = useState<boolean>(false);
   const [editModalData, setEditModalData] =
@@ -278,7 +283,23 @@ const AssessmentManagement = () => {
       try {
         const res = await axios.get("/api/teacher/teaching-assignments");
         if (res.data?.teachingAssignments) {
-          setAssignments(res.data.teachingAssignments);
+          setAssignments(
+            res.data.teachingAssignments.map((assignment: any) => {
+              return {
+                class: {
+                  id: assignment.classId,
+                  grade: assignment.class.grade,
+                  major: assignment.class.major,
+                  section: assignment.class.section,
+                  homeroomTeacherId: session.id,
+                },
+                subject: {
+                  id: assignment.subject.id,
+                  name: assignment.subject.name,
+                },
+              };
+            }),
+          );
         }
       } catch (e) {
         console.error(e);

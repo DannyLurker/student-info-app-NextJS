@@ -13,7 +13,7 @@ const page = async () => {
     redirect(getRoleDashboard(session.user.role));
   }
 
-  return <AssessmentManagement />;
+  return <AssessmentManagement session={session.user} />;
 };
 
 export default page;

@@ -1,8 +1,12 @@
-# Student Info App
+# Student Info App (Still Underdevelopment)
 
 A comprehensive full-stack Next.js application designed to manage student information, academic records, attendance, and disciplinary actions. This system supports multiple user roles including Administrators, Staff (Teachers, Principals), Students, and Parents, providing a unified portal for modern school management.
 
+Website link:
 [Student Info App](https://student-info-app-next-js.vercel.app)
+
+Demo Video:
+[Demo Video](https://drive.google.com/file/d/1mohTJIM_Aw1fZSTeyVLlXCpoTBcF8Pfm/view?usp=sharing)
 
 ## 🚀 Tech Stack
 
