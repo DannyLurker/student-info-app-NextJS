@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STAFF_POSITIONS } from "../constants/roles";
 
 const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
@@ -97,6 +98,12 @@ const teachingAssignmentInput = z.object({
   grade: GradeEnum,
   major: MajorEnum,
   section: ClassSectionEnum,
+});
+
+const updateTeachingAssignmentInput = z.object({
+  assignmentId: z.number({ message: "Assignment id Must be filled" }),
+  subjectId: z.number({ message: "Subject id must be filled" }),
+  classId: z.number({ message: "Class id must be filled" }),
 });
 
 type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
@@ -371,6 +378,17 @@ const updateStudentProfileSchema = z.object({
 });
 
 type UpdateStudentProfileSchema = z.infer<typeof updateStudentProfileSchema>;
+
+// Teacher
+export const updateTeacherProfileSchema = z.object({
+  id: z.string({ message: "Id field must be filled" }),
+  name: z.string({ message: "Name field must be filled" }),
+  teachingAssignments: z.array(updateTeachingAssignmentInput).min(1),
+});
+
+export type UpdateTeacherProfileSchema = z.infer<
+  typeof updateTeacherProfileSchema
+>;
 
 export {
   studentQuerySchema,
