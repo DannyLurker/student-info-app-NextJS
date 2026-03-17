@@ -3,7 +3,7 @@ import crypto from "crypto";
 import hashing from "../../lib/utils/hashing";
 import { getSemester } from "../../lib/utils/date";
 import { ensureSubjectsExist } from "../../domain/subject/subjectRules";
-import { ensureEmailExist } from "../../domain/student/emailRules";
+import { validateEmailUniqueness } from "../../domain/student/emailRules";
 import { findSubjectsForClass } from "../../repositories/subjectRepository";
 import { findClassroom } from "@/repositories/classroomRepository";
 import { findUserByEmail } from "@/repositories/userRepository";
@@ -21,7 +21,7 @@ export async function createStudentAccountService(data: any) {
   return prisma.$transaction(async (tx) => {
     const existingStudent = await findUserByEmail(data.email, tx);
 
-    ensureEmailExist(existingStudent);
+    validateEmailUniqueness(existingStudent);
 
     const classroom = await findClassroom(
       data.classSchema.grade,
@@ -60,7 +60,6 @@ export async function createStudentAccountService(data: any) {
       (subject) => ({
         studentId: student.id,
         subjectId: subject.id,
-        academicYear: String(today.getFullYear()),
         semester,
       }),
     );

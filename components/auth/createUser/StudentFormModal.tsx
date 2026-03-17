@@ -184,6 +184,7 @@ const StudentFormModal = ({ open, onOpenChange }: StudentFormModalProps) => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
 
     const formattedData = {
       username: data.username,
