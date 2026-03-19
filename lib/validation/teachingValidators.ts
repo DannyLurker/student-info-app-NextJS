@@ -1,6 +1,6 @@
 import { badRequest } from "../errors";
 import { getFullClassLabel } from "../utils/labels";
-import { TeachingAssignmentInput } from "../utils/zodSchema";
+import { TeachingAssignmentInput } from "../zod/general";
 
 export function validateTeachingStructure(
   teachingAssignment: TeachingAssignmentInput[],

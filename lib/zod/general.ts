@@ -70,3 +70,5 @@ export const teachingAssignmentInput = z.object({
   major: MajorEnum,
   section: ClassSectionEnum,
 });
+
+export type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;

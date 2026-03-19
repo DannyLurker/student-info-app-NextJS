@@ -1,52 +1,14 @@
-import { badRequest, handleError } from "@/lib/errors";
-import redis from "@/lib/redis";
-import hashing from "@/lib/utils/hashing";
-import { hashResetToken } from "@/lib/utils/hashToken";
-import { resetPasswordSchema } from "@/lib/utils/zodSchema";
-import { prisma } from "@/db/prisma";
-import bcrypt from "bcryptjs";
+import { handleError } from "@/lib/errors";
+import { printConsoleError } from "@/lib/utils/printError";
+import { resetPasswordSchema } from "@/lib/zod/auth";
+import { resetPasswordService } from "@/services/auth/reset-password-service";
 
 export async function POST(req: Request) {
   try {
     const rawData = await req.json();
     const data = resetPasswordSchema.parse(rawData);
 
-    const resetData = await redis.get(`reset:${hashResetToken(data.token)}`);
-
-    if (!resetData) {
-      throw badRequest("Invalid or expired reset token");
-    }
-
-    const { userId, otpHash } = JSON.parse(resetData);
-
-    const isOtpValid = await bcrypt.compare(data.otp, otpHash);
-
-    if (!isOtpValid) {
-      throw badRequest("Invalid or expired OTP code");
-    }
-
-    if (data.password !== data.confirmPassword) {
-      throw badRequest("Password and confirm password must be the same");
-    }
-
-    const hashedPassword = await hashing(data.password);
-
-    await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        password: hashedPassword,
-      },
-    });
-
-    const PASSWORD_RESET_COOLDOWN = 24 * 60 * 60; // 24 jam
-    await redis.set(`cooldown:reset:${userId}`, "1", {
-      EX: PASSWORD_RESET_COOLDOWN,
-    });
-
-    await redis.del(`rate:otp:${userId}`);
-    await redis.del(`reset:${hashResetToken(data.token)}`);
+    await resetPasswordService(data);
 
     return Response.json(
       {
@@ -55,10 +17,7 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "/api/auth/reset-pasword",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "POST", "/api/auth/reset-password");
     return handleError(error);
   }
 }

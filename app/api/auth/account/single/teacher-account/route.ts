@@ -1,4 +1,4 @@
-import { createTeacherAccountService } from "../../../../../../services/teacher/createTeacherAccountService";
+import { createTeacherAccountService } from "../../../../../../services/teacher/create-teacher-account-service";
 import { handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { teacherSignUpSchema } from "../../../../../../lib/zod/teacher";

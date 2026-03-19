@@ -91,15 +91,6 @@ type SubjectQueriesSchema = z.infer<typeof getSubjectQueriesSchema>;
 type PatchSubjectInput = z.infer<typeof patchSubjectSchema>;
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
-const teachingAssignmentInput = z.object({
-  subjectId: z.number({ message: "Must be filled" }),
-  subjectName: z.string({ message: "Must be filled" }),
-  grade: GradeEnum,
-  major: MajorEnum,
-  section: ClassSectionEnum,
-});
-
-type TeachingAssignmentInput = z.infer<typeof teachingAssignmentInput>;
 
 const classSchema = z.object({
   grade: GradeEnum,
@@ -109,19 +100,7 @@ const classSchema = z.object({
 
 type ClassSchema = z.infer<typeof classSchema>;
 
-const passwordSchema = z
-  .object({
-    password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
-    confirmPassword: z
-      .string()
-      .min(8, { message: "Must be 8 characters at minimum" }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-  });
-
 // Main schemas
-
 // Classroom
 const createClassSchema = z.array(classSchema);
 
@@ -149,24 +128,6 @@ const studentQuerySchema = z.object({
 });
 
 // AUTH
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Please input a correct format" }),
-});
-
-const resetPasswordSchema = z.object({
-  otp: z.string({ message: "Must be filled" }),
-  token: z.string({ message: "Must be filled" }),
-  password: z
-    .string({ message: "Must be filled" })
-    .min(8, { message: "Must be 8 characters at minimum" }),
-  confirmPassword: z
-    .string({ message: "Must be filled" })
-    .min(8, { message: "Must be 8 characters at minimum" }),
-});
-
-type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
-type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
 
 // ATTENDANCE
 const bulkAttendanceSchema = z.object({
@@ -377,8 +338,6 @@ export {
   createSubjectSchema,
   getSubjectQueriesSchema,
   patchSubjectSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
   homeroomClassStudent,
   createDemeritPointSchema,
   bulkAttendanceSchema,
@@ -401,8 +360,6 @@ export {
   type SubjectQueriesSchema,
   type PatchSubjectInput,
   type ClassSchema,
-  type ForgotPasswordSchema,
-  type ResetPasswordSchema,
   type HomeroomClassStudentSchema,
   type CreateDemeritPointSchema,
   type BulkAttendanceSchema,
@@ -415,6 +372,5 @@ export {
   type GetStudnetAssessmentScore,
   type UpdateAssessmentScoresSchema,
   type UpdateDemeritPointSchema,
-  type TeachingAssignmentInput,
   type UpdateStudentProfileSchema,
 };

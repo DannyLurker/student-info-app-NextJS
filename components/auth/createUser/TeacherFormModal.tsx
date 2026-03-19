@@ -51,16 +51,14 @@ import {
   SUBJECT_KEYS,
   TEACHER_KEYS,
 } from "../../../lib/constants/tanStackQueryKeys";
-import {
-  TeacherSignUpSchema,
-  TeachingAssignmentInput,
-} from "../../../lib/utils/zodSchema";
 import { getErrorMessage } from "../../../lib/utils/getErrorMessage";
 import {
   ALLOWED_EXTENSIONS,
   AllowedExtensions,
 } from "../../../lib/constants/allowedExtensions";
 import { createPortal } from "react-dom";
+import { TeacherSignUpSchema } from "@/lib/zod/teacher";
+import { TeachingAssignmentInput } from "@/lib/zod/general";
 
 type GroupedSubjects = Record<string, any[]>;
 

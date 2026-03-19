@@ -1,4 +1,4 @@
-import { createStudentBulkAccountService } from "@/services/student/createStudentBulkAccountService";
+import { createStudentBulkAccountService } from "@/services/student/create-student-bulk-account-service";
 import { badRequest, handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { printConsoleError } from "@/lib/utils/printError";

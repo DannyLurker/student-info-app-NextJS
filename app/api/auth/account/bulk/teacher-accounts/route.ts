@@ -1,4 +1,4 @@
-import { createTeacherBulkAccountService } from "@/services/teacher/createTeacherBulkAccountService";
+import { createTeacherBulkAccountService } from "@/services/teacher/create-teacher-bulk-account-service";
 import { badRequest, handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { validateExcelExtension } from "@/domain/extension/extensionRules";

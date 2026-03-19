@@ -35,8 +35,6 @@ import {
   STUDENT_ROLES_MAP,
 } from "../../../lib/utils/labels";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { StudentSignUpSchema } from "../../../lib/utils/zodSchema";
-
 import { getErrorMessage } from "../../../lib/utils/getErrorMessage";
 import {
   ALLOWED_EXTENSIONS,
@@ -47,6 +45,7 @@ import {
   STUDENT_POSITIONS_ARRAY,
   StudentPosition,
 } from "../../../lib/constants/roles";
+import { StudentSignUpSchema } from "@/lib/zod/student";
 
 interface StudentFormModalProps {
   open: boolean;
