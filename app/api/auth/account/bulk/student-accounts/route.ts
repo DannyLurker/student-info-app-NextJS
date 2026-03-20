@@ -1,4 +1,4 @@
-import { createStudentBulkAccountService } from "@/services/student/create-student-bulk-account-service";
+import { createStudentBulkAccount } from "@/services/student/create-student-bulk-account-service";
 import { badRequest, handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { printConsoleError } from "@/lib/utils/printError";
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     validateExcelExtension(file);
 
-    const response = await createStudentBulkAccountService(file);
+    const response = await createStudentBulkAccount(file);
 
     return response;
   } catch (error) {

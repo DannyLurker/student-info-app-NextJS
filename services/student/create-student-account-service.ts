@@ -4,14 +4,14 @@ import hashing from "../../lib/utils/hashing";
 import { getSemester } from "../../lib/utils/date";
 import { ensureSubjectsExist } from "../../domain/subject/subjectRules";
 import { validateEmailUniqueness } from "../../domain/account/emailRules";
-import { findSubjectsForClass } from "../../repositories/subjectRepository";
-import { findClassroom } from "@/repositories/classroomRepository";
+import { findSubjectsForClass } from "../../repositories/subject-repository";
+import { findClassroom } from "@/repositories/classroom-repository";
 import { findUserByEmail } from "@/repositories/userRepository";
 import { Prisma } from "@prisma/client";
 import { ensureClassroomExists } from "@/domain/classroom/classroomRules";
 import { StudentSignUpSchema } from "@/lib/zod/student";
 
-export async function createStudentAccountService(data: StudentSignUpSchema) {
+export async function createStudentAccount(data: StudentSignUpSchema) {
   const subjects = await findSubjectsForClass(
     data.classSchema.grade,
     data.classSchema.major,

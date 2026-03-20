@@ -3,15 +3,7 @@ import { z } from "zod";
 const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
-const AttendanceTypesEnum = z.enum([
-  "ALPHA",
-  "SICK",
-  "PERMISSION",
-  "LATE",
-  "PRESENT",
-]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
-const SortByEnum = z.enum(["name", "status"]);
 const SortOrderEnum = z.enum(["asc", "desc"]);
 const DemeritCategoryEnum = z.enum([
   "DISCIPLINE",
@@ -126,35 +118,6 @@ const studentQuerySchema = z.object({
     .default("true")
     .transform((v) => Boolean(v)),
 });
-
-// AUTH
-
-// ATTENDANCE
-const bulkAttendanceSchema = z.object({
-  date: z.string({ message: "Must be filled" }),
-  records: z.array(
-    z.object({
-      studentId: z.string({ message: "Must be filled" }),
-      attendanceType: AttendanceTypesEnum,
-      description: z.string().max(300).optional(),
-    }),
-  ),
-});
-
-type BulkAttendanceSchema = z.infer<typeof bulkAttendanceSchema>;
-
-const studentAttendacesQueries = z.object({
-  date: z
-    .string({ message: "Must be filled" })
-    .default(new Date().toISOString().split("T")[0]),
-  homeroomTeacherId: z.string().optional(),
-  page,
-  sortBy: SortByEnum,
-  sortOrder: SortOrderEnum,
-  searchQuery: z.string().optional(),
-});
-
-type StudentAttendacesQueriesSchema = z.infer<typeof studentAttendacesQueries>;
 
 const attendanceSummaryQueries = z.object({
   page,
@@ -340,8 +303,6 @@ export {
   patchSubjectSchema,
   homeroomClassStudent,
   createDemeritPointSchema,
-  bulkAttendanceSchema,
-  studentAttendacesQueries,
   attendanceSummaryQueries,
   queryStudentMarks,
   createStudentAssessmentSchema,
@@ -362,10 +323,8 @@ export {
   type ClassSchema,
   type HomeroomClassStudentSchema,
   type CreateDemeritPointSchema,
-  type BulkAttendanceSchema,
   type QueryStudentMarksSchema,
   type AttendanceSummaryQueriesSchema,
-  type StudentAttendacesQueriesSchema,
   type CreateStudentAssessmentSchema,
   type GetStudentAssessmentSchema,
   type UpdateStudentAssessmentSchema,

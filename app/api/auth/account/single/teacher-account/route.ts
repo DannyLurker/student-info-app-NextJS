@@ -1,4 +1,4 @@
-import { createTeacherAccountService } from "../../../../../../services/teacher/create-teacher-account-service";
+import { createTeacherAccount } from "../../../../../../services/teacher/create-teacher-account-service";
 import { handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { teacherSignUpSchema } from "../../../../../../lib/zod/teacher";
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const rawData = await req.json();
     const data = teacherSignUpSchema.parse(rawData);
 
-    await createTeacherAccountService(data);
+    await createTeacherAccount(data);
 
     return Response.json(
       {

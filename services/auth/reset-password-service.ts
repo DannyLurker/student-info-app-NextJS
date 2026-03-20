@@ -7,7 +7,7 @@ import { hashResetToken } from "@/lib/utils/hashToken";
 import { ResetPasswordSchema } from "@/lib/zod/auth";
 import bcrypt from "bcryptjs";
 
-export async function resetPasswordService(data: ResetPasswordSchema) {
+export async function resetPassword(data: ResetPasswordSchema) {
   const resetData = await redis.get(`reset:${hashResetToken(data.token)}`);
 
   if (!resetData) {

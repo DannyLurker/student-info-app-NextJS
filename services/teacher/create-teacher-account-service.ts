@@ -6,8 +6,8 @@ import hashing from "@/lib/utils/hashing";
 import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 import { TeacherSignUpSchema } from "@/lib/zod/teacher";
-import { findClassroom } from "@/repositories/classroomRepository";
-import { findSubjects } from "@/repositories/subjectRepository";
+import { findClassroom } from "@/repositories/classroom-repository";
+import { findSubjects } from "@/repositories/subject-repository";
 import { findUserByEmail } from "@/repositories/userRepository";
 
 type ResolvedTeachingAssignments = {
@@ -16,7 +16,7 @@ type ResolvedTeachingAssignments = {
   classId: number;
 };
 
-export async function createTeacherAccountService(data: TeacherSignUpSchema) {
+export async function createTeacherAccount(data: TeacherSignUpSchema) {
   return prisma.$transaction(async (tx) => {
     const user = await findUserByEmail(data.email, tx);
 

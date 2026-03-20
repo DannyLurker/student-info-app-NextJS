@@ -16,7 +16,7 @@ import {
   assertOtpRequestLimit,
 } from "@/domain/auth/forgot-password-rules";
 
-export async function forgotPasswordService(data: ForgotPasswordSchema) {
+export async function forgotPassword(data: ForgotPasswordSchema) {
   const headersList = headers();
 
   const ip =
@@ -31,6 +31,12 @@ export async function forgotPasswordService(data: ForgotPasswordSchema) {
   await assertForgotPasswordIpLimit(ip);
 
   const user = await findUserByEmail(data.email, prisma);
+
+  if (!user)
+    return Response.json(
+      { message: "If the email exists, an OTP has been sent." },
+      { status: 201 },
+    );
 
   await assertOtpRequestLimit(user.id);
 

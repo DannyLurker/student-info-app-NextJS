@@ -1,14 +1,14 @@
 import { handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
 import { resetPasswordSchema } from "@/lib/zod/auth";
-import { resetPasswordService } from "@/services/auth/reset-password-service";
+import { resetPassword } from "@/services/auth/reset-password-service";
 
 export async function POST(req: Request) {
   try {
     const rawData = await req.json();
     const data = resetPasswordSchema.parse(rawData);
 
-    await resetPasswordService(data);
+    await resetPassword(data);
 
     return Response.json(
       {

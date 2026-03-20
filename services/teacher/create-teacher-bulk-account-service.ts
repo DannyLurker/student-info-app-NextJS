@@ -23,7 +23,7 @@ type TeacherAccountExcel = {
   teachingAssignments?: string; // Comma-separated: "math:tenth:accounting:1,english:eleventh:softwareEngineering:2"
 };
 
-export async function createTeacherBulkAccountService(file: File) {
+export async function createTeacherBulkAccount(file: File) {
   // Read Excel file
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer);

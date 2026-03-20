@@ -1,7 +1,7 @@
 import { studentSignUpSchema } from "../../../../../../lib/zod/student";
 import { handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
-import { createStudentAccountService } from "../../../../../../services/student/create-student-account-service";
+import { createStudentAccount } from "../../../../../../services/student/create-student-account-service";
 import { printConsoleError } from "@/lib/utils/printError";
 
 export async function POST(req: Request) {
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const raw = await req.json();
     const data = studentSignUpSchema.parse(raw);
 
-    const result = await createStudentAccountService(data);
+    const result = await createStudentAccount(data);
 
     return Response.json(
       {

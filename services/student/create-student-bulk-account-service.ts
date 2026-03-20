@@ -20,7 +20,7 @@ type StudentExcelRow = {
   studentRole: StudentPosition;
 };
 
-export async function createStudentBulkAccountService(file: File) {
+export async function createStudentBulkAccount(file: File) {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer);
   const data = XLSX.utils.sheet_to_json(

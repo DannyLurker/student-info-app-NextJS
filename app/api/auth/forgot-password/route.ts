@@ -1,14 +1,14 @@
 import { handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
 import { forgotPasswordSchema } from "@/lib/zod/auth";
-import { forgotPasswordService } from "@/services/auth/forgot-password-service";
+import { forgotPassword } from "@/services/auth/forgot-password-service";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const data = forgotPasswordSchema.parse(body);
 
-    await forgotPasswordService(data);
+    await forgotPassword(data);
 
     return Response.json(
       { message: "If the email exists, an OTP has been sent." },

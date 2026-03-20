@@ -1,4 +1,4 @@
-import { createTeacherBulkAccountService } from "@/services/teacher/create-teacher-bulk-account-service";
+import { createTeacherBulkAccount } from "@/services/teacher/create-teacher-bulk-account-service";
 import { badRequest, handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { validateExcelExtension } from "@/domain/extension/extensionRules";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     validateExcelExtension(file);
 
-    await createTeacherBulkAccountService(file);
+    await createTeacherBulkAccount(file);
 
     return Response.json(
       { message: "Teacher accounts succesfully created" },
