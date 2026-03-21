@@ -6,21 +6,18 @@ import {
 } from "@/lib/constants/discplinary";
 import { badRequest, handleError, notFound } from "@/lib/errors";
 import { getSemester, getSemesterDateRange } from "@/lib/utils/date";
-import {
-  createDemeritPointSchema,
-  updateDemeritPointSchema,
-} from "@/lib/utils/zodSchema";
+
 import { prisma } from "@/db/prisma";
 import { validateTeacherSession } from "@/lib/validation/guards";
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
 import { Prisma } from "@prisma/client";
-
-// The funcionality of "category is SinglePerDayCategories" is if the function return true, the category must be "LATE" or "INCOMPLETE_ATTRIBUTES"
-function isSinglePerDayCategory(
-  category: ValidInfractionType,
-): category is SinglePerDayCategories {
-  return SINGLE_PER_DAY_CATEGORIES.includes(category as SinglePerDayCategories);
-}
+import {
+  createDemeritPointSchema,
+  updateDemeritPointSchema,
+} from "@/lib/zod/demerit-point";
+import { createDemeritPoint } from "@/services/demerit-point/demerit-point-service";
+import { isSinglePerDayCategory } from "@/domain/demerit-point/demerit-point-rules";
+import { printConsoleError } from "@/lib/utils/printError";
 
 export async function POST(req: Request) {
   try {
@@ -29,91 +26,7 @@ export async function POST(req: Request) {
     const rawData = await req.json();
     const data = createDemeritPointSchema.parse(rawData);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const demeritPointDate = new Date(data.date);
-
-    const { start: semesterStart, end: semesterEnd } =
-      getSemesterDateRange(today);
-
-    if (demeritPointDate < semesterStart || demeritPointDate > semesterEnd) {
-      const semesterNum = getSemester(today);
-      throw badRequest(
-        `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
-      );
-    }
-
-    // Just in case, If we can validate through frontend, we dont have to revalidate it again in backend
-    const uniqueStudentIds = [...new Set(data.studentsId)] as string[];
-
-    const students = await prisma.user.findMany({
-      where: {
-        id: {
-          in: uniqueStudentIds,
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        studentProfile: {
-          select: {
-            demerits: {
-              where: {
-                date: new Date(data.date).toISOString(),
-              },
-              select: {
-                category: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const demeritPointsToCreate: Prisma.DemeritPointCreateManyInput[] = [];
-
-    if (students.length === 0) {
-      throw notFound("No student data found");
-    }
-
-    for (const student of students) {
-      if (isSinglePerDayCategory(data.demeritCategory)) {
-        const lateDemeritRecord = student.studentProfile!.demerits.find(
-          (d: { category: ValidInfractionType }) => d.category == "LATE",
-        );
-
-        if (lateDemeritRecord?.category) {
-          throw badRequest(
-            `This ${student.name} already has "${categoryLabelMap[lateDemeritRecord.category]}" problem. Only one per day`,
-          );
-        }
-
-        const attributesDemeritRecord = student.studentProfile!.demerits.find(
-          (d: { category: ValidInfractionType }) => d.category == "UNIFORM",
-        );
-
-        if (attributesDemeritRecord?.category) {
-          throw badRequest(
-            `This ${student.name} already has "${categoryLabelMap[attributesDemeritRecord.category]}" problem. Only one per day`,
-          );
-        }
-      }
-
-      demeritPointsToCreate.push({
-        studentId: student.id,
-        category: data.demeritCategory as ValidInfractionType,
-        points: data.points,
-        date: new Date(data.date).toISOString(),
-        description: data.description,
-        recordedById: teacherSession.userId,
-      });
-    }
-
-    await prisma.demeritPoint.createMany({
-      data: demeritPointsToCreate,
-    });
+    await createDemeritPoint(data, teacherSession);
 
     return Response.json(
       {
@@ -122,10 +35,7 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(POST) /api/demerit-point",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "POST", "/api/demerit-point");
     return handleError(error);
   }
 }
@@ -262,7 +172,8 @@ export async function PATCH(req: Request) {
     });
 
     const findSingleCategory = demeritPointRecords.find(
-      (record: { category: ValidInfractionType }) => record.category === existingDemeritPoint.category,
+      (record: { category: ValidInfractionType }) =>
+        record.category === existingDemeritPoint.category,
     );
 
     if (
@@ -286,7 +197,7 @@ export async function PATCH(req: Request) {
       const semesterNum = getSemester(today);
       throw badRequest(
         `Attendance date is outside the current semester (Semester ${semesterNum}). ` +
-        `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
+          `Allowed range: ${semesterStart.toISOString().split("T")[0]} to ${semesterEnd.toISOString().split("T")[0]}.`,
       );
     }
 

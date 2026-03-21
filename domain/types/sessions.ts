@@ -17,3 +17,11 @@ export type HomeroomTeacherSession = {
     name: string;
   };
 };
+
+export type TeacherSession = {
+  userId: string;
+  staffRole: StaffPosition;
+  user: {
+    name: string;
+  };
+};

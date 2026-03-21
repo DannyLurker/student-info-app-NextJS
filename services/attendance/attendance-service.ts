@@ -1,6 +1,7 @@
 import { prisma } from "@/db/prisma";
 import { assertAttendanceDateIsNotInFuture } from "@/domain/attendance/attendance-rules";
 import { normalizeAttendanceType } from "@/domain/attendance/normalize-attendance-type";
+import { assertDateIsInCurrentSemester } from "@/domain/date/date-rules";
 import {
   HomeroomTeacherSession,
   SecretarySession,
@@ -45,7 +46,7 @@ export async function createAttendance(
 
   assertAttendanceDateIsNotInFuture(attendanceDate);
 
-  assertAttendanceDateIsNotInFuture(attendanceDate);
+  assertDateIsInCurrentSemester(attendanceDate);
 
   // Pre-fetch available students & attendances data (Batching)
   const studentIds = records.map((r) => r.studentId);

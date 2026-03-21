@@ -17,10 +17,25 @@ export async function findUserByEmail(
   });
 }
 
-export async function findUsersByName(
+export async function findUsersByIds<T extends Prisma.UserSelect>(
+  userIds: string[],
+  // Use Prisma.Subset to ensure T only contains valid User keys
+  selectData: Prisma.Subset<T, Prisma.UserSelect>,
+  tx: Prisma.TransactionClient | PrismaClient,
+) {
+  if (userIds.length === 0) return [];
+
+  const result = await tx.user.findMany({
+    where: { id: { in: userIds } },
+    select: selectData,
+  });
+
+  return result as unknown as Prisma.UserGetPayload<{ select: T }>[];
+}
+export async function findUsersByName<T extends Prisma.UserFindManyArgs>(
   name: string,
   classId: number,
-  selectData: Prisma.UserSelect,
+  select: T["select"],
   tx: PrismaClient,
   page: number,
   sortOrder: SortOrder,
@@ -36,7 +51,7 @@ export async function findUsersByName(
       },
       role: "STUDENT",
     },
-    select: selectData,
+    select,
     skip: page * OFFSET,
     take: TAKE_RECORDS,
     orderBy: {
@@ -45,9 +60,9 @@ export async function findUsersByName(
   });
 }
 
-export async function findUsersByClassId(
+export async function findUsersByClassId<T extends Prisma.UserSelect>(
   classId: number,
-  selectData: Prisma.UserSelect,
+  select: T,
   tx: PrismaClient,
   page: number,
   sortOrder: SortOrder,
@@ -58,7 +73,7 @@ export async function findUsersByClassId(
         classId: classId,
       },
     },
-    select: selectData,
+    select,
     skip: page * OFFSET,
     take: TAKE_RECORDS,
     orderBy: {

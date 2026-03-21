@@ -5,14 +5,6 @@ const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
 const SortOrderEnum = z.enum(["asc", "desc"]);
-const DemeritCategoryEnum = z.enum([
-  "DISCIPLINE",
-  "ACADEMIC",
-  "SOCIAL",
-  "OTHER",
-  "LATE",
-  "UNIFORM",
-]);
 const AssessmentType = z.enum([
   "SCHOOLWORK",
   "HOMEWORK",
@@ -126,37 +118,6 @@ const homeroomClassStudent = z.object({
 });
 
 type HomeroomClassStudentSchema = z.infer<typeof homeroomClassStudent>;
-
-// DEMERIT POINT
-const demeritPointQuerySchema = z.object({
-  grade: GradeEnum,
-  major: MajorEnum,
-  section: ClassSectionEnum,
-});
-
-const createDemeritPointSchema = z.object({
-  studentsId: z.array(z.string()).min(1),
-  demeritCategory: DemeritCategoryEnum,
-  points: z
-    .number({ message: "Point field must be filled" })
-    .min(5, { message: "Point field must be filled. The minimum points is 5" }),
-  description: z.string().max(300),
-  date: z.string(),
-});
-
-type CreateDemeritPointSchema = z.infer<typeof createDemeritPointSchema>;
-
-const updateDemeritPointSchema = z.object({
-  demeritRecordId: z.number(),
-  demeritCategory: DemeritCategoryEnum,
-  points: z
-    .number({ message: "Point field must be filled" })
-    .min(5, { message: "Point field must be filled. The minimum points is 5" }),
-  description: z.string().max(300),
-  date: z.string(),
-});
-
-type UpdateDemeritPointSchema = z.infer<typeof updateDemeritPointSchema>;
 
 // SCORING SYSTEM (TEACHER)
 const queryStudentMarks = z.object({
@@ -294,15 +255,12 @@ export {
   getSubjectQueriesSchema,
   patchSubjectSchema,
   homeroomClassStudent,
-  createDemeritPointSchema,
   queryStudentMarks,
   createStudentAssessmentSchema,
   getStudentAssessmentSchema,
   updateStudentAssessmentSchema,
   updateAssessmentScoresSchema,
   getStudnetAssessmentScore,
-  updateDemeritPointSchema,
-  demeritPointQuerySchema,
   classSchema,
   getStudentExportSchema,
   updateStudentProfileSchema,
@@ -313,13 +271,11 @@ export {
   type PatchSubjectInput,
   type ClassSchema,
   type HomeroomClassStudentSchema,
-  type CreateDemeritPointSchema,
   type QueryStudentMarksSchema,
   type CreateStudentAssessmentSchema,
   type GetStudentAssessmentSchema,
   type UpdateStudentAssessmentSchema,
   type GetStudnetAssessmentScore,
   type UpdateAssessmentScoresSchema,
-  type UpdateDemeritPointSchema,
   type UpdateStudentProfileSchema,
 };
