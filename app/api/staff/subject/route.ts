@@ -9,17 +9,17 @@ import { SubjectType } from "@/lib/constants/subject";
 import {
   badRequest,
   handleError,
-  internalServerError,
   notFound,
   unprocessableEntity,
 } from "@/lib/errors";
+import { validateManagementSession } from "@/lib/validation/guards";
+import { compareSubjectConfig } from "@/lib/validation/subjectValidators";
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
   patchSubjectSchema,
-} from "@/lib/utils/zodSchema";
-import { validateManagementSession } from "@/lib/validation/guards";
-import { compareSubjectConfig } from "@/lib/validation/subjectValidators";
+} from "@/lib/zod/subject";
+import { createSubject } from "@/services/subject/subject-services";
 import { Prisma } from "@prisma/client";
 
 export async function POST(req: Request) {
@@ -30,154 +30,12 @@ export async function POST(req: Request) {
 
     const data = createSubjectSchema.parse(rawData);
 
-    const uniqueSubjects = new Set();
-    const subjectMap = new Map();
-
-    //Validation
-    data.subjectRecords.map((record, index) => {
-      // Multiple majors are not allowed for subjects with type 'MAJOR'.
-      if (
-        record.subjectConfig.type === "MAJOR" &&
-        record.subjectConfig.allowedMajors.length > 1
-      ) {
-        throw unprocessableEntity(
-          `Row ${index + 1}: Multiple majors are not allowed for MAJOR type subjects.`,
-        );
-      }
-
-      record.subjectNames.forEach((subjectName) => {
-        const uniqueGrade = new Set();
-        const uniqueMajor = new Set();
-
-        // Can't be duplicted
-        record.subjectConfig.allowedGrades.forEach((grade) => {
-          if (uniqueGrade.has(grade)) {
-            throw badRequest(`row ${index + 1}: Grade ${grade} is duplicated`);
-          }
-
-          uniqueGrade.add(grade);
-        });
-
-        // Can't be duplicted
-        record.subjectConfig.allowedMajors.forEach((major) => {
-          if (uniqueMajor.has(major)) {
-            throw badRequest(`row ${index + 1}: Major ${major} is duplicated`);
-          }
-
-          uniqueMajor.add(major);
-        });
-
-        const uniqueSubjectKey = `${subjectName}-${record.subjectConfig.type}-${record.subjectConfig.allowedGrades.join("-")}-${record.subjectConfig.allowedMajors.join("-")}`;
-
-        if (uniqueSubjects.has(uniqueSubjectKey)) {
-          throw unprocessableEntity(
-            `Duplicate subject: ${subjectName}. Configuration: ${record.subjectConfig.type}-${record.subjectConfig.allowedGrades.join("-")}-${record.subjectConfig.allowedMajors.join("-")}, already exists`,
-          );
-        }
-
-        subjectMap.set(subjectName, {
-          subjectType: record.subjectConfig.type,
-          grade: record.subjectConfig.allowedGrades,
-          major: record.subjectConfig.allowedMajors,
-        });
-        uniqueSubjects.add(uniqueSubjectKey);
-      });
-    });
-
-    const uniqueSubjectsArray = Array.from(uniqueSubjects);
-    const uniqueSubjectNames = uniqueSubjectsArray.map(
-      (subject: any) => subject.split("-")[0],
-    );
-
-    const existingSubjects = await prisma.subject.findMany({
-      where: {
-        name: {
-          in: uniqueSubjectNames,
-          mode: "insensitive",
-        },
-      },
-      select: {
-        name: true,
-      },
-    });
-
-    uniqueSubjectNames.forEach((name) => {
-      existingSubjects.forEach((existingName: { name: string }) => {
-        if (
-          existingName.name.toLocaleLowerCase() === name.toLocaleLowerCase()
-        ) {
-          throw unprocessableEntity(
-            `Subject can't be duplicated. ${name} is duplicated `,
-          );
-        }
-      });
-    });
-
-    if (existingSubjects.length === uniqueSubjectNames.length) {
-      throw unprocessableEntity(
-        "All subjects in your request are already present in the database.",
-      );
-    }
-
-    const existingSubjectNames = existingSubjects.map(
-      (subject: { name: string }) => subject.name,
-    );
-
-    const missingSubjectNames = uniqueSubjectNames.filter(
-      (subjectName: string) => !existingSubjectNames.includes(subjectName),
-    );
-
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      for (const subjectName of missingSubjectNames) {
-        const subjectConfig = subjectMap.get(subjectName);
-
-        if (!subjectConfig) {
-          throw internalServerError(
-            `Mapping failed for subject: ${subjectName}`,
-          );
-        }
-
-        const potentialConfig = await tx.subjectConfig.findMany({
-          where: {
-            AND: [
-              { type: subjectConfig.subjectType },
-              { allowedMajors: { hasEvery: subjectConfig.major } },
-              { allowedGrades: { hasEvery: subjectConfig.grade } },
-            ],
-          },
-        });
-
-        let targetConfig = potentialConfig.find(
-          (config: { type: SubjectType; allowedMajors: Major[]; allowedGrades: Grade[] }) =>
-            config.type === subjectConfig.subjectType &&
-            config.allowedMajors.length === subjectConfig.major.length &&
-            config.allowedGrades.length === subjectConfig.grade.length,
-        );
-
-        if (!targetConfig) {
-          targetConfig = await tx.subjectConfig.create({
-            data: {
-              type: subjectConfig.subjectType,
-              allowedMajors: subjectConfig.major,
-              allowedGrades: subjectConfig.grade,
-            },
-          });
-        }
-
-        await tx.subject.create({
-          data: {
-            name: subjectName,
-            configId: targetConfig.id,
-            type: targetConfig.type,
-          },
-        });
-      }
-    });
+    const response = await createSubject(data);
 
     return Response.json(
       {
         message: "Successfully created new subject",
-        details: `Created ${missingSubjectNames.length} new subjects.`,
+        details: `Created ${response.totalNewSubjects} new subjects.`,
       },
 
       { status: 201 },
@@ -358,7 +216,11 @@ export async function PATCH(req: Request) {
       });
 
       let targetConfig = potentialConfig.find(
-        (config: { type: SubjectType; allowedMajors: Major[]; allowedGrades: Grade[] }) =>
+        (config: {
+          type: SubjectType;
+          allowedMajors: Major[];
+          allowedGrades: Grade[];
+        }) =>
           subjectConfig.type === config.type &&
           subjectConfig.allowedGrades.length === config.allowedGrades.length &&
           subjectConfig.allowedMajors.length === config.allowedMajors.length,

@@ -4,7 +4,6 @@ const GradeEnum = z.enum(["TENTH", "ELEVENTH", "TWELFTH"]);
 const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
-const SortOrderEnum = z.enum(["asc", "desc"]);
 const AssessmentType = z.enum([
   "SCHOOLWORK",
   "HOMEWORK",
@@ -13,7 +12,6 @@ const AssessmentType = z.enum([
   "PROJECT",
   "GROUP_WORK",
 ]);
-const SubjectTypeEnum = z.enum(["GENERAL", "MAJOR"]);
 
 const page = z
   .string()
@@ -22,57 +20,6 @@ const page = z
   .refine((val) => Number.isInteger(val) && val >= 0, {
     message: "page must be a non-negative integer",
   });
-
-// Schema for subject
-const subjectConfig = z.object({
-  allowedGrades: z.array(GradeEnum).min(1, "At least one grade required"),
-  allowedMajors: z.array(MajorEnum).min(1, "At least one major required"),
-  type: SubjectTypeEnum,
-});
-
-const createSubjectSchema = z.object({
-  subjectRecords: z
-    .array(
-      z.object({
-        subjectNames: z
-          .array(
-            z.string().min(3, { message: "At least must be 3 Characters" }),
-          )
-          .min(1),
-        subjectConfig,
-      }),
-    )
-    .min(1),
-});
-
-const getSubjectQueriesSchema = z.object({
-  page,
-  sortOrder: SortOrderEnum,
-  subjectName: z
-    .string()
-    .min(3, { message: "At least must be 3 characters" })
-    .optional(),
-  grade: GradeEnum.optional(),
-  major: MajorEnum.optional(),
-  subjectType: SubjectTypeEnum.optional(),
-  getAll: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((val) => val === "true"),
-});
-
-const patchSubjectSchema = z.object({
-  subjectId: z.number(),
-  subjectName: z
-    .string()
-    .min(3, "Must be at least 3 characters long.")
-    .optional(),
-  subjectConfig: subjectConfig.partial().optional(),
-});
-
-type CreateSubjectInput = z.infer<typeof createSubjectSchema>;
-type SubjectQueriesSchema = z.infer<typeof getSubjectQueriesSchema>;
-type PatchSubjectInput = z.infer<typeof patchSubjectSchema>;
 
 // Schema for frontend data (what we send from CreateTeacherAccount)
 
@@ -251,9 +198,6 @@ export {
   studentQuerySchema,
   createClassSchema,
   updateClassSchema,
-  createSubjectSchema,
-  getSubjectQueriesSchema,
-  patchSubjectSchema,
   homeroomClassStudent,
   queryStudentMarks,
   createStudentAssessmentSchema,
@@ -265,10 +209,7 @@ export {
   getStudentExportSchema,
   updateStudentProfileSchema,
   type CreateClassSchema,
-  type CreateSubjectInput,
   type UpdateClassSchema,
-  type SubjectQueriesSchema,
-  type PatchSubjectInput,
   type ClassSchema,
   type HomeroomClassStudentSchema,
   type QueryStudentMarksSchema,

@@ -1,13 +1,14 @@
 import { prisma } from "@/db/prisma";
 import { Grade, Major } from "@/lib/constants/class";
+import { Prisma } from "@prisma/client";
 
-export async function findSubjects() {
+export async function findSubjects<T extends Prisma.SubjectSelect>(
+  whereFilter: Prisma.SubjectWhereInput | {},
+  selectData: Prisma.Subset<T, Prisma.SubjectSelect>,
+) {
   return prisma.subject.findMany({
-    select: {
-      id: true,
-      name: true,
-      config: true,
-    },
+    where: whereFilter,
+    select: selectData,
   });
 }
 
