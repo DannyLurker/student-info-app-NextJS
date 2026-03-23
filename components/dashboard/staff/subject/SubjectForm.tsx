@@ -3,10 +3,6 @@
 import { Grade, Major } from "../../../../lib/constants/class";
 import { SubjectType } from "../../../../lib/constants/subject";
 import { SUBJECT_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
-import {
-  CreateSubjectInput,
-  PatchSubjectInput,
-} from "../../../../lib/utils/zodSchema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
@@ -29,6 +25,7 @@ import {
 } from "../../../../lib/utils/labels";
 import { Plus, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
+import { CreateSubjectSchema, PatchSubjectSchema } from "@/lib/zod/subject";
 
 const grades = ["TENTH", "ELEVENTH", "TWELFTH"] as Grade[];
 const majors = ["SOFTWARE_ENGINEERING", "ACCOUNTING"] as Major[];
@@ -45,7 +42,7 @@ const INITIAL_SUBJECT_RECORD = {
 
 type SubjectFormProps = {
   mode?: "create" | "edit";
-  initialData?: PatchSubjectInput;
+  initialData?: PatchSubjectSchema;
   onSuccess?: () => void;
   onCancel?: () => void;
 };
@@ -56,7 +53,7 @@ const SubjectForm = ({
   onSuccess,
   onCancel,
 }: SubjectFormProps) => {
-  const [subjectData, setSubjectData] = useState<CreateSubjectInput>({
+  const [subjectData, setSubjectData] = useState<CreateSubjectSchema>({
     subjectRecords: [],
   });
 
@@ -105,7 +102,7 @@ const SubjectForm = ({
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (payload: PatchSubjectInput) => {
+    mutationFn: async (payload: PatchSubjectSchema) => {
       const response = await axios.patch("/api/staff/subject", payload);
       return response.data;
     },

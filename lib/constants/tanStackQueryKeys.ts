@@ -1,4 +1,4 @@
-import { SubjectQueriesSchema } from "../utils/zodSchema";
+import { SubjectQueriesSchema } from "../zod/subject";
 
 export const SUBJECT_KEYS = {
   all: ["subjects"] as const,

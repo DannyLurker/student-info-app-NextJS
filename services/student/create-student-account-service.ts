@@ -2,7 +2,7 @@ import { prisma } from "@/db/prisma";
 import crypto from "crypto";
 import hashing from "../../lib/utils/hashing";
 import { getSemester } from "../../lib/utils/date";
-import { ensureSubjectsExist } from "../../domain/subject/subjectRules";
+import { ensureSubjectsExist } from "../../domain/subject/subject-rules";
 import { validateEmailUniqueness } from "../../domain/account/emailRules";
 import { findSubjectsForClass } from "../../repositories/subject-repository";
 import { findClassroom } from "@/repositories/classroom-repository";
@@ -15,6 +15,7 @@ export async function createStudentAccount(data: StudentSignUpSchema) {
   const subjects = await findSubjectsForClass(
     data.classSchema.grade,
     data.classSchema.major,
+    prisma,
   );
 
   ensureSubjectsExist(subjects);

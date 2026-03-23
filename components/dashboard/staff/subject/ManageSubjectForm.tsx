@@ -1,6 +1,5 @@
 "use client";
 
-import { PatchSubjectInput, SubjectQueriesSchema } from "@/lib/utils/zodSchema";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
@@ -32,6 +31,7 @@ import {
 } from "lucide-react";
 import SubjectForm from "./SubjectForm";
 import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import { PatchSubjectSchema, SubjectQueriesSchema } from "@/lib/zod/subject";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -90,7 +90,7 @@ const ManageSubjectForm = () => {
   }, [currentPage, sortBy, effectiveSearchQuery]);
 
   // Edit mode
-  const [editItem, setEditItem] = useState<PatchSubjectInput | null>(null);
+  const [editItem, setEditItem] = useState<PatchSubjectSchema | null>(null);
 
   const fetchSubjects = async () => {
     const response = await axios.get("/api/staff/subject", {

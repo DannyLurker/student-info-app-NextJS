@@ -1,5 +1,5 @@
-import { Grade, Major } from "../constants/class";
-import { SubjectType } from "../constants/subject";
+import { Grade, Major } from "@/lib/constants/class";
+import { SubjectType } from "@/lib/constants/subject";
 
 type SubjectClient = {
   subjectId: number;

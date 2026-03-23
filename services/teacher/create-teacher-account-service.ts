@@ -9,6 +9,7 @@ import { TeacherSignUpSchema } from "@/lib/zod/teacher";
 import { findClassroom } from "@/repositories/classroom-repository";
 import { findSubjects } from "@/repositories/subject-repository";
 import { findUserByEmail } from "@/repositories/userRepository";
+import { Prisma } from "@prisma/client";
 
 type ResolvedTeachingAssignments = {
   teacherId: string;
@@ -22,7 +23,20 @@ export async function createTeacherAccount(data: TeacherSignUpSchema) {
 
     validateEmailUniqueness(user);
 
-    const subjects = await findSubjects();
+    const selectSubjectWithConfig = Prisma.validator<Prisma.SubjectSelect>()({
+      id: true,
+      name: true,
+      type: true,
+      configId: true,
+      config: true,
+    });
+
+    const subjects = await findSubjects(
+      prisma,
+      {},
+      selectSubjectWithConfig,
+      true,
+    );
 
     const hashedPassword = await hashing(data.passwordSchema.password);
 
