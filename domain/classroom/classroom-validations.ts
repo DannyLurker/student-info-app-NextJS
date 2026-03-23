@@ -1,4 +1,26 @@
-import { ClassSection, Grade, Major } from "../constants/class";
+import { ClassSection, Grade, Major } from "@/lib/constants/class";
+import { badRequest } from "@/lib/errors";
+import { getFullClassLabel } from "@/lib/utils/labels";
+
+export const validateClassroomUniquenes = (
+  classroomData: { grade: Grade; major: Major; section: ClassSection }[],
+  classroomSet: Set<string>,
+) => {
+  classroomData.forEach(
+    (d: { grade: Grade; major: Major; section: ClassSection }) => {
+      const classroomKey = `${d.grade}-${d.major}-${d.section}`;
+
+      if (classroomSet.has(classroomKey)) {
+        const classLabel = getFullClassLabel(
+          d.grade as Grade,
+          d.major as Major,
+          d.section as ClassSection,
+        );
+        throw badRequest(`${classLabel} is already exists`);
+      }
+    },
+  );
+};
 
 type classServer = {
   id: number;

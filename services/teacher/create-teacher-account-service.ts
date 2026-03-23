@@ -1,12 +1,12 @@
 import { prisma } from "@/db/prisma";
 import { validateEmailUniqueness } from "@/domain/account/emailRules";
-import { ensureClassroomExists } from "@/domain/classroom/classroomRules";
+import { ensureClassroomExists } from "@/domain/classroom/classroom-rules";
 import { badRequest } from "@/lib/errors";
 import hashing from "@/lib/utils/hashing";
 import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 import { TeacherSignUpSchema } from "@/lib/zod/teacher";
-import { findClassroom } from "@/repositories/classroom-repository";
+import { findUniqueClassroom } from "@/repositories/classroom-repository";
 import { findSubjects } from "@/repositories/subject-repository";
 import { findUserByEmail } from "@/repositories/userRepository";
 import { Prisma } from "@prisma/client";
@@ -71,10 +71,18 @@ export async function createTeacherAccount(data: TeacherSignUpSchema) {
       // Resolve classroom IDs and validate existence for each assignment
       resolvedTeachingAssignments = await Promise.all(
         data.assignments.map(async (assignment) => {
-          const classroom = await findClassroom(
-            assignment.grade,
-            assignment.major,
-            assignment.section,
+          const classroomByUniqueIdentifier =
+            Prisma.validator<Prisma.ClassroomWhereUniqueInput>()({
+              grade_major_section: {
+                grade: assignment.grade,
+                major: assignment.major,
+                section: assignment.section,
+              },
+            });
+
+          const classroom = await findUniqueClassroom(
+            classroomByUniqueIdentifier,
+            undefined,
             tx,
           );
 
@@ -99,7 +107,7 @@ export async function createTeacherAccount(data: TeacherSignUpSchema) {
           return {
             teacherId: teacher.id,
             subjectId: assignment.subjectId,
-            classId: classroom.id,
+            classId: classroom!.id,
           };
         }),
       );
@@ -113,37 +121,43 @@ export async function createTeacherAccount(data: TeacherSignUpSchema) {
     }
 
     if (data.homeroomClass?.grade && data.homeroomClass.major) {
-      const classroom = await findClassroom(
-        data.homeroomClass.grade,
-        data.homeroomClass.major,
-        data.homeroomClass.section,
+      const classroomByUniqueIdentifier =
+        Prisma.validator<Prisma.ClassroomWhereUniqueInput>()({
+          grade_major_section: {
+            grade: data.homeroomClass.grade,
+            major: data.homeroomClass.major,
+            section: data.homeroomClass.section,
+          },
+        });
+
+      const classroom = await findUniqueClassroom(
+        classroomByUniqueIdentifier,
+        undefined,
         tx,
       );
 
       ensureClassroomExists(classroom);
 
-      if (classroom.teacherId) {
-        if (classroom.homeroomTeacherId) {
-          const classLabel = getFullClassLabel(
-            data.homeroomClass.grade,
-            data.homeroomClass.major,
-            data.homeroomClass.section,
-          );
+      if (classroom!.homeroomTeacherId) {
+        const classLabel = getFullClassLabel(
+          data.homeroomClass.grade,
+          data.homeroomClass.major,
+          data.homeroomClass.section,
+        );
 
-          throw badRequest(
-            `${classLabel} already has a homeroom teacher assigned. `,
-          );
-        }
-
-        await tx.classroom.update({
-          where: {
-            id: classroom.id,
-          },
-          data: {
-            homeroomTeacherId: teacher.id,
-          },
-        });
+        throw badRequest(
+          `${classLabel} already has a homeroom teacher assigned. `,
+        );
       }
+
+      await tx.classroom.update({
+        where: {
+          id: classroom!.id,
+        },
+        data: {
+          homeroomTeacherId: teacher.id,
+        },
+      });
     }
   });
 }

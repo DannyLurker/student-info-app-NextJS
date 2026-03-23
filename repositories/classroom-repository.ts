@@ -1,22 +1,24 @@
 import { ClassSection, Grade, Major } from "@/lib/constants/class";
+import { Prisma, PrismaClient } from "@prisma/client";
 
-export async function findClassroom(
-  grade: Grade,
-  major: Major,
-  section: ClassSection,
-  tx: any,
-) {
-  return tx.classroom.findUnique({
-    where: {
-      grade_major_section: {
-        grade,
-        major,
-        section,
-      },
-    },
-    select: {
-      id: true,
-      homeroomTeacherId: true,
-    },
+export const findClassrooms = async <T extends Prisma.ClassroomSelect>(
+  whereQuery: Prisma.ClassroomWhereInput | {},
+  selectData: Prisma.Subset<T, Prisma.ClassroomSelect> | undefined,
+  tx: PrismaClient | Prisma.TransactionClient,
+) => {
+  return tx.classroom.findMany({
+    where: whereQuery,
+    select: selectData,
   });
-}
+};
+
+export const findUniqueClassroom = async <T extends Prisma.ClassroomSelect>(
+  whereQuery: Prisma.ClassroomWhereUniqueInput,
+  selectData: Prisma.Subset<T, Prisma.ClassroomSelect> | undefined,
+  tx: PrismaClient | Prisma.TransactionClient,
+) => {
+  return tx.classroom.findUnique({
+    where: whereQuery,
+    select: selectData,
+  });
+};

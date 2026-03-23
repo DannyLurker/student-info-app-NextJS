@@ -1,40 +1,28 @@
-import { prisma } from "@/db/prisma";
-import { ClassSection, Grade, Major } from "@/lib/constants/class";
-import { badRequest, handleError } from "@/lib/errors";
-import { getFullClassLabel } from "@/lib/utils/labels";
-import { createClassSchema, updateClassSchema } from "@/lib/utils/zodSchema";
-import { compareClassAtributes } from "@/lib/validation/classroomValidators";
+import { handleError } from "@/lib/errors";
+import { printConsoleError } from "@/lib/utils/printError";
 import { validateManagementSession } from "@/lib/validation/guards";
+import { createClassSchema, updateClassSchema } from "@/lib/zod/classroom";
+import {
+  createClassroom,
+  deleteClassroom,
+  getClassroom,
+  updateClassroom,
+} from "@/services/classroom/classroom-service";
 
 export async function GET() {
   try {
     validateManagementSession();
 
-    const classroomData = await prisma.classroom.findMany({
-      include: {
-        homeroomTeacher: {
-          select: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const response = await getClassroom();
 
     return Response.json(
       {
-        data: classroomData,
+        data: response.classroomData,
       },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(GET) /api/staff/class",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "GET", "/api/staff/classroom");
     return handleError(error);
   }
 }
@@ -48,39 +36,14 @@ export async function POST(req: Request) {
     // from frontend
     const data = createClassSchema.parse(rawData);
 
-    // from DB
-    const classroomData = await prisma.classroom.findMany({});
+    await createClassroom(data);
 
-    const classroomSet = new Set(
-      classroomData.map(
-        (classroom) =>
-          `${classroom.grade}-${classroom.major}-${classroom.section}`,
-      ),
+    return Response.json(
+      { message: "Classrooms created successfully" },
+      { status: 201 },
     );
-
-    data.forEach((d: { grade: Grade; major: Major; section: ClassSection }) => {
-      const classroomKey = `${d.grade}-${d.major}-${d.section}`;
-
-      if (classroomSet.has(classroomKey)) {
-        const classLabel = getFullClassLabel(
-          d.grade as Grade,
-          d.major as Major,
-          d.section as ClassSection,
-        );
-        throw badRequest(`${classLabel} is already exists`);
-      }
-    });
-
-    await prisma.classroom.createMany({
-      data: data,
-    });
-
-    return Response.json({ message: "Successfully created " }, { status: 201 });
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(POST) /api/staff/class",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "POST", "/api/staff/classroom");
     return handleError(error);
   }
 }
@@ -93,65 +56,14 @@ export async function PATCH(req: Request) {
 
     const data = updateClassSchema.parse(rawData);
 
-    const currentClass = await prisma.classroom.findUnique({
-      where: {
-        id: data.id,
-      },
-      select: {
-        id: true,
-        grade: true,
-        major: true,
-        section: true,
-        homeroomTeacherId: true,
-      },
-    });
-
-    if (!currentClass) {
-      throw badRequest("Classroom not found");
-    }
-
-    const findDuplicate = await prisma.classroom.findUnique({
-      where: {
-        grade_major_section: {
-          grade: data.classSchema.grade,
-          major: data.classSchema.major,
-          section: data.classSchema.section,
-        },
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (findDuplicate && findDuplicate.id !== data.id) {
-      throw badRequest("A classroom with this config already exists");
-    }
-
-    const { hasChanged, changedData } = compareClassAtributes(
-      currentClass,
-      data,
-    );
-
-    if (!hasChanged) {
-      return Response.json({ message: "No data was edited" }, { status: 200 });
-    }
-
-    await prisma.classroom.update({
-      where: {
-        id: data.id,
-      },
-      data: changedData,
-    });
+    await updateClassroom(data);
 
     return Response.json(
       { message: "data successfully updated" },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(PATCH) /api/staff/class",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "PATCH", "/api/staff/classroom");
     return handleError(error);
   }
 }
@@ -163,28 +75,15 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
 
     const classIdParam = Number(searchParams.get("classId"));
-    if (!classIdParam || isNaN(classIdParam))
-      throw badRequest("Invalid Class ID");
 
-    if (!classIdParam) {
-      throw badRequest("Class ID is required");
-    }
-
-    await prisma.classroom.delete({
-      where: {
-        id: classIdParam,
-      },
-    });
+    await deleteClassroom(classIdParam);
 
     return Response.json(
-      { message: `Classroom deleted successfully ` },
+      { message: `Classroom deleted successfully` },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(DELETE) /api/staff/class",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "DELETE", "/api/staff/classroom");
     return handleError(error);
   }
 }

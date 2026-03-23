@@ -5,11 +5,11 @@ import { getSemester } from "../../lib/utils/date";
 import { ensureSubjectsExist } from "../../domain/subject/subject-rules";
 import { validateEmailUniqueness } from "../../domain/account/emailRules";
 import { findSubjectsForClass } from "../../repositories/subject-repository";
-import { findClassroom } from "@/repositories/classroom-repository";
 import { findUserByEmail } from "@/repositories/userRepository";
 import { Prisma } from "@prisma/client";
-import { ensureClassroomExists } from "@/domain/classroom/classroomRules";
+import { ensureClassroomExists } from "@/domain/classroom/classroom-rules";
 import { StudentSignUpSchema } from "@/lib/zod/student";
+import { findUniqueClassroom } from "@/repositories/classroom-repository";
 
 export async function createStudentAccount(data: StudentSignUpSchema) {
   const subjects = await findSubjectsForClass(
@@ -25,10 +25,18 @@ export async function createStudentAccount(data: StudentSignUpSchema) {
 
     validateEmailUniqueness(existingStudent);
 
-    const classroom = await findClassroom(
-      data.classSchema.grade,
-      data.classSchema.major,
-      data.classSchema.section,
+    const classroomByUniqueIdentifier =
+      Prisma.validator<Prisma.ClassroomWhereUniqueInput>()({
+        grade_major_section: {
+          grade: data.classSchema.grade,
+          major: data.classSchema.major,
+          section: data.classSchema.section,
+        },
+      });
+
+    const classroom = await findUniqueClassroom(
+      classroomByUniqueIdentifier,
+      undefined,
       tx,
     );
 
@@ -44,7 +52,7 @@ export async function createStudentAccount(data: StudentSignUpSchema) {
         role: "STUDENT",
         studentProfile: {
           create: {
-            classId: classroom.id,
+            classId: classroom!.id,
             studentRole: data.studentRole,
           },
         },

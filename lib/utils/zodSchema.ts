@@ -33,17 +33,6 @@ type ClassSchema = z.infer<typeof classSchema>;
 
 // Main schemas
 // Classroom
-const createClassSchema = z.array(classSchema);
-
-type CreateClassSchema = z.infer<typeof createClassSchema>;
-
-const updateClassSchema = z.object({
-  id: z.number(),
-  classSchema: classSchema,
-  homeroomTeacherId: z.string().optional(),
-});
-
-type UpdateClassSchema = z.infer<typeof updateClassSchema>;
 
 // Student
 const studentQuerySchema = z.object({
@@ -196,8 +185,6 @@ export const updateStudentsClassSchema = z.object({
 
 export {
   studentQuerySchema,
-  createClassSchema,
-  updateClassSchema,
   homeroomClassStudent,
   queryStudentMarks,
   createStudentAssessmentSchema,
@@ -208,8 +195,6 @@ export {
   classSchema,
   getStudentExportSchema,
   updateStudentProfileSchema,
-  type CreateClassSchema,
-  type UpdateClassSchema,
   type ClassSchema,
   type HomeroomClassStudentSchema,
   type QueryStudentMarksSchema,
