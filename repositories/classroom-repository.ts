@@ -17,8 +17,10 @@ export const findUniqueClassroom = async <T extends Prisma.ClassroomSelect>(
   selectData: Prisma.Subset<T, Prisma.ClassroomSelect> | undefined,
   tx: PrismaClient | Prisma.TransactionClient,
 ) => {
-  return tx.classroom.findUnique({
+  const result = tx.classroom.findUnique({
     where: whereQuery,
     select: selectData,
   });
+
+  return result as unknown as Prisma.ClassroomGetPayload<{ select: T }>;
 };

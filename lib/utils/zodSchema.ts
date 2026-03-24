@@ -154,13 +154,6 @@ const getStudnetAssessmentScore = z.object({
 
 type GetStudnetAssessmentScore = z.infer<typeof getStudentAssessmentSchema>;
 
-// EXPORT student into excel for easier assessment management
-const getStudentExportSchema = z.object({
-  grade: GradeEnum,
-  major: MajorEnum,
-  section: ClassSectionEnum,
-});
-
 // Edit User (Staff Feature)
 // Student
 const updateStudentProfileSchema = z.object({
@@ -193,7 +186,6 @@ export {
   updateAssessmentScoresSchema,
   getStudnetAssessmentScore,
   classSchema,
-  getStudentExportSchema,
   updateStudentProfileSchema,
   type ClassSchema,
   type HomeroomClassStudentSchema,

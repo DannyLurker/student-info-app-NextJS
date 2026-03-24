@@ -82,7 +82,7 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    validateManagementSession();
+    await validateManagementSession();
     const rawData = await req.json();
     const data = patchSubjectSchema.parse(rawData);
 

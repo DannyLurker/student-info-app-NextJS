@@ -1,45 +1,23 @@
-import { prisma } from "@/db/prisma";
 import { handleError } from "@/lib/errors";
+import { printConsoleError } from "@/lib/utils/printError";
 import { validateTeacherSession } from "@/lib/validation/guards";
+import { getTeachingAssignment } from "@/services/teacher/teacher-service";
 
 export async function GET() {
   try {
     const teacherSession = await validateTeacherSession();
 
-    const teachingAssignments = await prisma.teachingAssignment.findMany({
-      where: {
-        teacherId: teacherSession.userId,
-      },
-      select: {
-        classId: true,
-        class: {
-          select: {
-            grade: true,
-            major: true,
-            section: true,
-          },
-        },
-        subject: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const response = await getTeachingAssignment(teacherSession.userId);
 
     return Response.json(
       {
         message: "Successfully retrieved teaching assignments data",
-        teachingAssignments,
+        teachingAssignments: response.teachingAssignments,
       },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(GET) /api/teacher/teaching-assignment",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "GET", "/api/teacher/teaching-assignment");
     return handleError(error);
   }
 }

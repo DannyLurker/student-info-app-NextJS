@@ -35,6 +35,12 @@ export const updateSemseter = async () => {
     prisma.gradebook.updateMany({
       data: { semester: transformSemester },
     }),
+
+    prisma.teachingAssignment.updateMany({
+      data: {
+        totalAssignmentAssigned: 0,
+      },
+    }),
   ]);
 
   return {

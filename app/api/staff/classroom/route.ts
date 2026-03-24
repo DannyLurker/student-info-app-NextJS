@@ -11,7 +11,7 @@ import {
 
 export async function GET() {
   try {
-    validateManagementSession();
+    await validateManagementSession();
 
     const response = await getClassroom();
 
@@ -29,7 +29,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    validateManagementSession();
+    await validateManagementSession();
 
     const rawData = await req.json();
 
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    validateManagementSession();
+    await validateManagementSession();
 
     const rawData = await req.json();
 
@@ -70,7 +70,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    validateManagementSession();
+    await validateManagementSession();
 
     const { searchParams } = new URL(req.url);
 

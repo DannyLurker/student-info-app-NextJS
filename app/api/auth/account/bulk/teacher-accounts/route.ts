@@ -6,7 +6,7 @@ import { printConsoleError } from "@/lib/utils/printError";
 
 export async function POST(req: Request) {
   try {
-    validateManagementSession();
+    await validateManagementSession();
 
     const formData = await req.formData();
     const file = formData.get("file") as File;

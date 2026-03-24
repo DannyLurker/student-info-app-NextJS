@@ -1,3 +1,4 @@
+import { printConsoleError } from "@/lib/utils/printError";
 import { handleError } from "../../../../lib/errors";
 import { validateHomeroomTeacherSession } from "../../../../lib/validation/guards";
 import { attendanceSummaryQueries } from "@/lib/zod/attendance";
@@ -29,10 +30,7 @@ export async function GET(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "/api/student/attendance/summary",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "GET", "/api/student/attendance/summary");
     return handleError(error);
   }
 }
