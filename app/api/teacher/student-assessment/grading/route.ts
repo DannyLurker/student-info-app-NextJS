@@ -1,8 +1,8 @@
 import { printConsoleError } from "@/lib/utils/printError";
 import { handleError } from "../../../../../lib/errors";
-import { validateTeacherSession } from "../../../../../lib/validation/guards";
 import { updateAssessmentScoresSchema } from "@/lib/zod/assessment";
 import { updateStudentAssessmentScore } from "@/services/assessment/student-assessment-service";
+import { validateTeacherSession } from "@/domain/auth/role-guards";
 
 export async function PATCH(req: Request) {
   try {

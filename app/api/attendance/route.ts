@@ -1,5 +1,7 @@
 import { handleError } from "../../../lib/errors";
 import {
+  ClassSecretarySession,
+  HomeroomTeacherSession,
   validateHomeroomTeacherSession,
   validateSecretarySession,
 } from "@/domain/auth/role-guards";
@@ -7,10 +9,7 @@ import {
   bulkAttendanceSchema,
   studentAttendacesQueriesSchema,
 } from "@/lib/zod/attendance";
-import {
-  HomeroomTeacherSession,
-  SecretarySession,
-} from "@/domain/types/sessions";
+
 import {
   createAttendance,
   getAttendance,
@@ -20,7 +19,7 @@ import { printConsoleError } from "@/lib/utils/printError";
 
 export async function POST(req: Request) {
   try {
-    let secretarySession: null | SecretarySession = null;
+    let secretarySession: null | ClassSecretarySession = null;
     let homeroomTeacherSession: null | HomeroomTeacherSession = null;
 
     try {
@@ -54,7 +53,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    let secretarySession: null | SecretarySession = null;
+    let secretarySession: null | ClassSecretarySession = null;
     let homeroomTeacherSession: null | HomeroomTeacherSession = null;
 
     try {

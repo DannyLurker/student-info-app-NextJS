@@ -36,6 +36,7 @@ export async function createTeacherAccount(data: TeacherSignUpSchema) {
       {},
       selectSubjectWithConfig,
       true,
+      "asc",
     );
 
     const hashedPassword = await hashing(data.passwordSchema.password);

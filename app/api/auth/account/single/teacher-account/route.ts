@@ -1,8 +1,8 @@
 import { createTeacherAccount } from "../../../../../../services/teacher/create-teacher-account-service";
 import { handleError } from "../../../../../../lib/errors";
-import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { teacherSignUpSchema } from "../../../../../../lib/zod/teacher";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 
 export async function POST(req: Request) {
   try {

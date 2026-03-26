@@ -1,4 +1,18 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+export const createAttendanceWhere = <T extends Prisma.AttendanceWhereInput>(
+  where: T,
+): T => where;
+
+export const createAttendanceWhereUnique = <
+  T extends Prisma.AttendanceWhereUniqueInput,
+>(
+  where: T,
+): T => where;
+
+export const createAttendanceSelect = <T extends Prisma.AttendanceSelect>(
+  select: T,
+): T => select;
 
 export function findAttendanceByIdsAndTodayDate(
   userIds: string[],
@@ -51,3 +65,16 @@ export function getAttendanceStatsByStudentIds(
     _count: true,
   });
 }
+
+export const findAttendanceByStudentId = async <
+  T extends Prisma.AttendanceSelect,
+>(
+  whereQuery: Prisma.AttendanceWhereInput,
+  selectData: Prisma.Subset<T, Prisma.AttendanceSelect>,
+  tx: PrismaClient | Prisma.TransactionClient,
+) => {
+  return tx.attendance.findMany({
+    where: whereQuery,
+    select: selectData,
+  });
+};

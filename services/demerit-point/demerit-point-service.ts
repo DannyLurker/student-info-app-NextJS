@@ -1,4 +1,5 @@
 import { prisma } from "@/db/prisma";
+import { TeacherSession } from "@/domain/auth/role-guards";
 import { assertDateIsInCurrentSemester } from "@/domain/date/date-rules";
 import {
   isSinglePerDayCategory,
@@ -8,7 +9,7 @@ import {
   demeritCheckSelect,
   selectDemeritPointWithStudent,
 } from "@/domain/types/demerit-types";
-import { TeacherSession } from "@/domain/types/sessions";
+
 import {
   categoryLabelMap,
   ValidInfractionType,
@@ -27,7 +28,7 @@ import {
 import { findUsersByIds } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
 
-export async function createDemeritPoint(
+export async function createDemeritPoints(
   data: CreateDemeritPointSchema,
   teacherSession: TeacherSession,
 ) {
@@ -70,7 +71,7 @@ export async function createDemeritPoint(
   });
 }
 
-export async function getDemeritPoint(
+export async function getDemeritPoints(
   teacherSession: TeacherSession,
   page: number,
 ) {

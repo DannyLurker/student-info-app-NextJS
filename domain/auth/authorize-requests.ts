@@ -1,8 +1,8 @@
 import { forbidden } from "@/lib/errors";
-import { HomeroomTeacherSession, SecretarySession } from "../types/sessions";
+import { ClassSecretarySession, HomeroomTeacherSession } from "./role-guards";
 
 export function assertClassManagementAccess(
-  secretarySession: SecretarySession | null,
+  secretarySession: ClassSecretarySession | null,
   homeroomTeacherSession: HomeroomTeacherSession | null,
 ): void {
   if (!secretarySession && !homeroomTeacherSession) {

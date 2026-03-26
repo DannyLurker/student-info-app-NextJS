@@ -1,6 +1,6 @@
+import { validateManagementSession } from "@/domain/auth/role-guards";
 import { handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
-import { validateManagementSession } from "@/lib/validation/guards";
 import { updateSemseter } from "@/services/semester/semester-service";
 
 export async function PATCH() {

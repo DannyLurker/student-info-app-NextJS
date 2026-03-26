@@ -1,6 +1,22 @@
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
 import { Prisma, PrismaClient } from "@prisma/client";
 
+export const createDemeritPointWhere = <
+  T extends Prisma.DemeritPointWhereInput,
+>(
+  where: T,
+): T => where;
+
+export const createDemeritPointWhereUnique = <
+  T extends Prisma.DemeritPointWhereUniqueInput,
+>(
+  where: T,
+): T => where;
+
+export const createDemeritPointSelect = <T extends Prisma.DemeritPointSelect>(
+  select: T,
+): T => select;
+
 export async function findDemeritPointsByRecorder<
   T extends Prisma.DemeritPointSelect,
 >(
@@ -69,3 +85,14 @@ export async function findDemeritPointsByDateAndStudentId<
 
   return result as unknown as Prisma.DemeritPointGetPayload<{ select: T }>[];
 }
+
+export const findDemeritPoints = async <T extends Prisma.DemeritPointSelect>(
+  whereQuery: Prisma.DemeritPointWhereInput,
+  selectData: Prisma.Subset<T, Prisma.DemeritPointSelect>,
+  tx: PrismaClient | Prisma.TransactionClient,
+) => {
+  return tx.demeritPoint.findMany({
+    where: whereQuery,
+    select: selectData,
+  });
+};

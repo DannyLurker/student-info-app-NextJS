@@ -1,5 +1,4 @@
 import { prisma } from "@/db/prisma";
-import { TeacherSession } from "@/domain/types/sessions";
 import { ClassSection, Grade, Major } from "@/lib/constants/class";
 import { badRequest, notFound } from "@/lib/errors";
 import { getFullClassLabel } from "@/lib/utils/labels";
@@ -28,6 +27,7 @@ import {
 } from "@/repositories/teaching-assignment-repository";
 import { findStudents } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
+import { TeacherSession } from "@/domain/auth/role-guards";
 
 export const createStudentAssessment = async (
   data: CreateStudentAssessmentSchema,
@@ -61,6 +61,8 @@ export const createStudentAssessment = async (
   const studentRecords = await findStudents(
     studentByClass,
     studentWithGradebookSelect,
+    false,
+    0,
     prisma,
   );
 

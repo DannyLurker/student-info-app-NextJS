@@ -4,7 +4,7 @@ import { findTeachingAssignments } from "@/repositories/teaching-assignment-repo
 import { findTeachers } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
 
-export const getTeacher = async (teacherFetchType: TeacherFetchType) => {
+export const getTeachers = async (teacherFetchType: TeacherFetchType) => {
   const teacherWhereCondition: Prisma.TeacherWhereInput = {
     staffRole: "TEACHER",
   };

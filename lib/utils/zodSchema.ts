@@ -5,14 +5,6 @@ const MajorEnum = z.enum(["ACCOUNTING", "SOFTWARE_ENGINEERING"]);
 const StudentRoleEnum = z.enum(["STUDENT", "CLASS_SECRETARY"]);
 const ClassSectionEnum = z.enum(["none", "1", "2"]);
 
-const page = z
-  .string()
-  .default("0")
-  .transform((val) => Number(val))
-  .refine((val) => Number.isInteger(val) && val >= 0, {
-    message: "page must be a non-negative integer",
-  });
-
 const classSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
@@ -20,19 +12,6 @@ const classSchema = z.object({
 });
 
 type ClassSchema = z.infer<typeof classSchema>;
-
-// Student
-const studentQuerySchema = z.object({
-  grade: GradeEnum.optional(),
-  major: MajorEnum.optional(),
-  section: ClassSectionEnum.optional(),
-  page,
-  search: z.string().optional(),
-  isPaginationActive: z
-    .string()
-    .default("true")
-    .transform((v) => Boolean(v)),
-});
 
 // HOMEROOM CLASS STUDENT
 const homeroomClassStudent = z.object({
@@ -65,7 +44,6 @@ export const updateStudentsClassSchema = z.object({
 });
 
 export {
-  studentQuerySchema,
   homeroomClassStudent,
   classSchema,
   updateStudentProfileSchema,

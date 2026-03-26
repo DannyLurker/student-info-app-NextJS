@@ -1,7 +1,7 @@
 import { prisma } from "@/db/prisma";
 import { handleError } from "../../../../../../lib/errors";
 import { updateStudentProfileSchema } from "../../../../../../lib/utils/zodSchema";
-import { validateManagementSession } from "../../../../../../lib/validation/guards";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 
 export async function PATCH(req: Request) {
   try {

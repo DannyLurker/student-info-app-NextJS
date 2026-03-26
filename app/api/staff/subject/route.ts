@@ -1,15 +1,15 @@
+import { validateManagementSession } from "@/domain/auth/role-guards";
 import { handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
-import { validateManagementSession } from "@/lib/validation/guards";
 import {
   createSubjectSchema,
   getSubjectQueriesSchema,
   patchSubjectSchema,
 } from "@/lib/zod/subject";
 import {
-  createSubject,
+  createSubjects,
   deleteSubject,
-  getSubject,
+  getSubjects,
   updateSubject,
 } from "@/services/subject/subject-services";
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     const data = createSubjectSchema.parse(rawData);
 
-    const response = await createSubject(data);
+    const response = await createSubjects(data);
 
     return Response.json(
       {
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     const rawParams = Object.fromEntries(searchParams.entries());
     const data = getSubjectQueriesSchema.parse(rawParams);
 
-    const response = await getSubject(data);
+    const response = await getSubjects(data);
 
     return Response.json(
       {

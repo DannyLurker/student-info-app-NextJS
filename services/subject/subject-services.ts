@@ -20,7 +20,7 @@ import {
 } from "@/repositories/subject-repository";
 import { Prisma } from "@prisma/client";
 
-export async function createSubject(data: CreateSubjectSchema) {
+export async function createSubjects(data: CreateSubjectSchema) {
   const uniqueSubjects = new Set<string>();
   const subjectMap = new Map<
     string,
@@ -56,6 +56,7 @@ export async function createSubject(data: CreateSubjectSchema) {
     subjectsByNameQuery,
     subjectNameSelect,
     true,
+    "asc",
   );
 
   validateSubjectUniqueness(uniqueSubjectNames, existingSubjects);
@@ -139,7 +140,7 @@ export async function createSubject(data: CreateSubjectSchema) {
   return { totalNewSubjects: uniqueSubjectNames.length };
 }
 
-export async function getSubject(data: SubjectQueriesSchema) {
+export async function getSubjects(data: SubjectQueriesSchema) {
   const whereQuery: Prisma.SubjectWhereInput = {};
 
   if (data.subjectName && data.subjectName?.length >= MIN_SEARCH_LENGTH) {

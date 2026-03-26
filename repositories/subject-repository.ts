@@ -1,8 +1,21 @@
-import { prisma } from "@/db/prisma";
 import { Grade, Major } from "@/lib/constants/class";
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
 import { SortOrder } from "@/lib/constants/sortingAndFilltering";
 import { Prisma, PrismaClient } from "@prisma/client";
+
+export const createSubjectWhere = <T extends Prisma.SubjectWhereInput>(
+  where: T,
+): T => where;
+
+export const createSubjectWhereUnique = <
+  T extends Prisma.SubjectWhereUniqueInput,
+>(
+  where: T,
+): T => where;
+
+export const createSubjectSelect = <T extends Prisma.SubjectSelect>(
+  select: T,
+): T => select;
 
 export async function findUniqueSubject<T extends Prisma.SubjectSelect>(
   whereQuery: Prisma.SubjectWhereUniqueInput,
@@ -20,14 +33,14 @@ export async function findSubjects<T extends Prisma.SubjectSelect>(
   whereFilter: Prisma.SubjectWhereInput | {},
   selectData: Prisma.Subset<T, Prisma.SubjectSelect> | undefined,
   getAll: boolean,
-  sortOrder?: SortOrder,
+  sortOrder: SortOrder,
   page?: number,
 ) {
   const result = tx.subject.findMany({
     where: whereFilter,
     select: selectData,
     orderBy: {
-      name: getAll ? sortOrder : undefined,
+      name: sortOrder,
     },
     skip: getAll ? undefined : page ? page * OFFSET : undefined,
     take: getAll ? undefined : TAKE_RECORDS,

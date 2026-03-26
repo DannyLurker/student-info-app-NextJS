@@ -1,8 +1,8 @@
 import { handleError } from "@/lib/errors";
-import { validateManagementSession } from "@/lib/validation/guards";
 import { getStudentExport } from "@/services/student/student-service";
 import { getStudentExportSchema } from "@/lib/zod/student";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 
 export async function GET(req: Request) {
   try {

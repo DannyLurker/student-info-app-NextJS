@@ -1,6 +1,6 @@
 import { handleError } from "@/lib/errors";
 import { prisma } from "@/db/prisma";
-import { validateParentSession } from "@/lib/validation/guards";
+import { validateParentSession } from "@/domain/auth/role-guards";
 
 export async function GET() {
   try {

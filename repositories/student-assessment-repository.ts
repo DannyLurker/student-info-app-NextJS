@@ -29,7 +29,7 @@ export const findAssessments = async <T extends Prisma.AssessmentSelect>(
 
 export const findUniqueAssessment = async <T extends Prisma.AssessmentSelect>(
   whereQuery: Prisma.AssessmentWhereUniqueInput,
-  selectData: Prisma.AssessmentSelect,
+  selectData: Prisma.Subset<T, Prisma.AssessmentSelect>,
   tx: PrismaClient | Prisma.TransactionClient,
 ) => {
   const result = tx.assessment.findUnique({

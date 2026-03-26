@@ -1,10 +1,9 @@
 import { prisma } from "@/db/prisma";
+import { validateParentSession } from "@/domain/auth/role-guards";
 import { OFFSET, TAKE_RECORDS } from "@/lib/constants/pagination";
 import { badRequest, handleError, notFound } from "@/lib/errors";
 import { getSemester } from "@/lib/utils/date";
-
-import { validateParentSession } from "@/lib/validation/guards";
-import { getStudentAssessmentScore } from "@/lib/zod/assessment";
+import { getStudentAssessmentScoreSchema } from "@/lib/zod/assessment";
 
 export async function GET(req: Request) {
   try {
@@ -14,7 +13,7 @@ export async function GET(req: Request) {
 
     const rawData = Object.fromEntries(searchParams.entries());
 
-    const data = getStudentAssessmentScore.parse(rawData);
+    const data = getStudentAssessmentScoreSchema.parse(rawData);
 
     if (!data.subjectId)
       throw badRequest("Missing required query parameter: subjectId");

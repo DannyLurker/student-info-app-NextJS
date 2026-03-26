@@ -1,11 +1,11 @@
+import { validateManagementSession } from "@/domain/auth/role-guards";
 import { handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
-import { validateManagementSession } from "@/lib/validation/guards";
 import { createClassSchema, updateClassSchema } from "@/lib/zod/classroom";
 import {
-  createClassroom,
+  createClassrooms,
   deleteClassroom,
-  getClassroom,
+  getClassrooms,
   updateClassroom,
 } from "@/services/classroom/classroom-service";
 
@@ -13,7 +13,7 @@ export async function GET() {
   try {
     await validateManagementSession();
 
-    const response = await getClassroom();
+    const response = await getClassrooms();
 
     return Response.json(
       {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     // from frontend
     const data = createClassSchema.parse(rawData);
 
-    await createClassroom(data);
+    await createClassrooms(data);
 
     return Response.json(
       { message: "Classrooms created successfully" },

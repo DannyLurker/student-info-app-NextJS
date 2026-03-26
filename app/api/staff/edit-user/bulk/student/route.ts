@@ -1,8 +1,8 @@
 import { prisma } from "@/db/prisma";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 import { handleError, notFound } from "@/lib/errors";
 import { getSemester } from "@/lib/utils/date";
 import { updateStudentsClassSchema } from "@/lib/utils/zodSchema";
-import { validateManagementSession } from "@/lib/validation/guards";
 import { Prisma } from "@prisma/client";
 
 export async function PATCH(req: Request) {

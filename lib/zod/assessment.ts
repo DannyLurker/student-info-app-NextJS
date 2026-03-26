@@ -99,7 +99,7 @@ export type UpdateAssessmentScoresSchema = z.infer<
 >;
 
 // getStudnetAssessmentScore based on the subject
-export const getStudentAssessmentScore = z.object({
+export const getStudentAssessmentScoreSchema = z.object({
   subjectId: z
     .string()
     .min(1)
@@ -107,6 +107,6 @@ export const getStudentAssessmentScore = z.object({
   page,
 });
 
-export type GetStudnetAssessmentScore = z.infer<
-  typeof getStudentAssessmentScore
+export type GetStudentAssessmentScoreSchema = z.infer<
+  typeof getStudentAssessmentScoreSchema
 >;

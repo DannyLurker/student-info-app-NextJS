@@ -1,39 +1,23 @@
-import { prisma } from "@/db/prisma";
-import { handleError, notFound } from "@/lib/errors";
-import { validateStudentSession } from "@/lib/validation/guards";
+import { validateStudentSession } from "@/domain/auth/role-guards";
+import { handleError } from "@/lib/errors";
+import { printConsoleError } from "@/lib/utils/printError";
+import { getStudentSubject } from "@/services/student/student-service";
 
 export async function GET() {
   try {
     const studentSession = await validateStudentSession();
 
-    const subjects = await prisma.subject.findMany({
-      where: {
-        config: {
-          allowedGrades: {
-            has: studentSession.class?.grade,
-          },
-          allowedMajors: {
-            has: studentSession.class?.major,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (subjects.length === 0) throw notFound("Subject data not found");
+    const response = await getStudentSubject(studentSession);
 
     return Response.json(
-      { message: "Successfully retrieved subject data", subjects },
+      {
+        message: "Successfully retrieved subject data",
+        subjects: response.subjects,
+      },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "(GET) /api/student/subject",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "GET", "/api/student/subject");
     return handleError(error);
   }
 }

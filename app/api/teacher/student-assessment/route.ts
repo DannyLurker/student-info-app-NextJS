@@ -1,5 +1,4 @@
 import { badRequest, handleError } from "@/lib/errors";
-import { validateTeacherSession } from "@/lib/validation/guards";
 import {
   createStudentAssessmentSchema,
   getStudentAssessmentSchema,
@@ -12,6 +11,7 @@ import {
   updateStudentAssessment,
 } from "@/services/assessment/student-assessment-service";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateTeacherSession } from "@/domain/auth/role-guards";
 
 export async function POST(req: Request) {
   try {
@@ -42,7 +42,6 @@ export async function GET(req: Request) {
 
     const rawData = Object.fromEntries(searchParams.entries());
     const data = getStudentAssessmentSchema.parse(rawData);
-
     const response = await getStudentAssessment(data, teacherSession);
 
     return Response.json(

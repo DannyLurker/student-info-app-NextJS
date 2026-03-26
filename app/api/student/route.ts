@@ -1,19 +1,8 @@
+import { validateLoginSession } from "@/domain/auth/role-guards";
 import { handleError } from "@/lib/errors";
-import { prisma } from "@/db/prisma";
-import { studentQuerySchema } from "@/lib/utils/zodSchema";
-import {
-  MIN_SEARCH_LENGTH,
-  OFFSET,
-  TAKE_RECORDS,
-} from "@/lib/constants/pagination";
-import { validateLoginSession } from "@/lib/validation/guards";
-
-type Student = {
-  user: {
-    id: string;
-    name: string;
-  };
-};
+import { printConsoleError } from "@/lib/utils/printError";
+import { studentQuerySchema } from "@/lib/zod/student";
+import { getStudents } from "@/services/student/student-service";
 
 export async function GET(req: Request) {
   try {
@@ -25,92 +14,18 @@ export async function GET(req: Request) {
 
     const data = studentQuerySchema.parse(rawData);
 
-    let students: Student[], totalStudents: number;
-
-    if (data.search?.length && data.search.length >= MIN_SEARCH_LENGTH) {
-      students = await prisma.student.findMany({
-        where: {
-          user: {
-            name: {
-              mode: "insensitive",
-              contains: data.search,
-            },
-          },
-          class: {
-            grade: data.grade,
-            major: data.major,
-            section: data.section,
-          },
-        },
-        select: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      totalStudents = await prisma.student.count({
-        where: {
-          user: {
-            name: {
-              contains: data.search,
-            },
-          },
-          class: {
-            grade: data.grade,
-            major: data.major,
-            section: data.section,
-          },
-        },
-      });
-    } else {
-      students = await prisma.student.findMany({
-        where: {
-          class: {
-            grade: data.grade,
-            major: data.major,
-            section: data.section,
-          },
-        },
-        select: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        skip: data.isPaginationActive ? data.page * OFFSET : undefined,
-        take: data.isPaginationActive ? TAKE_RECORDS : undefined,
-      });
-
-      totalStudents = await prisma.student.count({
-        where: {
-          class: {
-            grade: data.grade,
-            major: data.major,
-            section: data.section,
-          },
-        },
-      });
-    }
+    const response = await getStudents(data);
 
     return Response.json(
       {
         message: "Successfully retrieved list of students",
-        data: { students },
-        totalStudents,
+        data: { students: response.students },
+        totalStudents: response.totalStudents,
       },
       { status: 200 },
     );
   } catch (error) {
-    console.error("API_ERROR", {
-      route: "/api/student",
-      message: error instanceof Error ? error.message : String(error),
-    });
+    printConsoleError(error, "GET", "/api/student");
     return handleError(error);
   }
 }

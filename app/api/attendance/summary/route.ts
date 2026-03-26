@@ -1,8 +1,8 @@
 import { printConsoleError } from "@/lib/utils/printError";
 import { handleError } from "../../../../lib/errors";
-import { validateHomeroomTeacherSession } from "../../../../lib/validation/guards";
 import { attendanceSummaryQueries } from "@/lib/zod/attendance";
 import { getAttendanceSumamry } from "@/services/attendance/attendance-service";
+import { validateHomeroomTeacherSession } from "@/domain/auth/role-guards";
 
 export async function GET(req: Request) {
   try {

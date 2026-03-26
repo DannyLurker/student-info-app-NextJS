@@ -1,16 +1,16 @@
 import { handleError } from "@/lib/errors";
-import { validateTeacherSession } from "@/lib/validation/guards";
 import {
   createDemeritPointSchema,
   updateDemeritPointSchema,
 } from "@/lib/zod/demerit-point";
 import {
-  createDemeritPoint,
+  createDemeritPoints,
   deleteDemeritPoint,
-  getDemeritPoint,
+  getDemeritPoints,
   updateDemeritPoint,
 } from "@/services/demerit-point/demerit-point-service";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateTeacherSession } from "@/domain/auth/role-guards";
 
 export async function POST(req: Request) {
   try {
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const rawData = await req.json();
     const data = createDemeritPointSchema.parse(rawData);
 
-    await createDemeritPoint(data, teacherSession);
+    await createDemeritPoints(data, teacherSession);
 
     return Response.json(
       {
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
     const page = Number(searchParams.get("page"));
 
-    const result = await getDemeritPoint(teacherSession, page);
+    const result = await getDemeritPoints(teacherSession, page);
 
     return Response.json(
       {

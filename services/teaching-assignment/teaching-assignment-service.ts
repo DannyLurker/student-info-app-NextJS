@@ -2,7 +2,7 @@ import { prisma } from "@/db/prisma";
 import { findTeachingAssignments } from "@/repositories/teaching-assignment-repository";
 import { Prisma } from "@prisma/client";
 
-export const getTeachingAssignment = async (teacherId: string) => {
+export const getTeachingAssignments = async (teacherId: string) => {
   const selectData = Prisma.validator<Prisma.TeachingAssignmentSelect>()({
     classId: true,
     class: {

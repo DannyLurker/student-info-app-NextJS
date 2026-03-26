@@ -11,7 +11,7 @@ import {
 } from "@/repositories/classroom-repository";
 import { Prisma } from "@prisma/client";
 
-export const getClassroom = async () => {
+export const getClassrooms = async () => {
   const selectClassroomWithTeacher = Prisma.validator<Prisma.ClassroomSelect>()(
     {
       id: true,
@@ -42,7 +42,7 @@ export const getClassroom = async () => {
   };
 };
 
-export const createClassroom = async (data: CreateClassSchema) => {
+export const createClassrooms = async (data: CreateClassSchema) => {
   // from DB
   const classroomData = await findClassrooms({}, undefined, prisma);
 

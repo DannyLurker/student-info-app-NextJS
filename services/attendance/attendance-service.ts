@@ -1,14 +1,15 @@
 import { prisma } from "@/db/prisma";
 import { assertAttendanceDateIsNotInFuture } from "@/domain/attendance/attendance-rules";
 import { normalizeAttendanceType } from "@/domain/attendance/normalize-attendance-type";
-import { assertDateIsInCurrentSemester } from "@/domain/date/date-rules";
 import {
+  ClassSecretarySession,
   HomeroomTeacherSession,
-  SecretarySession,
-} from "@/domain/types/sessions";
+} from "@/domain/auth/role-guards";
+import { assertDateIsInCurrentSemester } from "@/domain/date/date-rules";
+
 import { ValidAttendanceType } from "@/lib/constants/attendance";
 import { MIN_SEARCH_LENGTH } from "@/lib/constants/pagination";
-import { badRequest } from "@/lib/errors";
+import { badRequest, notFound } from "@/lib/errors";
 import { getDayBounds, parseDateString } from "@/lib/utils/date";
 import {
   AttendanceSummaryQueriesSchema,
@@ -29,7 +30,7 @@ import { Prisma } from "@prisma/client";
 
 export async function createAttendance(
   data: BulkAttendanceSchema,
-  secretarySession: SecretarySession | null,
+  secretarySession: ClassSecretarySession | null,
   homeroomTeacherSession: HomeroomTeacherSession | null,
 ) {
   const { date, records } = data;
@@ -184,7 +185,7 @@ export async function createAttendance(
 
 export async function getAttendance(
   data: StudentAttendacesQueriesSchema,
-  secretarySession: SecretarySession | null,
+  secretarySession: ClassSecretarySession | null,
   homeroomTeacherSession: HomeroomTeacherSession | null,
 ) {
   const targetDate = parseDateString(data.date);
@@ -218,6 +219,8 @@ export async function getAttendance(
   const classIdSession = secretarySession?.classId
     ? secretarySession.classId
     : homeroomTeacherSession?.homeroom?.id;
+
+  if (!classIdSession) throw notFound("Class Id not found");
 
   if (data.searchQuery && data.searchQuery.length >= MIN_SEARCH_LENGTH) {
     studentAttendanceRecords = await findUsersByName(
@@ -284,6 +287,8 @@ export async function getAttendanceSumamry(
     name: true,
     id: true,
   };
+
+  if (!classIdSession) throw notFound("Class Id not found");
 
   if (data.searchQuery && data.searchQuery?.length > MIN_SEARCH_LENGTH) {
     students = await findUsersByName(

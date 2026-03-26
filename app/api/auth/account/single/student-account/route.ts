@@ -1,8 +1,8 @@
 import { studentSignUpSchema } from "../../../../../../lib/zod/student";
 import { handleError } from "../../../../../../lib/errors";
-import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { createStudentAccount } from "../../../../../../services/student/create-student-account-service";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 
 export async function POST(req: Request) {
   try {

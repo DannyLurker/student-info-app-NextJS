@@ -1,8 +1,8 @@
 import { createTeacherBulkAccount } from "@/services/teacher/create-teacher-bulk-account-service";
 import { badRequest, handleError } from "../../../../../../lib/errors";
-import { validateManagementSession } from "../../../../../../lib/validation/guards";
 import { validateExcelExtension } from "@/domain/extension/extensionRules";
 import { printConsoleError } from "@/lib/utils/printError";
+import { validateManagementSession } from "@/domain/auth/role-guards";
 
 export async function POST(req: Request) {
   try {
