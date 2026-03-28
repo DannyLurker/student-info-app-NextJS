@@ -1,4 +1,3 @@
-import { prisma } from "@/db/prisma";
 import { handleError } from "../../../../../../lib/errors";
 import { validateManagementSession } from "@/domain/auth/role-guards";
 import { printConsoleError } from "@/lib/utils/printError";

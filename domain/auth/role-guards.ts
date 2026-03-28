@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/db/prisma";
 import { auth } from "@/lib/auth/authNode";
 import {
@@ -10,7 +11,7 @@ import {
 import { forbidden, notFound, unauthorized } from "@/lib/errors";
 import { findStudentById, findTeacher } from "@/repositories/user-repository";
 
-export async function validateLoginSession() {
+export const validateLoginSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -32,11 +33,11 @@ export async function validateLoginSession() {
   }
 
   return user;
-}
+});
 
 export type LoginSesssion = Awaited<ReturnType<typeof validateLoginSession>>;
 
-export async function validateManagementSession() {
+export const validateManagementSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -65,13 +66,13 @@ export async function validateManagementSession() {
   }
 
   return teacherProfile;
-}
+});
 
 export type ManagementSession = Awaited<
   ReturnType<typeof validateManagementSession>
 >;
 
-export async function validateHomeroomTeacherSession() {
+export const validateHomeroomTeacherSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -93,13 +94,13 @@ export async function validateHomeroomTeacherSession() {
   }
 
   return teacherProfile;
-}
+});
 
 export type HomeroomTeacherSession = Awaited<
   ReturnType<typeof validateHomeroomTeacherSession>
 >;
 
-export async function validateTeacherSession() {
+export const validateTeacherSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -128,11 +129,11 @@ export async function validateTeacherSession() {
   }
 
   return teacherProfile;
-}
+});
 
 export type TeacherSession = Awaited<ReturnType<typeof validateTeacherSession>>;
 
-export async function validateSecretarySession() {
+export const validateSecretarySession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -152,13 +153,13 @@ export async function validateSecretarySession() {
   }
 
   return studentProfile;
-}
+});
 
 export type ClassSecretarySession = Awaited<
   ReturnType<typeof validateSecretarySession>
 >;
 
-export async function validateStudentSession() {
+export const validateStudentSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -189,11 +190,11 @@ export async function validateStudentSession() {
   }
 
   return studentProfile;
-}
+});
 
 export type StudentSession = Awaited<ReturnType<typeof validateStudentSession>>;
 
-export async function validateParentSession() {
+export const validateParentSession = cache(async () => {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -240,6 +241,6 @@ export async function validateParentSession() {
   }
 
   return parentProfile;
-}
+});
 
 export type ParentSession = Awaited<ReturnType<typeof validateParentSession>>;

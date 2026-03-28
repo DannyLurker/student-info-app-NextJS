@@ -9,6 +9,7 @@ declare module "next-auth" {
       name: string;
       role: Role;
       isHomeroomClassTeacher: boolean;
+      accessToken: string;
     } & DefaultSession["user"];
   }
 

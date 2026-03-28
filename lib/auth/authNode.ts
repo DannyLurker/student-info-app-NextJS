@@ -78,13 +78,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, account, user }) {
+      if (account && user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.isHomeroomClassTeacher = (user as any).isHomeroomClassTeacher;
         token.name = user.name;
         token.email = user.email;
+        token.accessToken = account.access_token;
       }
       return token;
     },
@@ -97,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isHomeroomClassTeacher =
           token.isHomeroomClassTeacher as boolean;
         session.user.email = token.email as string;
+        session.user.accessToken = token.accessToken as string;
       }
       return session;
     },

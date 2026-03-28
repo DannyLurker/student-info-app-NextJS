@@ -9,7 +9,7 @@ export const getErrorMessage = async (error: any) => {
       data = JSON.parse(text);
     } catch (error) {
       console.error(error);
-      return "Gagal membaca pesan error dari file.";
+      return "Failed to read an error from the file.";
     }
   }
 
