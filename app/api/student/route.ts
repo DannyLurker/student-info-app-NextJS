@@ -19,8 +19,10 @@ export async function GET(req: Request) {
     return Response.json(
       {
         message: "Successfully retrieved list of students",
-        data: { students: response.students },
-        totalStudents: response.totalStudents,
+        data: {
+          students: response.students,
+          totalStudents: response.totalStudents,
+        },
       },
       { status: 200 },
     );

@@ -21,6 +21,7 @@ import {
   ChartNoAxesCombined,
   FileSpreadsheet,
   SquareLibrary,
+  Pen,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -120,6 +121,7 @@ export const Sidebar = ({ role, isHomeroomClassTeacher }: SidebarProps) => {
             label: "Classroom",
           },
           { href: "/create-account", icon: Users, label: "Create Account" },
+          { href: "/dashboard/staff/edit-user", icon: Pen, label: "Edit User" },
           {
             href: "/dashboard/staff/export",
             icon: FileSpreadsheet,

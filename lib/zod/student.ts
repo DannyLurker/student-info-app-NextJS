@@ -15,10 +15,10 @@ export const studentQuerySchema = z.object({
   section: ClassSectionEnum.optional(),
   page,
   search: z.string().optional(),
-  isPaginationActive: z
-    .string()
-    .default("true")
-    .transform((v) => Boolean(v)),
+  isPaginationActive: z.union([z.boolean(), z.string()]).transform((v) => {
+    if (typeof v === "boolean") return v;
+    return v === "true"; // Jika string "true" maka true, selain itu (termasuk "false") maka false
+  }),
 });
 
 export type StudentQuerySchema = z.infer<typeof studentQuerySchema>;

@@ -10,30 +10,12 @@ import {
   findUniqueClassroom,
 } from "@/repositories/classroom-repository";
 import { Prisma } from "@prisma/client";
+import { selectClassroomWithTeacher } from "./classroom-definitions";
 
 export const getClassrooms = async () => {
-  const selectClassroomWithTeacher = Prisma.validator<Prisma.ClassroomSelect>()(
-    {
-      id: true,
-      grade: true,
-      major: true,
-      section: true,
-      homeroomTeacherId: true,
-      homeroomTeacher: {
-        select: {
-          user: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-    },
-  );
-
   const classroomData = await findClassrooms(
     {},
-    selectClassroomWithTeacher,
+    selectClassroomWithTeacher.select,
     prisma,
   );
 

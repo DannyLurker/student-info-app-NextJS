@@ -15,9 +15,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 export type StudentTableData = {
+  id: string;
   name: string;
   email: string;
-  class: string;
 };
 
 export const studentColumns: ColumnDef<StudentTableData>[] = [
@@ -44,6 +44,13 @@ export const studentColumns: ColumnDef<StudentTableData>[] = [
     enableHiding: false,
   },
   {
+    id: "No",
+    header: () => <div className="text-left">No</div>,
+    cell: ({ row }) => {
+      return <div className="text-left font-medium">{row.index + 1}</div>;
+    },
+  },
+  {
     accessorKey: "name",
     header: ({ column }) => {
       return (
@@ -66,13 +73,6 @@ export const studentColumns: ColumnDef<StudentTableData>[] = [
   {
     accessorKey: "email",
     header: () => <div className="text-left">Email</div>,
-    cell: ({ getValue }) => {
-      return <div className="text-left font-medium">{getValue<string>()}</div>;
-    },
-  },
-  {
-    accessorKey: "class",
-    header: () => <div className="text-left">Class</div>,
     cell: ({ getValue }) => {
       return <div className="text-left font-medium">{getValue<string>()}</div>;
     },

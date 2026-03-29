@@ -7,20 +7,10 @@ import {
   getFilteredRowModel,
   SortingState,
   getCoreRowModel,
+  getPaginationRowModel,
   useReactTable,
   getSortedRowModel,
 } from "@tanstack/react-table";
-
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 
 import {
   Table,
@@ -32,14 +22,7 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-
-const fruits = [
-  { label: "Apple", value: "apple" },
-  { label: "Banana", value: "banana" },
-  { label: "Blueberry", value: "blueberry" },
-  { label: "Grapes", value: "grapes" },
-  { label: "Pineapple", value: "pineapple" },
-];
+import { Button } from "@/components/ui/button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -50,7 +33,6 @@ export function UserDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
-  const [selectedValue, setSelectedValue] = useState<string>("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState({});
@@ -63,6 +45,7 @@ export function UserDataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     onRowSelectionChange: setRowSelection,
     state: {
       sorting,
@@ -71,39 +54,18 @@ export function UserDataTable<TData, TValue>({
     },
   });
 
-  console.log(Object.keys(rowSelection).map((value) => Number(value)));
-
   return (
     <>
-      <div className="flex items-center py-4">
-        <div className="grid grid-cols-3 gap-4 w-full">
-          <Select value={selectedValue} onValueChange={setSelectedValue}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a fruit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Fruits</SelectLabel>
-                {fruits.map((fruit) => (
-                  <SelectItem key={fruit.value} value={fruit.value}>
-                    {fruit.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          <Input
-            placeholder="Filter names..."
-            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("name")?.setFilterValue(event.target.value)
-            }
-            className="w-full"
-          />
-
-          <Button className="w-full">Advance Class</Button>
-        </div>
+      <div className="flex w-full h-full justify-center">
+        <Input
+          disabled={data.length == 0}
+          placeholder="Search names..."
+          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("name")?.setFilterValue(event.target.value)
+          }
+          className="max-w-[70%]"
+        />
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -154,6 +116,24 @@ export function UserDataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
       </div>
     </>
   );

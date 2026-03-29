@@ -1,3 +1,4 @@
+import { StudentQuerySchema } from "../zod/student";
 import { SubjectQueriesSchema } from "../zod/subject";
 
 export const SUBJECT_KEYS = {
@@ -20,9 +21,10 @@ export const TEACHER_KEYS = {
 };
 
 export const STUDENT_KEY = {
-  all: ["teachers"] as const,
+  all: ["students"] as const,
   lists: () => [...STUDENT_KEY.all, "list"] as const,
-  list: (filters: any) => [...STUDENT_KEY.lists(), { filters }] as const,
+  list: (filters: StudentQuerySchema) =>
+    [...STUDENT_KEY.lists(), { filters }] as const,
   details: () => [...STUDENT_KEY.all, "detail"] as const,
   detail: (id: string) => [...STUDENT_KEY.details(), id] as const,
   listsAll: () => [...STUDENT_KEY.all, "list", "all"] as const,
@@ -32,6 +34,7 @@ export const CLASSROOM_KEYS = {
   all: ["classrooms"] as const,
   nonHomeroom: () => [...CLASSROOM_KEYS.all, "nonHomeroom"] as const,
   lists: () => [...CLASSROOM_KEYS.all, "list"] as const,
+  // We don't have any filters on classroom entity
   list: (filters: any) => [...CLASSROOM_KEYS.lists(), { filters }] as const,
   details: () => [...CLASSROOM_KEYS.all, "detail"] as const,
   detail: (id: string) => [...CLASSROOM_KEYS.details(), id] as const,

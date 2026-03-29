@@ -36,29 +36,31 @@ import {
   countStudent,
   createStudentSelect,
   createStudentWhere,
-  createStudentWhereUnique,
   createUserWhereUnique,
   findStudents,
   updateSingleUser,
 } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
+import { computeScatterPoints } from "recharts/types/cartesian/Scatter";
 import * as XLSX from "xlsx";
 
-type Student = {
+export type Student = {
   user: {
     id: string;
     name: string;
+    email: string;
   };
 };
 
 export const getStudents = async (data: StudentQuerySchema) => {
   let students: Student[], totalStudents: number;
 
-  const selectUserIdAndName = createStudentSelect({
+  const selectUserData = createStudentSelect({
     user: {
       select: {
         id: true,
         name: true,
+        email: true,
       },
     },
   });
@@ -80,7 +82,7 @@ export const getStudents = async (data: StudentQuerySchema) => {
 
     students = await findStudents(
       studentsByNameAndClass,
-      selectUserIdAndName,
+      selectUserData,
       data.isPaginationActive,
       data.page,
       prisma,
@@ -98,11 +100,14 @@ export const getStudents = async (data: StudentQuerySchema) => {
 
     students = await findStudents(
       studentsByClass,
-      selectUserIdAndName,
+      selectUserData,
       data.isPaginationActive,
       data.page,
       prisma,
     );
+
+    console.log("find: ", data);
+    console.log("find:", students);
 
     totalStudents = await countStudent(studentsByClass, prisma);
   }
