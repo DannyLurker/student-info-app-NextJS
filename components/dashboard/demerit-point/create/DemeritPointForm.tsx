@@ -110,13 +110,14 @@ export default function DemeritPointForm({
             major,
             section,
             page: currentPage,
+            isPaginationActive: true,
           },
         });
         if (res.data) {
           setStudents(
             res.data.data.students.map((s: { user: Student }) => s.user) || [],
           );
-          setTotalStudents(res.data.totalStudents || 0);
+          setTotalStudents(res.data.data.totalStudents || 0);
         }
       } catch (error) {
         console.error("Error fetching students", error);

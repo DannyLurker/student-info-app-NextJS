@@ -126,6 +126,8 @@ const ParentAssessmentView = ({
       ? `${String(studentInfo.name).split(" ")[0]}'s Marks`
       : "Student's Marks";
 
+  console.log(data);
+
   return (
     <div className="space-y-6">
       <h1 className="font-bold text-2xl sm:text-4xl mt-10 lg:mt-0">

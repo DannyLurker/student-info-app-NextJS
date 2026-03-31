@@ -220,7 +220,7 @@ model Gradebook {
     studentId String
     student   Student @relation(fields: [studentId], references: [userId])
     subjectId Int
-    subject   Subject @relation(fields: [subjectId], references: [id])
+    subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
     semester Semester // We need the semester data for removing irellevant data after semester get updated
 

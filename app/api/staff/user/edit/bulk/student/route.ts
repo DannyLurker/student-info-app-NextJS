@@ -12,6 +12,7 @@ export async function PATCH(req: Request) {
 
     const data = updateStudentsClassSchema.parse(rawData);
 
+    // The purpose of bulk student is to change students' class into another class
     await editBulkStudent(data);
 
     return Response.json(

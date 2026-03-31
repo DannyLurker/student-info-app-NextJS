@@ -398,13 +398,17 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
   const handleImport = (importedData: any[]) => {
     const excelMap = new Map<string, Map<number, number>>();
 
+    // console.log(importedData);
+
     for (const row of importedData) {
+      console.log(row);
       if (!row.id || !row.studentAssessments) continue;
 
       const assessmentMap = new Map<number, number>();
       const pairs = row.studentAssessments.split(",");
       for (const pair of pairs) {
         const [numStr, scoreStr] = pair.split(":");
+        console.log(numStr, scoreStr);
         const num = Number(numStr);
         const score = Number(scoreStr);
         if (!isNaN(num) && !isNaN(score)) {
@@ -548,8 +552,6 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
       : [];
 
   const totalStudents = students.length;
-
-  console.log(columns);
 
   // ── Render ───────────────────────────────────────────────────────────────
 

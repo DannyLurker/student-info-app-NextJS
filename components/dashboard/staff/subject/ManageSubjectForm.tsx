@@ -106,8 +106,6 @@ const ManageSubjectForm = () => {
     queryFn: fetchSubjects,
   });
 
-  console.log(subjects);
-
   const queryClient = useQueryClient();
 
   const totalPages = Math.ceil(
@@ -115,6 +113,7 @@ const ManageSubjectForm = () => {
   );
 
   const handleDelete = async () => {
+    setErrorMessage("");
     if (!deleteItem) return;
 
     const deletePromise = axios.delete("/api/staff/subject", {

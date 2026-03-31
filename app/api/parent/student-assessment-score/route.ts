@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     return Response.json(
       {
         message: "Successfully retrieved assessment score data",
-        response: response.assessmentScores,
+        assessmentScoreData: response.assessmentScores,
       },
       { status: 200 },
     );

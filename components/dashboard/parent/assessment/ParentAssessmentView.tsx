@@ -47,7 +47,7 @@ interface AssessmentScore {
 }
 
 interface AssessmentScoreResponse {
-  assessmentScores: AssessmentScore[];
+  assessmentScoreData: AssessmentScore[];
   totalRecords?: number;
 }
 
@@ -80,8 +80,6 @@ const ParentAssessmentView = ({
       },
     });
 
-    console.log(response.data);
-
     return response.data;
   };
 
@@ -108,7 +106,7 @@ const ParentAssessmentView = ({
     }
   }, [isError]);
 
-  const assessmentScoreData = data?.assessmentScores || [];
+  const assessmentScoreData = data?.assessmentScoreData || [];
   const totalRecords = data?.totalRecords || assessmentScoreData.length;
 
   const recordsPerPage = 10;

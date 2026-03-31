@@ -42,6 +42,8 @@ const MarkTable = ({
     }).format(new Date(dateString));
   };
 
+  console.log(marks);
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">

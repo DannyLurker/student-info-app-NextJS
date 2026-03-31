@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         "/create-account",
         "/forgot-password",
         "/reset-password",
+        "/sign-in",
       ],
     },
   };

@@ -20,7 +20,10 @@ export type StudentTableData = {
   email: string;
 };
 
-export const studentColumns: ColumnDef<StudentTableData>[] = [
+export const studentColumns = (
+  onEdit: (student: StudentTableData) => void,
+  onDelete: (student: StudentTableData) => void,
+): ColumnDef<StudentTableData>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -80,7 +83,8 @@ export const studentColumns: ColumnDef<StudentTableData>[] = [
   {
     id: "actions",
     header: () => <div className="text-left">Actions</div>,
-    cell: () => {
+    cell: ({ row }) => {
+      const student = row.original;
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -90,8 +94,12 @@ export const studentColumns: ColumnDef<StudentTableData>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(student)}>
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onDelete(student)}>
+              Delete
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

@@ -25,9 +25,11 @@ import {
   StudentTableData,
 } from "./edit-user-student-table/StudentColumns";
 import { useClassroom } from "@/services/classroom/classroom-hooks";
-import { getFullClassLabel } from "@/lib/utils/labels";
+import { getFullClassLabel, getGradeNumber } from "@/lib/utils/labels";
 import { ClassSection, Grade, Major } from "@/lib/constants/class";
 import { useStudent } from "@/services/student/student-hooks";
+import LoadingForComponent from "@/components/ui/LoadingForComponent";
+import DeleteUserModal from "../delete-user/DeleteUserModal";
 
 interface EditStudentModalProps {
   open: boolean;
@@ -36,14 +38,38 @@ interface EditStudentModalProps {
 
 const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
   const [selectedValue, setSelectedValue] = useState<string>("");
+  const [selectedStudent, setSelectedStudent] =
+    useState<StudentTableData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleEdit = (student: StudentTableData) => {
+    setSelectedStudent(student);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = (student: StudentTableData) => {
+    setSelectedStudent(student);
+    setIsDeleteModalOpen(true);
+  };
+
+  const columns = React.useMemo(
+    () => studentColumns(handleEdit, handleDelete),
+    [],
+  );
 
   const { data: classroomData } = useClassroom();
 
+  const sortedClassroomData = classroomData?.sort((a, b) => {
+    const transformFirstData = Number(getGradeNumber(a.grade));
+    const transformSecondData = Number(getGradeNumber(b.grade));
+
+    return transformFirstData - transformSecondData;
+  });
+
   const [grade, major, section] = selectedValue ? selectedValue.split("-") : [];
 
-  console.log(selectedValue);
-
-  const { data: studentData } = useStudent(
+  const { data: studentData, isLoading } = useStudent(
     {
       isPaginationActive: false,
       page: 0,
@@ -56,8 +82,6 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
       enabled: !!selectedValue,
     },
   );
-
-  console.log(studentData);
 
   const transformStudentData: StudentTableData[] =
     studentData?.students && studentData?.students.length > 0
@@ -92,7 +116,7 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Classes: </SelectLabel>
-                  {classroomData?.map((classroom) => (
+                  {sortedClassroomData?.map((classroom) => (
                     <SelectItem
                       key={classroom.id}
                       value={`${classroom.grade}-${classroom.major}-${classroom.section}`}
@@ -111,7 +135,18 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
             <Button className="w-full">Advance Class</Button>
           </div>
 
-          <UserDataTable columns={studentColumns} data={transformStudentData} />
+          {isLoading ? (
+            <LoadingForComponent />
+          ) : (
+            <UserDataTable columns={columns} data={transformStudentData} />
+          )}
+
+          <DeleteUserModal
+            open={isDeleteModalOpen}
+            onOpenChange={setIsDeleteModalOpen}
+            userId={selectedStudent?.id as string}
+            username={selectedStudent?.name as string}
+          />
         </DialogContent>
       </Dialog>
     </div>
