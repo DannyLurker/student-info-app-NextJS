@@ -3,15 +3,24 @@ import {
   StudentQuerySchema,
   UpdateStudentProfileSchema,
 } from "@/lib/zod/student";
-import { StudentReponse } from "./student-types";
+import { StudentProfileResponse, StudentReponse } from "./student-types";
 
 export const StudentApi = {
-  getAll: async (queries: StudentQuerySchema) => {
+  getAllByClass: async (queries: StudentQuerySchema) => {
     const response = await api.get("/student", {
       params: queries,
     });
 
     return response.data.data as StudentReponse;
+  },
+  getProfile: async (id: string) => {
+    const response = await api.get("/student/profile", {
+      params: {
+        studentId: id,
+      },
+    });
+
+    return response.data.data as StudentProfileResponse;
   },
   updateStudent: async (payload: UpdateStudentProfileSchema) => {
     const response = await api.patch(

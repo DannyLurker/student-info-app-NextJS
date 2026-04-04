@@ -1,13 +1,28 @@
-import { handleError } from "@/lib/errors";
-import { validateStudentSession } from "@/domain/auth/role-guards";
+import { badRequest, handleError } from "@/lib/errors";
+import {
+  StudentSession,
+  validateStudentSession,
+} from "@/domain/auth/role-guards";
 import { getStudentProfile } from "@/services/student/student-service";
 import { printConsoleError } from "@/lib/utils/printError";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const studentSession = await validateStudentSession();
+    let studentSession: StudentSession | null = null;
 
-    const response = await getStudentProfile(studentSession);
+    try {
+      studentSession = await validateStudentSession();
+    } catch {}
+
+    const { searchParams } = new URL(req.url);
+
+    const studentId = searchParams.get("studentId");
+
+    if (!studentId && !studentSession) {
+      throw badRequest("Student id is missing");
+    }
+
+    const response = await getStudentProfile(studentSession, studentId);
 
     return Response.json(
       {
@@ -16,6 +31,7 @@ export async function GET() {
           attendanceRecords: response.attendanceRecords,
           demeritPointRecords: response.demeritPointRecords,
           totalSubject: response.totalSubjects,
+          studentProfile: response.studentProfile,
         },
       },
       { status: 200 },

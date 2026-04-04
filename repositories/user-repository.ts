@@ -164,8 +164,9 @@ export async function findStudentById(userIdParam: string, tx: PrismaClient) {
       userId: true,
       studentRole: true,
       classId: true,
+      class: true,
       user: {
-        select: { name: true },
+        select: { name: true, email: true },
       },
     },
   });
@@ -183,6 +184,11 @@ export const findStudents = async <T extends Prisma.StudentSelect>(
     select: select,
     skip: isPaginationActive ? page * OFFSET : undefined,
     take: isPaginationActive ? TAKE_RECORDS : undefined,
+    orderBy: {
+      user: {
+        name: "asc",
+      },
+    },
   });
 
   return result as unknown as Prisma.StudentGetPayload<{ select: T }>[];

@@ -10,9 +10,8 @@ import {
   UseQueryOptions,
 } from "@tanstack/react-query";
 import { StudentApi } from "./student-api";
-import { StudentReponse } from "./student-types";
+import { StudentProfileResponse, StudentReponse } from "./student-types";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 
 export const useStudent = (
   queries: StudentQuerySchema,
@@ -20,7 +19,18 @@ export const useStudent = (
 ) => {
   return useQuery({
     queryKey: STUDENT_KEY.list(queries),
-    queryFn: () => StudentApi.getAll(queries),
+    queryFn: () => StudentApi.getAllByClass(queries),
+    ...options,
+  });
+};
+
+export const useStudentProfile = (
+  id: string,
+  options?: Partial<UseQueryOptions<StudentProfileResponse>>,
+) => {
+  return useQuery({
+    queryKey: STUDENT_KEY.detail(id),
+    queryFn: () => StudentApi.getProfile(id),
     ...options,
   });
 };

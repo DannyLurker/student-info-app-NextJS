@@ -65,10 +65,14 @@ export const subjectConfig = z.object({
 
 export const passwordSchema = z
   .object({
-    password: z.string().min(8, { message: "Must be 8 characters at minimum" }),
+    password: z
+      .string()
+      .min(8, { message: "Must be 8 characters at minimum" })
+      .or(z.literal("")),
     confirmPassword: z
       .string()
-      .min(8, { message: "Must be 8 characters at minimum" }),
+      .min(8, { message: "Must be 8 characters at minimum" })
+      .or(z.literal("")),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",

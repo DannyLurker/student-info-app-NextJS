@@ -41,7 +41,10 @@ import {
 } from "@/lib/zod/student";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { useUpdateStudent } from "@/services/student/student-hooks";
+import {
+  useStudentProfile,
+  useUpdateStudent,
+} from "@/services/student/student-hooks";
 import LoadingFullScreen from "@/components/ui/LoadingFullScreen";
 
 interface EditStudentFormModalProps {
@@ -57,29 +60,32 @@ const EditStudentFormModal = ({
   userId,
   username,
 }: EditStudentFormModalProps) => {
+  const currentStudentProfile = useStudentProfile(userId, {
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const profile = currentStudentProfile?.data?.studentProfile;
+
   const {
     register,
     handleSubmit,
     control,
     formState: { errors },
-    watch,
     reset,
   } = useForm<UpdateStudentProfileSchema>({
     resolver: zodResolver(updateStudentProfileSchema),
     defaultValues: {
       id: userId,
-      name: "",
-      email: "",
-      passwordSchema: {
-        password: "",
-        confirmPassword: "",
-      },
+      name: profile?.user.name || "",
+      email: profile?.user.email || "",
+      passwordSchema: { password: "", confirmPassword: "" },
       classSchema: {
-        grade: "" as Grade,
-        major: "" as Major,
-        section: "" as ClassSection,
+        grade: profile?.class?.grade as Grade,
+        major: profile?.class?.major as Major,
+        section: profile?.class?.section as ClassSection,
       },
-      role: "" as StudentPosition,
+      role: profile?.studentRole as StudentPosition,
     },
   });
 
@@ -93,24 +99,25 @@ const EditStudentFormModal = ({
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) {
+    if (open && currentStudentProfile.data) {
       reset({
         id: userId,
-        name: "",
-        email: "",
+        name: profile?.user.name || "",
+        email: profile?.user.email || "",
         passwordSchema: { password: "", confirmPassword: "" },
         classSchema: {
-          grade: "" as Grade,
-          major: "" as Major,
-          section: "" as ClassSection,
+          grade: profile?.class?.grade as Grade,
+          major: profile?.class?.major as Major,
+          section: profile?.class?.section as ClassSection,
         },
-        role: "" as StudentPosition,
+        role: profile?.studentRole as StudentPosition,
       });
     }
-  }, [open, userId, reset]);
+  }, [open, userId, reset, currentStudentProfile.data]);
 
   return (
     <>
+      {currentStudentProfile.isPending && !!userId ? LoadingFullScreen() : ""}
       {updateStudentMutation.isPending ? LoadingFullScreen() : ""}
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[70vw]">
@@ -333,7 +340,6 @@ const EditStudentFormModal = ({
                       </button>
                     </div>
 
-                    {/* Error message di luar div relative */}
                     {errors.passwordSchema?.root && (
                       <FieldError errors={[errors.passwordSchema?.root]} />
                     )}
@@ -362,7 +368,6 @@ const EditStudentFormModal = ({
                       </button>
                     </div>
 
-                    {/* Error message di luar div relative */}
                     {errors.passwordSchema?.root && (
                       <FieldError errors={[errors.passwordSchema?.root]} />
                     )}

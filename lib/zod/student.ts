@@ -17,7 +17,7 @@ export const studentQuerySchema = z.object({
   search: z.string().optional(),
   isPaginationActive: z.union([z.boolean(), z.string()]).transform((v) => {
     if (typeof v === "boolean") return v;
-    return v === "true"; // Jika string "true" maka true, selain itu (termasuk "false") maka false
+    return v === "true";
   }),
 });
 

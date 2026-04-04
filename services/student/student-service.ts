@@ -36,8 +36,8 @@ import {
 import {
   countStudent,
   createStudentSelect,
-  createStudentWhere,
   createUserWhereUnique,
+  findStudentById,
   findStudents,
   updateSingleUser,
 } from "@/repositories/user-repository";
@@ -92,10 +92,21 @@ export const getStudents = async (data: StudentQuerySchema) => {
   return { students, totalStudents };
 };
 
-export const getStudentProfile = async (studentSession: StudentSession) => {
+export const getStudentProfile = async (
+  studentSession: StudentSession | null,
+  userId: string | null,
+) => {
+  const studentId = studentSession?.userId ? studentSession.userId : userId;
+
+  if (!studentId) {
+    throw badRequest("Student id is missing");
+  }
+
   const attendanceByStudentId = createAttendanceWhere({
-    studentId: studentSession.userId,
+    studentId: studentId,
   });
+
+  const studentProfile = await findStudentById(studentId, prisma);
 
   const selectDateAndType = createAttendanceSelect({
     date: true,
@@ -109,7 +120,7 @@ export const getStudentProfile = async (studentSession: StudentSession) => {
   );
 
   const demeritPointByStudentId = createDemeritPointWhere({
-    studentId: studentSession.userId,
+    studentId: studentId,
   });
 
   const selectDemeritPointData = createDemeritPointSelect({
@@ -126,10 +137,11 @@ export const getStudentProfile = async (studentSession: StudentSession) => {
   );
 
   const totalSubjects = await prisma.gradebook.count({
-    where: { studentId: studentSession.userId },
+    where: { studentId: studentId },
   });
 
   return {
+    studentProfile,
     attendanceRecords,
     demeritPointRecords,
     totalSubjects,
