@@ -31,6 +31,7 @@ import { useStudent } from "@/services/student/student-hooks";
 import LoadingForComponent from "@/components/ui/LoadingForComponent";
 import DeleteUserModal from "../../delete-user/DeleteUserModal";
 import EditStudentFormModal from "./EditStudentFormModal";
+import AdvanceClassModal from "./AdvanceClassModal";
 
 interface EditStudentModalProps {
   open: boolean;
@@ -43,6 +44,7 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
     useState<StudentTableData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAdvanceClassModalOpen, setIsAdvanceClassModalOpen] = useState(false);
 
   const handleEdit = (student: StudentTableData) => {
     setSelectedStudent(student);
@@ -134,7 +136,13 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
               </SelectContent>
             </Select>
 
-            <Button className="w-full">Advance Class</Button>
+            <Button
+              className={`w-full ${!selectedValue ? "cursor-not-allowed" : ""}`}
+              disabled={!selectedValue}
+              onClick={() => setIsAdvanceClassModalOpen((prev) => !prev)}
+            >
+              Advance Class
+            </Button>
           </div>
 
           {isLoading ? (
@@ -156,6 +164,13 @@ const EditStudentModal = ({ open, onOpenChange }: EditStudentModalProps) => {
             onOpenChange={setIsEditModalOpen}
             userId={selectedStudent?.id as string}
             username={selectedStudent?.name as string}
+          />
+
+          <AdvanceClassModal
+            onOpenChange={setIsAdvanceClassModalOpen}
+            open={isAdvanceClassModalOpen}
+            classroomData={sortedClassroomData}
+            currentClassroom={selectedValue}
           />
         </DialogContent>
       </Dialog>
