@@ -1,6 +1,6 @@
 import { CLASSROOM_KEYS } from "@/lib/constants/tanStackQueryKeys";
+import { ClassroomApi } from "@/services/classroom/classroom-api";
 import { useQuery } from "@tanstack/react-query";
-import { ClassroomApi } from "./classroom-api";
 
 export const useClassroom = () =>
   useQuery({

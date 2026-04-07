@@ -24,10 +24,10 @@ import {
   studentColumns,
   StudentTableData,
 } from "./edit-user-student-table/StudentColumns";
-import { useClassroom } from "@/services/classroom/classroom-hooks";
+import { useClassroom } from "@/hooks/classroom-hooks";
 import { getFullClassLabel, getGradeNumber } from "@/lib/utils/labels";
 import { ClassSection, Grade, Major } from "@/lib/constants/class";
-import { useStudent } from "@/services/student/student-hooks";
+import { useStudent } from "@/hooks/student-hooks";
 import LoadingForComponent from "@/components/ui/LoadingForComponent";
 import DeleteUserModal from "../../delete-user/DeleteUserModal";
 import EditStudentFormModal from "./EditStudentFormModal";

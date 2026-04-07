@@ -41,10 +41,7 @@ import {
 } from "@/lib/zod/student";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import {
-  useStudentProfile,
-  useUpdateStudent,
-} from "@/services/student/student-hooks";
+import { useStudentProfile, useUpdateStudent } from "@/hooks/student-hooks";
 import LoadingFullScreen from "@/components/ui/LoadingFullScreen";
 
 interface EditStudentFormModalProps {

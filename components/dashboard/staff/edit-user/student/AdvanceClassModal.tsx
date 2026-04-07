@@ -28,7 +28,7 @@ import {
   StudentQuerySchema,
   UpdateStudentsClassSchema,
 } from "@/lib/zod/student";
-import { useUpdateStudentsClass } from "@/services/student/student-hooks";
+import { useUpdateStudentsClass } from "@/hooks/student-hooks";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 

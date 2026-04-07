@@ -4,14 +4,17 @@ import {
   UpdateStudentProfileSchema,
   UpdateStudentsClassSchema,
 } from "@/lib/zod/student";
+import { StudentApi } from "@/services/student/student-api";
+import {
+  StudentProfileResponse,
+  StudentReponse,
+} from "@/services/student/student-types";
 import {
   useMutation,
   useQuery,
   useQueryClient,
   UseQueryOptions,
 } from "@tanstack/react-query";
-import { StudentApi } from "./student-api";
-import { StudentProfileResponse, StudentReponse } from "./student-types";
 import { toast } from "sonner";
 
 export const useStudent = (

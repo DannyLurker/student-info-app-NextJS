@@ -52,7 +52,7 @@ import {
   useDeleteAssessment,
   useUpdateAssessment,
   useUpdateAssessmentScores,
-} from "../../../hooks/useAssessment";
+} from "../../../hooks/use-assessments";
 import {
   AlertDialog,
   AlertDialogAction,

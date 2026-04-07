@@ -24,7 +24,7 @@ import { ITEMS_PER_PAGE } from "../../../lib/constants/pagination";
 import { SortOrder } from "../../../lib/constants/sortingAndFilltering";
 import { useQuery } from "@tanstack/react-query";
 import { ATTENDANCE_KEYS } from "../../../lib/constants/tanStackQueryKeys";
-import { useDebounce } from "../../../hooks/useDebounce";
+import { useDebounce } from "../../../hooks/use-debounce";
 import { ValidAttendanceType } from "@/lib/constants/attendance";
 
 type StudentClient = {

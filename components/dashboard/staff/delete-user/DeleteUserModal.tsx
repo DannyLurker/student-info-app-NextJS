@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useDeleteStudent } from "@/services/user/user-hooks";
+import { useDeleteStudent } from "@/hooks/user-hooks";
 
 interface DeleteUserModalProps {
   open: boolean;
