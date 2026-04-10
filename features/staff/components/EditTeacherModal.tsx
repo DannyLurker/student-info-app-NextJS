@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { UserDataTable } from "./tanstack-table/DataTable";
 import { UserTableData } from "../types/user";
 import { tableColumns } from "./tanstack-table/columns";
+import DeleteUserModal from "./modal/DeleteUserModal";
 
 interface EditTeacherModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
   const { data: teacherData, isLoading } = useTeachers("all", {
     staleTime: 5 * 60 * 1000,
   });
-  const [selectedStudent, setSelectedStudent] = useState<UserTableData | null>(
+  const [selectedTeacher, setselectedTeacher] = useState<UserTableData | null>(
     null,
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -30,12 +31,12 @@ const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
 
   const handleEdit = (teacher: UserTableData) => {
-    setSelectedStudent(teacher);
+    setselectedTeacher(teacher);
     setIsEditModalOpen(true);
   };
 
   const handleDelete = (teacher: UserTableData) => {
-    setSelectedStudent(teacher);
+    setselectedTeacher(teacher);
     setIsDeleteModalOpen(true);
   };
 
@@ -74,6 +75,14 @@ const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      <DeleteUserModal
+        open={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        username={selectedTeacher?.name as string}
+        userId={selectedTeacher?.id as string}
+        userType="STAFF"
+      />
     </div>
   );
 };

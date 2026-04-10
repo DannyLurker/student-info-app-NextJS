@@ -1,5 +1,6 @@
 import { prisma } from "@/db/prisma";
 import { TeacherFetchType } from "@/lib/constants/teacher";
+import { badRequest } from "@/lib/errors";
 import { findTeachers } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
 
@@ -32,4 +33,12 @@ export const getTeachers = async (teacherFetchType: TeacherFetchType) => {
   );
 
   return teachers;
+};
+
+export const deleteTeacher = async (id: string) => {
+  if (!id) {
+    throw badRequest("User id is missing");
+  }
+
+  await prisma.user.delete({ where: { id } });
 };

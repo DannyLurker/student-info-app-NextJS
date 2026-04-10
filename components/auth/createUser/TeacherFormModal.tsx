@@ -46,7 +46,12 @@ import {
 } from "../../../lib/utils/labels";
 
 import { CLASS_SECTION, GRADES, MAJORS } from "../../../lib/constants/class";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   SUBJECT_KEYS,
   TEACHER_KEYS,
@@ -188,6 +193,8 @@ const TeacherFormModal = ({ open, onOpenChange }: TeacherFormModalProps) => {
       toast.success(data.message);
       setUploadedFile("");
       if (fileRef.current) fileRef.current.value = "";
+
+      queryClient.invalidateQueries({ queryKey: TEACHER_KEYS.lists() });
     },
     onError: async (err: any) => {
       const message = await getErrorMessage(err);

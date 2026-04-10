@@ -67,7 +67,7 @@ export async function findUsersByIds<T extends Prisma.UserSelect>(
 }
 export async function findUsersByName<T extends Prisma.UserFindManyArgs>(
   name: string,
-  classId: number,
+  classId: string,
   select: T["select"],
   tx: PrismaClient,
   page: number,
@@ -94,7 +94,7 @@ export async function findUsersByName<T extends Prisma.UserFindManyArgs>(
 }
 
 export async function findUsersByClassId<T extends Prisma.UserSelect>(
-  classId: number,
+  classId: string,
   select: T,
   tx: PrismaClient,
   page: number,

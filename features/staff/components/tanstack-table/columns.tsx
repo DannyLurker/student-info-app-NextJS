@@ -62,7 +62,7 @@ export const tableColumns = (
     },
     cell: ({ getValue }) => {
       const value = getValue<string>();
-      const name = abbreviateName(value);
+      const name = abbreviateName(value, 2);
       return <div className="text-left font-medium">{name}</div>;
     },
   },
