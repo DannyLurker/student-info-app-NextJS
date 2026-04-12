@@ -13,8 +13,8 @@ import { Prisma } from "@prisma/client";
 
 type ResolvedTeachingAssignments = {
   teacherId: string;
-  subjectId: number;
-  classId: number;
+  subjectId: string;
+  classId: string;
 };
 
 export async function createTeacherAccount(data: TeacherSignUpSchema) {

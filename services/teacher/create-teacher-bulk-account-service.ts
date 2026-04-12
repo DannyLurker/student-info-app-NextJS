@@ -70,7 +70,7 @@ export async function createTeacherBulkAccount(file: File) {
   const teachingAssignmentsToCreate: Prisma.TeachingAssignmentCreateManyInput[] =
     [];
   const classroomsToUpdate: {
-    where: { id: number };
+    where: { id: string };
     data: { homeroomTeacherId: string };
   }[] = [];
 

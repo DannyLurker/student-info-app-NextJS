@@ -2,7 +2,7 @@
 import { BookOpen, Pen, Users } from "lucide-react";
 import { useState } from "react";
 import EditStudentModal from "./student/EditStudentModal";
-import EditTeacherModal from "@/features/staff/components/EditTeacherModal";
+import TeacherTableModal from "@/features/staff/components/TeacherTableModal";
 
 const EditUserManagement = () => {
   const [openStudentModal, setOpenStudentModal] = useState(false);
@@ -75,7 +75,7 @@ const EditUserManagement = () => {
         onOpenChange={setOpenStudentModal}
       />
 
-      <EditTeacherModal
+      <TeacherTableModal
         open={openTeacherModal}
         onOpenChange={setOpenTeacherModal}
       />

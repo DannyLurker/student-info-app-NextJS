@@ -13,13 +13,14 @@ import { UserDataTable } from "./tanstack-table/DataTable";
 import { UserTableData } from "../types/user";
 import { tableColumns } from "./tanstack-table/columns";
 import DeleteUserModal from "./modal/DeleteUserModal";
+import EditTeacherFormModal from "./modal/EditTeacherFormModal";
 
 interface EditTeacherModalProps {
   open: boolean;
   onOpenChange: (bool: boolean) => void;
 }
 
-const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
+const TeacherTableModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
   const { data: teacherData, isLoading } = useTeachers("all", {
     staleTime: 5 * 60 * 1000,
   });
@@ -60,7 +61,7 @@ const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
         <DialogContent className="max-w-[70vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl">
-              Update Teacher Profile
+              Teacher Profiles
             </DialogTitle>
           </DialogHeader>
 
@@ -83,8 +84,14 @@ const EditTeacherModal = ({ open, onOpenChange }: EditTeacherModalProps) => {
         userId={selectedTeacher?.id as string}
         userType="STAFF"
       />
+
+      <EditTeacherFormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        teacherData={selectedTeacher as UserTableData}
+      />
     </div>
   );
 };
 
-export default EditTeacherModal;
+export default TeacherTableModal;

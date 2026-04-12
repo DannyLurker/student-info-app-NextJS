@@ -100,10 +100,7 @@ export type UpdateAssessmentScoresSchema = z.infer<
 
 // getStudnetAssessmentScore based on the subject
 export const getStudentAssessmentScoreSchema = z.object({
-  subjectId: z
-    .string()
-    .min(1)
-    .transform((value) => Number(value)),
+  subjectId: z.string().min(1),
   page,
 });
 

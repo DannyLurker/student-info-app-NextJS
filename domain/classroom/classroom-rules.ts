@@ -1,5 +1,6 @@
-import { ClassSection, Grade, Major } from "@/lib/constants/class";
-import { notFound } from "../../lib/errors";
+import { Classroom } from "@prisma/client";
+import { badRequest, notFound } from "../../lib/errors";
+import { ClassSchema } from "@/lib/zod/general";
 
 /**
  * Ensures a classroom exists in the system.
@@ -11,3 +12,29 @@ export function ensureClassroomExists(classroom: unknown) {
     throw notFound("Classroom not found");
   }
 }
+export function ensureHomeroomTeacherIsEmpty(
+  classroom: Classroom,
+  teacherId: string,
+) {
+  if (classroom.homeroomTeacherId === teacherId) return;
+
+  if (
+    classroom.homeroomTeacherId &&
+    classroom.homeroomTeacherId !== teacherId
+  ) {
+    throw badRequest("This classroom already has a homeroom teacher");
+  }
+}
+
+export const checkIsClassroomDirty = (
+  current: Classroom,
+  incoming: ClassSchema,
+) => {
+  const checks = [
+    current.grade !== incoming.grade,
+    current.major !== incoming.major,
+    current.section !== incoming.section,
+  ];
+
+  return checks.some((condition) => condition === true);
+};

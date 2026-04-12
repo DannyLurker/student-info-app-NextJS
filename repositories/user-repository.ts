@@ -126,34 +126,6 @@ export const updateSingleUser = async (
   });
 };
 
-// Teacher
-export async function findTeacher(userIdParam: string, tx: PrismaClient) {
-  return tx.teacher.findUnique({
-    where: { userId: userIdParam },
-    select: {
-      userId: true,
-      staffRole: true,
-      homeroom: true,
-      user: {
-        select: { name: true },
-      },
-    },
-  });
-}
-
-export async function findTeachers<T extends Prisma.TeacherSelect>(
-  where: Prisma.TeacherWhereInput,
-  select: Prisma.Subset<T, Prisma.TeacherSelect>,
-  tx: PrismaClient | Prisma.TransactionClient,
-) {
-  const result = tx.teacher.findMany({
-    where: where,
-    select: select,
-  });
-
-  return result as unknown as Prisma.TeacherGetPayload<{ select: T }>[];
-}
-
 // Student
 export async function findStudentById(userIdParam: string, tx: PrismaClient) {
   return tx.student.findUnique({

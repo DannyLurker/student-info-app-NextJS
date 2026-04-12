@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { classSchema } from "./general";
+import { classSchema, customErrorMsg } from "./general";
 
 export const createClassSchema = z.array(classSchema);
 
 export type CreateClassSchema = z.infer<typeof createClassSchema>;
 
 export const updateClassSchema = z.object({
-  id: z.number(),
+  id: z.string(customErrorMsg("Id", "string")),
   classSchema: classSchema,
   homeroomTeacherId: z.string().optional(),
 });

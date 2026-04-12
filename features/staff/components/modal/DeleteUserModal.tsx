@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useDeleteStudent } from "@/hooks/user-hooks";
 import { useDeleteTeacher } from "@/features/teacher/hooks/useTeachers";
-import { toast } from "sonner";
 import LoadingFullScreen from "@/components/ui/LoadingFullScreen";
 
 interface DeleteUserModalProps {

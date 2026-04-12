@@ -6,6 +6,13 @@ const enumError = (name: string) => ({
   },
 });
 
+export const customErrorMsg = (field: string, type: string) => {
+  return {
+    required_error: `${field} is required`,
+    invalid_type_error: `${field} must be a ${type}`,
+  };
+};
+
 export const GradeEnum = z.enum(
   ["TENTH", "ELEVENTH", "TWELFTH"],
   enumError("Grade"),
@@ -84,8 +91,10 @@ export const classSchema = z.object({
   section: ClassSectionEnum,
 });
 
+export type ClassSchema = z.infer<typeof classSchema>;
+
 export const teachingAssignmentInput = z.object({
-  subjectId: z.number({ message: "Must be filled" }),
+  subjectId: z.string({ message: "Must be filled" }),
   subjectName: z.string({ message: "Must be filled" }),
   grade: GradeEnum,
   major: MajorEnum,

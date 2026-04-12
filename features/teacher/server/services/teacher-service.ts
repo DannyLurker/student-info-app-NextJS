@@ -1,8 +1,30 @@
 import { prisma } from "@/db/prisma";
+import {
+  checkIsClassroomDirty,
+  ensureClassroomExists,
+  ensureHomeroomTeacherIsEmpty,
+} from "@/domain/classroom/classroom-rules";
+import { ensureTeacherExists } from "@/domain/teacher/teacher-rules";
+import { checkIsTeacherDataDirty } from "@/domain/teacher/teacher-validations";
+import {
+  createTeacherSelect,
+  createTeacherWhereUnique,
+  findTeacher,
+  findTeachers,
+  teacherUpdateOperation,
+} from "@/features/teacher/server/repository/teacher-repositories";
+import { ClassSection, Grade } from "@/lib/constants/class";
 import { TeacherFetchType } from "@/lib/constants/teacher";
 import { badRequest } from "@/lib/errors";
-import { findTeachers } from "@/repositories/user-repository";
-import { Prisma } from "@prisma/client";
+import hashing from "@/lib/utils/hashing";
+import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
+import { TeacherUpdateSchema } from "@/lib/zod/teacher";
+import {
+  createClassroomSelect,
+  createClassroomWhere,
+  findClassrooms,
+} from "@/repositories/classroom-repository";
+import { Major, Prisma } from "@prisma/client";
 
 export const getTeachers = async (teacherFetchType: TeacherFetchType) => {
   const teacherWhereCondition: Prisma.TeacherWhereInput = {
@@ -41,4 +63,163 @@ export const deleteTeacher = async (id: string) => {
   }
 
   await prisma.user.delete({ where: { id } });
+};
+
+export const updateTeacher = async (
+  clientUserId: string,
+  data: TeacherUpdateSchema,
+) => {
+  if (data.teachingAssignments && data.teachingAssignments?.length > 0)
+    validateTeachingStructure(data.teachingAssignments);
+
+  const teacherWhereUnique = createTeacherWhereUnique({ userId: clientUserId });
+
+  const teacherSelect = createTeacherSelect({
+    userId: true,
+    user: {
+      select: {
+        name: true,
+        email: true,
+        password: true,
+      },
+    },
+    homeroom: true,
+    assignments: {
+      select: {
+        id: true,
+        subjectId: true,
+        class: true,
+      },
+    },
+  });
+
+  const teacherServerData = await findTeacher(
+    teacherWhereUnique,
+    teacherSelect,
+    prisma,
+  );
+
+  ensureTeacherExists(teacherServerData);
+
+  let newPassword: string | undefined = undefined;
+
+  if (data.passwordSchema?.password && data.passwordSchema.confirmPassword) {
+    newPassword = await hashing(data.passwordSchema.confirmPassword);
+  }
+
+  const classroomSelectCondition = createClassroomSelect({
+    homeroomTeacherId: true,
+    grade: true,
+    major: true,
+    section: true,
+  });
+
+  const classrooms = await findClassrooms({}, classroomSelectCondition, prisma);
+
+  let isClassroomDirty: boolean = false;
+
+  const isClassDataFilled =
+    data.homeroomClass?.grade &&
+    data.homeroomClass.major &&
+    data.homeroomClass.section;
+
+  if (teacherServerData.homeroom?.homeroomTeacherId && isClassDataFilled) {
+    const findHomeroomClass = classrooms.find(
+      (classroom) =>
+        classroom.grade === data.homeroomClass?.grade &&
+        classroom.major === data.homeroomClass.major &&
+        classroom.section === data.homeroomClass.section,
+    );
+
+    ensureClassroomExists(findHomeroomClass);
+
+    ensureHomeroomTeacherIsEmpty(findHomeroomClass!, clientUserId);
+
+    if (teacherServerData?.homeroom?.homeroomTeacherId) {
+      isClassroomDirty = checkIsClassroomDirty(
+        teacherServerData?.homeroom,
+        data.homeroomClass!,
+      );
+    } else {
+      isClassroomDirty = true;
+    }
+  }
+
+  const isDataDirty =
+    isClassroomDirty ||
+    !!newPassword ||
+    checkIsTeacherDataDirty(teacherServerData, data);
+
+  if (isDataDirty) {
+    let updateClassroomData: Prisma.ClassroomUpdateOneWithoutHomeroomTeacherNestedInput =
+      {};
+
+    if (!data.homeroomClass?.grade && teacherServerData.homeroom?.grade) {
+      updateClassroomData = {
+        disconnect: true,
+      };
+    }
+
+    if (isClassroomDirty) {
+      updateClassroomData = {
+        connect: {
+          grade_major_section: {
+            grade: data.homeroomClass?.grade as Grade,
+            major: data.homeroomClass?.major as Major,
+            section: data.homeroomClass?.section as ClassSection,
+          },
+        },
+      };
+    }
+
+    let transformTeachingAssignments: Prisma.TeachingAssignmentUpdateManyWithoutTeacherNestedInput =
+      {};
+
+    if (data.teachingAssignments && data.teachingAssignments?.length > 0) {
+      transformTeachingAssignments = {
+        update: data.teachingAssignments.map((assignment) => ({
+          where: { id: assignment.teachingAssignmentId },
+          data: {
+            class: {
+              connect: {
+                grade_major_section: {
+                  grade: assignment.grade,
+                  major: assignment.major,
+                  section: assignment.section,
+                },
+              },
+            },
+            subject: {
+              connect: { id: assignment.subjectId },
+            },
+          },
+        })),
+      };
+    }
+
+    const teacherUpdateData = Prisma.validator<Prisma.TeacherUpdateInput>()({
+      user: {
+        update: {
+          email: data.email,
+          name: data.name,
+          password: newPassword,
+        },
+      },
+      assignments:
+        data.teachingAssignments && data.teachingAssignments.length !== 0
+          ? transformTeachingAssignments
+          : undefined,
+      homeroom: updateClassroomData,
+    });
+
+    await teacherUpdateOperation(teacherWhereUnique, teacherUpdateData, prisma);
+
+    return {
+      isTeacherUpdated: true,
+    };
+  } else {
+    return {
+      isTeacherUpdated: false,
+    };
+  }
 };

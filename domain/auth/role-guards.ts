@@ -9,7 +9,13 @@ import {
   isTeacherRole,
 } from "@/lib/constants/roles";
 import { forbidden, notFound, unauthorized } from "@/lib/errors";
-import { findStudentById, findTeacher } from "@/repositories/user-repository";
+import { findStudentById } from "@/repositories/user-repository";
+import {
+  createTeacherSelect,
+  createTeacherWhereUnique,
+  findTeacher,
+} from "@/features/teacher/server/repository/teacher-repositories";
+import { Prisma } from "@prisma/client";
 
 export const validateLoginSession = cache(async () => {
   const session = await auth();
@@ -79,7 +85,24 @@ export const validateHomeroomTeacherSession = cache(async () => {
     throw unauthorized("You haven't logged in yet");
   }
 
-  const teacherProfile = await findTeacher(session.user.id, prisma);
+  const teacherById = createTeacherWhereUnique({ id: session.user.id });
+
+  const selectTeacherData = createTeacherSelect({
+    userId: true,
+    staffRole: true,
+    user: {
+      select: {
+        name: true,
+      },
+    },
+    homeroom: true,
+  });
+
+  const teacherProfile = await findTeacher(
+    teacherById,
+    selectTeacherData,
+    prisma,
+  );
 
   if (!teacherProfile) {
     throw notFound("Homeroom teacher profile not found");

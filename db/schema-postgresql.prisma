@@ -223,8 +223,8 @@ model Parent {
 model TeachingAssignment {
     id String @id @default(cuid())
 
-    teacherId String
-    teacher   Teacher @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+    teacherId String?
+    teacher   Teacher? @relation(fields: [teacherId], references: [userId])
 
     subjectId String
     subject   Subject @relation(fields: [subjectId], references: [id])

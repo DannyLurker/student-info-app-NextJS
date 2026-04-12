@@ -33,6 +33,7 @@ import {
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
 import { CLASSROOM_KEYS } from "../../../../lib/constants/tanStackQueryKeys";
+import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 
 // Single classroom schema. NOTES: What's the difference between classScheam in the zod file is that classroomSchema(In this file) has homeroomTeacherId
 const classroomSchema = z.object({
@@ -222,8 +223,9 @@ const ClassroomForm = ({
       queryClient.invalidateQueries({ queryKey: CLASSROOM_KEYS.nonHomeroom() });
       if (onSuccess) onSuccess();
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || "Failed to update classroom";
+    onError: async (err: any) => {
+      const msg = await getErrorMessage(err);
+      console.log(err);
       setErrorMessage(msg);
       toast.error(msg);
     },
