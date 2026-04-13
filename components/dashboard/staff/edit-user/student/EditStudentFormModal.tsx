@@ -136,17 +136,6 @@ const EditStudentFormModal = ({
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* <div className="space-y-2 hidden">
-                    <Input
-                      {...register("id")}
-                      className="h-11"
-                      placeholder="Minumun 3 characters"
-                      required
-                      readOnly
-                      value={userId}
-                    />
-                  </div> */}
-
                   <div className="space-y-2">
                     <Field data-invalid={!!errors.name}>
                       <FieldLabel>

@@ -17,11 +17,13 @@ import { ClassSection, Grade } from "@/lib/constants/class";
 import { TeacherFetchType } from "@/lib/constants/teacher";
 import { badRequest } from "@/lib/errors";
 import hashing from "@/lib/utils/hashing";
-import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
+import {
+  findMissingTeachingAssignment,
+  validateTeachingStructure,
+} from "@/lib/validation/teachingValidators";
 import { TeacherUpdateSchema } from "@/lib/zod/teacher";
 import {
   createClassroomSelect,
-  createClassroomWhere,
   findClassrooms,
 } from "@/repositories/classroom-repository";
 import { Major, Prisma } from "@prisma/client";
@@ -197,6 +199,11 @@ export const updateTeacher = async (
       };
     }
 
+    const missingAssignments = findMissingTeachingAssignment(
+      teacherServerData.assignments,
+      data.teachingAssignments,
+    );
+
     const teacherUpdateData = Prisma.validator<Prisma.TeacherUpdateInput>()({
       user: {
         update: {
@@ -205,10 +212,15 @@ export const updateTeacher = async (
           password: newPassword,
         },
       },
-      assignments:
-        data.teachingAssignments && data.teachingAssignments.length !== 0
-          ? transformTeachingAssignments
-          : undefined,
+      assignments: {
+        // Spread the object directly.
+        // This adds the 'update: [...]' key automatically if it exists.
+        ...transformTeachingAssignments,
+
+        ...(missingAssignments.length > 0 && {
+          disconnect: missingAssignments.map((id) => ({ id })),
+        }),
+      },
       homeroom: updateClassroomData,
     });
 

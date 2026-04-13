@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  customErrorMsg,
   GradeEnum,
   MajorEnum,
   page,
@@ -40,7 +41,7 @@ export const getSubjectQueriesSchema = z.object({
 });
 
 export const patchSubjectSchema = z.object({
-  subjectId: z.number(),
+  subjectId: z.string(customErrorMsg("Subject id", "string")),
   subjectName: z
     .string()
     .min(3, "Must be at least 3 characters long.")

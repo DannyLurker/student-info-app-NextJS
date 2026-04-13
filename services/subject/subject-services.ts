@@ -193,14 +193,14 @@ export async function getSubjects(data: SubjectQueriesSchema) {
   });
 
   return {
-    formattedSubjects,
+    subjects: formattedSubjects,
     totalSubject,
   };
 }
 
-export async function deleteSubject(subjectId: number) {
+export async function deleteSubject(subjectId: string) {
   // Explicit check for NaN or null
-  if (!subjectId || isNaN(subjectId)) {
+  if (!subjectId) {
     throw badRequest("Valid Subject ID is required");
   }
 

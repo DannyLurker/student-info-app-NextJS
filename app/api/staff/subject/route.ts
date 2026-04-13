@@ -1,5 +1,5 @@
 import { validateManagementSession } from "@/domain/auth/role-guards";
-import { handleError } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
 import {
   createSubjectSchema,
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     return Response.json(
       {
         message: "Successfully retrieved subjects data",
-        subjects: response.formattedSubjects,
+        subjects: response.subjects,
         totalSubject: response.totalSubject,
       },
       { status: 200 },
@@ -66,7 +66,9 @@ export async function DELETE(req: Request) {
     await validateManagementSession();
 
     const { searchParams } = new URL(req.url);
-    const subjectId = Number(searchParams.get("subjectId"));
+    const subjectId = searchParams.get("subjectId");
+
+    if (!subjectId) throw badRequest("Subject id is missing");
 
     await deleteSubject(subjectId);
 

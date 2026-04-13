@@ -20,6 +20,10 @@ const updateTeachingAssignmentInput = teachingAssignmentInput.extend({
   ),
 });
 
+export type UpdateTeachingAssignmentInput = z.infer<
+  typeof updateTeachingAssignmentInput
+>;
+
 export type TeacherSignUpSchema = z.infer<typeof teacherSignUpSchema>;
 
 export const teacherUpdateSchema = z.object({

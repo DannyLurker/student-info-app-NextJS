@@ -1,6 +1,8 @@
+import { Classroom } from "@prisma/client";
 import { badRequest } from "../errors";
 import { getFullClassLabel } from "../utils/labels";
 import { TeachingAssignmentInput } from "../zod/general";
+import { UpdateTeachingAssignmentInput } from "../zod/teacher";
 
 export function validateTeachingStructure(
   teachingAssignment: TeachingAssignmentInput[],
@@ -24,4 +26,29 @@ export function isTeachingAssignmentsValid(
     }
     assignmentKeys.add(key);
   }
+}
+
+type ServerTeachingAssignment = {
+  id: string;
+  subjectId: string;
+  class: Classroom;
+};
+
+export function findMissingTeachingAssignment(
+  serverTeachingAssignment: ServerTeachingAssignment[],
+  clientTeachingAssignment: UpdateTeachingAssignmentInput[],
+) {
+  const missingTeachingAssignment = serverTeachingAssignment.map(
+    (serverAssignment) => {
+      const isMissing = clientTeachingAssignment
+        .map((clientAssignment) => clientAssignment.teachingAssignmentId)
+        .includes(serverAssignment.id);
+
+      if (!isMissing) return serverAssignment.id;
+
+      return;
+    },
+  );
+
+  return missingTeachingAssignment;
 }

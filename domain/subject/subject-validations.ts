@@ -2,7 +2,7 @@ import { Grade, Major } from "@/lib/constants/class";
 import { SubjectType } from "@/lib/constants/subject";
 
 type SubjectClient = {
-  subjectId: number;
+  subjectId: string;
   config?: {
     allowedGrades?: Grade[] | undefined;
     allowedMajors?: Major[] | undefined;
