@@ -1,13 +1,10 @@
-import { auth } from "../lib/auth/authNode";
-import { redirect } from "next/navigation";
-import { getRoleDashboard } from "../lib/constants/roles";
+import LandingPage from "@/components/landing-page/LandingPage";
+import { auth } from "@/lib/auth/authNode";
 
 const page = async () => {
   const session = await auth();
 
-  if (!session) return redirect("/sign-in");
-
-  return redirect(getRoleDashboard(session.user.role));
+  return <LandingPage session={session?.user} />;
 };
 
 export default page;
