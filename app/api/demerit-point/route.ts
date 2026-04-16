@@ -1,4 +1,4 @@
-import { handleError } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import {
   createDemeritPointSchema,
   updateDemeritPointSchema,
@@ -65,7 +65,9 @@ export async function DELETE(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const demeritRecordIdParam = Number(searchParams.get("demeritRecordId"));
+    const demeritRecordIdParam = searchParams.get("demeritRecordId");
+
+    if (!demeritRecordIdParam) throw badRequest("Demerit record id is missing");
 
     await deleteDemeritPoint(demeritRecordIdParam);
 

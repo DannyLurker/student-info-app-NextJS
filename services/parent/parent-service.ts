@@ -18,12 +18,12 @@ import {
   createAssessmentScoreSelect,
   createAssessmentScoreWhere,
   findAsessmentScores,
-} from "@/repositories/student-assessment-score-repository";
+} from "@/features/student/repository/student-assessment-score-repository";
 import {
   createSubjectSelect,
   createSubjectWhere,
   findSubjects,
-} from "@/repositories/subject-repository";
+} from "@/features/subject/repository/subject-repository";
 
 export const getStudentProfile = async (parentSession: ParentSession) => {
   const attendanceByStudentId = createAttendanceWhere({

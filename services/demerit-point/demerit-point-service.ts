@@ -25,7 +25,7 @@ import {
   findDemeritPointsByRecorder,
   findUniqueDemeritPoint,
 } from "@/repositories/demerit-repository";
-import { findUsersByIds } from "@/repositories/user-repository";
+import { findUsersByIds } from "@/features/user/repository/user-repository";
 import { Prisma } from "@prisma/client";
 
 export async function createDemeritPoints(
@@ -110,7 +110,7 @@ export async function getDemeritPoints(
   };
 }
 
-export async function deleteDemeritPoint(demeritPointId: number) {
+export async function deleteDemeritPoint(demeritPointId: string) {
   if (!demeritPointId) {
     throw badRequest("Demerit point ID is missing");
   }

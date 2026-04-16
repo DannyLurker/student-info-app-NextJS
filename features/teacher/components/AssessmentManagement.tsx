@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { Plus, Save, Info, BookOpen } from "lucide-react";
 import axios from "axios";
 
-import { Button } from "../../ui/button";
-import { Input } from "../../ui/input";
-import { Card, CardContent } from "../../ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Card, CardContent } from "../../../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../ui/select";
+} from "../../../components/ui/select";
 import {
   Table,
   TableBody,
@@ -44,8 +44,6 @@ import {
   ASSESSMENT_TYPES,
   AssessmentType,
 } from "../../../lib/constants/assessments";
-import { getFullClassLabel } from "../../../lib/utils/labels";
-import { Grade, Major, ClassSection } from "../../../lib/constants/class";
 import {
   useAssessments,
   useCreateAssessment,
@@ -65,137 +63,17 @@ import {
 } from "../../../components/ui/alert-dialog";
 import { Session } from "@/lib/types/session";
 import { UpdateStudentAssessmentSchema } from "@/lib/zod/assessment";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface AssessmentScore {
-  student: {
-    user: {
-      id: string;
-      name: string;
-    };
-  };
-  id: number;
-  score: number;
-}
-
-interface Assessment {
-  id: number;
-  teachingAssignmentId: number;
-  title: string;
-  givenAt: string;
-  dueAt: string;
-  type: string;
-  scores: AssessmentScore[];
-}
-
-/** Flattened per-student row for table rendering & dirty tracking */
-interface StudentRow {
-  studentId: string;
-  studentName: string;
-  marks: {
-    assessmentId: number;
-    assessmentScoreId: number;
-    assessmentNumber: number;
-    teachingAssignmentId: number;
-    score: number | null;
-    type: string;
-    title: string;
-    givenAt: string;
-    dueAt: string;
-  }[];
-}
-
-interface TeachingAssignment {
-  class: {
-    id: number;
-    grade: string;
-    major: string;
-    section: string;
-    homeroomTeacherId: string;
-  };
-  subject: {
-    id: number;
-    name: string;
-  };
-}
-
-interface DeleteModalData {
-  title: string;
-  type: string;
-  assessmentNumber: number;
-  assessmentId: number;
-  teachingAssignmentId: number;
-}
-
-interface NewColumnData {
-  type: AssessmentType;
-  givenAt: string;
-  dueAt: string;
-  detail: string;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Transforms the API response (assessment-centric) into a student-centric
- * flat array that the grading table can render.
- */
-function buildStudentRows(assessments: Assessment[]): StudentRow[] {
-  const studentMap = new Map<string, StudentRow>();
-
-  assessments.forEach((assessment, assessmentIndex) => {
-    for (const score of assessment.scores) {
-      const studentId = score.student.user.id;
-      const studentName = score.student.user.name;
-
-      let row = studentMap.get(studentId);
-      if (!row) {
-        row = {
-          studentId,
-          studentName,
-          marks: [],
-        };
-        studentMap.set(studentId, row);
-      }
-
-      row.marks.push({
-        assessmentId: assessment.id,
-        assessmentScoreId: score.id ?? 0,
-        assessmentNumber: assessmentIndex + 1,
-        score: score.score,
-        type: assessment.type,
-        title: assessment.title,
-        givenAt: assessment.givenAt,
-        dueAt: assessment.dueAt,
-        teachingAssignmentId: assessment.teachingAssignmentId,
-      });
-    }
-  });
-
-  // Sort marks within each student by assessmentNumber
-  for (const row of studentMap.values()) {
-    row.marks.sort((a, b) => a.assessmentNumber - b.assessmentNumber);
-  }
-
-  const result = Array.from(studentMap.values());
-
-  result.sort((a, b) => a.studentName.localeCompare(b.studentName));
-
-  return result;
-}
-
-/** Build a human-readable label for a teaching assignment */
-function getAssignmentLabel(assignment: TeachingAssignment): string {
-  const classLabel = getFullClassLabel(
-    assignment.class.grade as Grade,
-    assignment.class.major as Major,
-    assignment.class.section as ClassSection,
-  );
-  return `${classLabel} — ${assignment.subject.name}`;
-}
-
-// ─── Component ───────────────────────────────────────────────────────────────
+import {
+  DeleteModalData,
+  NewColumnData,
+  StudentRow,
+  TeachingAssignment,
+} from "@/features/assessment/types/assessment-management.types";
+import {
+  buildStudentRows,
+  getAssignmentLabel,
+} from "@/features/assessment/utils/assessment-management.utils";
+import LoadingFullScreen from "@/components/ui/LoadingFullScreen";
 
 interface AssessmentManagementProps {
   session: Session;
@@ -203,12 +81,18 @@ interface AssessmentManagementProps {
 
 const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
   // Modal state
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [isOpenEditModal, setIsOpenEditModal] = useState<boolean>(false);
   const [editModalData, setEditModalData] =
     useState<UpdateStudentAssessmentSchema>({
-      assessmentId: 0,
+      assessmentId: "",
       assessmentType: "SCHOOLWORK",
-      teachingAssignmentId: 0,
+      teachingAssignmentId: "",
       descriptionSchema: {
         givenAt: new Date().toISOString().split("T")[0],
         dueAt: new Date().toISOString().split("T")[0],
@@ -243,10 +127,19 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnData, setNewColumnData] = useState<NewColumnData>({
     type: "SCHOOLWORK",
-    givenAt: new Date().toISOString().split("T")[0],
-    dueAt: new Date().toISOString().split("T")[0],
+    givenAt: "",
+    dueAt: "",
     detail: "",
   });
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setNewColumnData((prev) => ({
+      ...prev,
+      givenAt: today,
+      dueAt: today,
+    }));
+  }, []);
 
   // ── Derived State ────────────────────────────────────────────────────────
 
@@ -261,7 +154,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
     grade: selectedAssignment?.class.grade ?? "",
     major: selectedAssignment?.class.major ?? "",
     section: selectedAssignment?.class.section ?? "",
-    subjectId: selectedAssignment?.subject.id ?? 0,
+    subjectId: selectedAssignment?.subject.id ?? "",
   };
 
   // ── TanStack Query Hooks ─────────────────────────────────────────────────
@@ -371,11 +264,11 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
 
   const handleScoreChange = (
     studentId: string,
-    assessmentId: number,
+    assessmentId: string,
     value: string,
   ) => {
     if (value && isNaN(Number(value))) return;
-    const numVal = value === "" ? null : Number(value);
+    const numVal = value === "" ? 0 : Number(value);
     if (numVal !== null && (numVal < 0 || numVal > 100)) {
       toast.error("Score must be between 0 and 100");
       return;
@@ -422,7 +315,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
         if (!assessmentMap) return student;
 
         const updatedMarks = student.marks.map((mark) => {
-          const newScore = assessmentMap.get(mark.assessmentNumber);
+          const newScore = assessmentMap.get(mark.score);
           if (newScore === undefined) return mark;
           return { ...mark, score: newScore };
         });
@@ -475,8 +368,6 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
 
         if (changedMarks.length === 0) return null;
 
-        console.log(changedMarks);
-
         return {
           studentId: student.studentId,
           studentAssessments: changedMarks.map((m) => ({
@@ -487,7 +378,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
       })
       .filter(Boolean) as {
       studentId: string;
-      studentAssessments: { assessmentScoreId: number; score: number }[];
+      studentAssessments: { assessmentScoreId: string; score: number }[];
     }[];
 
     if (changedStudents.length === 0) {
@@ -542,19 +433,19 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
 
   // ── Column headers derived from first student's marks ────────────────────
 
-  const columns =
-    students.length > 0 && students[0]?.marks?.length > 0
-      ? students[0].marks
-          .slice()
-          .sort((a, b) => a.assessmentNumber - b.assessmentNumber)
-      : [];
+  const columns = useMemo(() => {
+    if (students.length === 0 || !students[0]?.marks) return [];
+    return [...students[0].marks].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }, [students]);
 
   const totalStudents = students.length;
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
   return (
     <div className="m-4 space-y-6 pb-8 mt-20 lg:mt-6">
+      {!isMounted && <LoadingFullScreen />}
       {/* Header */}
       <div className="bg-gradient-to-br from-indigo-900 to-blue-800 p-6 text-white shadow-lg rounded-b-xl rounded-xl">
         <div className="flex flex-col gap-4">
@@ -616,7 +507,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
           <Dialog open={isAddColumnOpen} onOpenChange={setIsAddColumnOpen}>
             <DialogTrigger asChild>
               <Button
-                disabled={!selectedAssignment}
+                disabled={!isMounted || !selectedAssignment}
                 variant="outline"
                 className="gap-2"
               >
@@ -700,7 +591,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
               <DialogFooter>
                 <Button
                   onClick={handleAddColumn}
-                  disabled={createAssessmentMutation.isPending}
+                  disabled={!isMounted || createAssessmentMutation.isPending}
                 >
                   {createAssessmentMutation.isPending
                     ? "Creating..."
@@ -802,7 +693,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
               <DialogFooter>
                 <Button
                   onClick={handleUpdateAssessment}
-                  disabled={updateAssessmentMutation.isPending}
+                  disabled={!isMounted || updateAssessmentMutation.isPending}
                 >
                   {updateAssessmentMutation.isPending
                     ? "Saving..."
@@ -827,7 +718,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
                       <br />
                       <strong>{deleteModalData.title}</strong> <br />
                       Type: {deleteModalData.type} <br />
-                      Assessment #{deleteModalData.assessmentNumber}
+                      Assessment #{deleteModalData.assessmentSequence}
                     </>
                   )}
                 </AlertDialogDescription>
@@ -850,7 +741,9 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
 
         <Button
           onClick={handleSave}
-          disabled={updateScoresMutation.isPending || !selectedAssignment}
+          disabled={
+            !isMounted || updateScoresMutation.isPending || !selectedAssignment
+          }
           className="gap-2 bg-emerald-600 hover:bg-emerald-700 min-w-[200px] w-fit"
         >
           <Save className="w-4 h-4" />
@@ -870,7 +763,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
                   <TableHead key={idx} className="min-w-[120px]">
                     <div className="flex items-center gap-2">
                       <span>
-                        {col.type} #{col.assessmentNumber}
+                        {col.type} #{idx + 1}
                       </span>
                       <Popover>
                         <PopoverTrigger>
@@ -881,12 +774,17 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
                             <h4 className="font-medium">Assessment Details</h4>
                             <p className="text-sm text-gray-500">{col.title}</p>
                             <div className="text-xs text-gray-400 pt-2 border-t">
-                              <div>
+                              <div suppressHydrationWarning>
                                 Given:{" "}
-                                {new Date(col.givenAt).toLocaleDateString()}
+                                {new Date(col.givenAt).toLocaleDateString(
+                                  "id-ID",
+                                )}
                               </div>
-                              <div>
-                                Due: {new Date(col.dueAt).toLocaleDateString()}
+                              <div suppressHydrationWarning>
+                                Due:{" "}
+                                {new Date(col.dueAt).toLocaleDateString(
+                                  "id-ID",
+                                )}
                               </div>
                             </div>
                             <div className="flex gap-2 pt-2 border-t">
@@ -913,7 +811,7 @@ const AssessmentManagement = ({ session }: AssessmentManagementProps) => {
                                   setDeleteModalData({
                                     title: col.title,
                                     type: col.type,
-                                    assessmentNumber: col.assessmentNumber,
+                                    assessmentSequence: idx + 1,
                                     assessmentId: col.assessmentId,
                                     teachingAssignmentId:
                                       col.teachingAssignmentId,

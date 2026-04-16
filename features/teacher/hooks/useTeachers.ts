@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { UserApi } from "@/features/user/service/user-api";
 import { getErrorMessage } from "@/lib/utils/getErrorMessage";
 import { TeacherUpdateSchema } from "@/lib/zod/teacher";
-import { TableOfContents } from "lucide-react";
 
 export const useTeachers = (
   teacherFetchType: TeacherFetchType,

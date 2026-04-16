@@ -1,6 +1,6 @@
 import React from "react";
 import { auth } from "@/lib/auth/authNode";
-import AssessmentManagement from "@/components/dashboard/teacher/AssessmentManagement";
+import AssessmentManagement from "@/features/teacher/components/AssessmentManagement";
 import { redirect } from "next/navigation";
 import { getRoleDashboard, isTeacherRole } from "@/lib/constants/roles";
 

@@ -14,7 +14,7 @@ import {
   createAssessmentWhereUnique,
   findAssessments,
   findUniqueAssessment,
-} from "@/repositories/student-assessment-repository";
+} from "@/features/student/repository/student-assessment-repository";
 import {
   createClassroomSelect,
   createClassroomWhereUnique,
@@ -25,9 +25,9 @@ import {
   createTeachingAssignmentWhereUnique,
   findUniqueTeachingAssignment,
 } from "@/repositories/teaching-assignment-repository";
-import { findStudents } from "@/repositories/user-repository";
 import { Prisma } from "@prisma/client";
 import { TeacherSession } from "@/domain/auth/role-guards";
+import { findStudents } from "@/features/student/repository/student-repository";
 
 export const createStudentAssessment = async (
   data: CreateStudentAssessmentSchema,
@@ -75,7 +75,7 @@ export const createStudentAssessment = async (
       teacherId_subjectId_classId: {
         teacherId: teacherSession.userId,
         subjectId: data.subjectId,
-        classId: studentRecords[0].classId as number,
+        classId: studentRecords[0].classId as string,
       },
     });
 
@@ -123,7 +123,7 @@ export const createStudentAssessment = async (
     await tx.teachingAssignment.update({
       where: {
         teacherId_subjectId_classId: {
-          classId: studentRecords[0].classId as number,
+          classId: studentRecords[0].classId as string,
           teacherId: teacherSession.userId,
           subjectId: data.subjectId,
         },
@@ -261,8 +261,8 @@ export const updateStudentAssessment = async (
 };
 
 export const deleteStudentAssessment = async (
-  assessmentId: number,
-  teachingAssignmentId: number,
+  assessmentId: string,
+  teachingAssignmentId: string,
 ) => {
   await prisma.assessment.delete({
     where: {

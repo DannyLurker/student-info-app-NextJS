@@ -6,7 +6,7 @@ const enumError = (name: string) => ({
   },
 });
 
-export const customErrorMsg = (field: string, type: string) => {
+export const zodCustomErrorMsg = (field: string, type: string) => {
   return {
     required_error: `${field} is required`,
     invalid_type_error: `${field} must be a ${type}`,

@@ -53,7 +53,7 @@ export async function countDemeritPointsByRecorder(
 export async function findUniqueDemeritPoint<
   T extends Prisma.DemeritPointSelect,
 >(
-  demeritPointId: number,
+  demeritPointId: string,
   selectData: Prisma.Subset<T, Prisma.DemeritPointSelect>,
   tx: PrismaClient | Prisma.TransactionClient,
 ) {

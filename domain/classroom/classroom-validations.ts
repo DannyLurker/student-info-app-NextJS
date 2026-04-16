@@ -23,7 +23,7 @@ export const validateClassroomUniquenes = (
 };
 
 type classServer = {
-  id: number;
+  id: string;
   grade: Grade;
   major: Major;
   section: string | ClassSection;
@@ -31,7 +31,7 @@ type classServer = {
 };
 
 type classClient = {
-  id: number;
+  id: string;
   classSchema: {
     grade: Grade;
     major: Major;

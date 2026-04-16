@@ -17,7 +17,7 @@ import {
 import {
   findSubjects,
   findUniqueSubject,
-} from "@/repositories/subject-repository";
+} from "@/features/subject/repository/subject-repository";
 import { Prisma } from "@prisma/client";
 
 export async function createSubjects(data: CreateSubjectSchema) {

@@ -1,7 +1,19 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Spinner } from "@/components/ui/spinner"; //
+import { Spinner } from "@/components/ui/spinner";
 
 const LoadingFullScreen = () => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // If we aren't in the browser yet, return null
+  if (!mounted || typeof document === "undefined") return null;
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center gap-4">

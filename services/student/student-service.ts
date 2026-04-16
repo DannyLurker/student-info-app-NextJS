@@ -27,22 +27,25 @@ import {
   createAssessmentScoreSelect,
   createAssessmentScoreWhere,
   findAsessmentScores,
-} from "@/repositories/student-assessment-score-repository";
+} from "@/features/student/repository/student-assessment-score-repository";
 import {
   createSubjectSelect,
   createSubjectWhere,
   findSubjects,
-} from "@/repositories/subject-repository";
+} from "@/features/subject/repository/subject-repository";
+
+import { Prisma } from "@prisma/client";
+import * as XLSX from "xlsx";
 import {
   countStudent,
   createStudentSelect,
-  createUserWhereUnique,
   findStudentById,
   findStudents,
+} from "@/features/student/repository/student-repository";
+import {
+  createUserWhereUnique,
   updateSingleUser,
-} from "@/repositories/user-repository";
-import { Prisma } from "@prisma/client";
-import * as XLSX from "xlsx";
+} from "@/features/user/repository/user-repository";
 
 export type Student = {
   user: {

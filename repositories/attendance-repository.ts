@@ -29,7 +29,7 @@ export function findAttendanceByIdsAndTodayDate(
 }
 
 export function getAttendanceStatsByDate(
-  classId: number,
+  classId: string,
   startOfDay: Date,
   endOfDay: Date,
   tx: PrismaClient,

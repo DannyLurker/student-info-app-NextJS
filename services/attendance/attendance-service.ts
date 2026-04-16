@@ -22,11 +22,11 @@ import {
   getAttendanceStatsByStudentIds,
 } from "@/repositories/attendance-repository";
 import {
-  findStudentProfilesByIds,
   findUsersByClassId,
   findUsersByName,
-} from "@/repositories/user-repository";
+} from "@/features/user/repository/user-repository";
 import { Prisma } from "@prisma/client";
+import { findStudentProfilesByIds } from "@/features/student/repository/student-repository";
 
 export async function createAttendance(
   data: BulkAttendanceSchema,
@@ -60,9 +60,9 @@ export async function createAttendance(
 
   const studentMap = new Map<
     string,
-    { userId: string; classId: number | null }
+    { userId: string; classId: string | null }
   >(
-    existingStudents.map((s: { userId: string; classId: number | null }) => [
+    existingStudents.map((s: { userId: string; classId: string | null }) => [
       s.userId,
       s,
     ]),
@@ -70,7 +70,7 @@ export async function createAttendance(
   const attendanceMap = new Map<
     string,
     {
-      id: number;
+      id: string;
       studentId: string;
       type: ValidAttendanceType;
       note: string;
@@ -79,7 +79,7 @@ export async function createAttendance(
   >(
     existingAttendances.map(
       (a: {
-        id: number;
+        id: string;
         studentId: string;
         type: any;
         note: string | null;

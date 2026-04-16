@@ -12,19 +12,19 @@ interface AssessmentFilters {
   grade: string;
   major: string;
   section: string;
-  subjectId: number;
+  subjectId: string;
 }
 
 interface CreateAssessmentPayload {
   class: { grade: string; major: string; section: string };
-  subjectId: number;
+  subjectId: string;
   subjectName: string;
   assessmentType: string;
   description: { givenAt: string; dueAt: string; title: string };
 }
 
 interface StudentAssessmentScore {
-  assessmentScoreId: number;
+  assessmentScoreId: string;
   score: number;
 }
 
@@ -34,14 +34,14 @@ interface StudentGradingEntry {
 }
 
 interface UpdateScoresPayload {
-  subjectId: number;
-  classId: number;
+  subjectId: string;
+  classId: string;
   students: StudentGradingEntry[];
 }
 
 interface DeleteAssessmentParams {
-  assessmentId: number;
-  teachingAssignmentId: number;
+  assessmentId: string;
+  teachingAssignmentId: string;
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────

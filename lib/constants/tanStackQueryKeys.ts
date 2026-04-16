@@ -63,7 +63,7 @@ export const ASSESSMENT_KEYS = {
     grade: string;
     major: string;
     section: string;
-    subjectId: number;
+    subjectId: string;
   }) => [...ASSESSMENT_KEYS.lists(), { filters }] as const,
 };
 

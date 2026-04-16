@@ -101,8 +101,8 @@ export const updateClassroom = async (data: UpdateClassSchema) => {
   });
 };
 
-export const deleteClassroom = async (classroomId: number) => {
-  if (!classroomId || isNaN(classroomId)) throw badRequest("Invalid Class ID");
+export const deleteClassroom = async (classroomId: string) => {
+  if (!classroomId) throw badRequest("ID not found");
 
   if (!classroomId) {
     throw badRequest("Class ID is required");

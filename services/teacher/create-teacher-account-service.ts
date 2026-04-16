@@ -7,8 +7,8 @@ import { getFullClassLabel } from "@/lib/utils/labels";
 import { validateTeachingStructure } from "@/lib/validation/teachingValidators";
 import { TeacherSignUpSchema } from "@/lib/zod/teacher";
 import { findUniqueClassroom } from "@/repositories/classroom-repository";
-import { findSubjects } from "@/repositories/subject-repository";
-import { findUserByEmail } from "@/repositories/user-repository";
+import { findSubjects } from "@/features/subject/repository/subject-repository";
+import { findUserByEmail } from "@/features/user/repository/user-repository";
 import { Prisma } from "@prisma/client";
 
 type ResolvedTeachingAssignments = {

@@ -1,11 +1,16 @@
 import { z } from "zod";
-import { AttendanceTypesEnum, page, SortOrderEnum } from "./general";
+import {
+  AttendanceTypesEnum,
+  page,
+  SortOrderEnum,
+  zodCustomErrorMsg,
+} from "./general";
 
 export const bulkAttendanceSchema = z.object({
-  date: z.string({ message: "Must be filled" }),
+  date: z.string(zodCustomErrorMsg("Date", "string")),
   records: z.array(
     z.object({
-      studentId: z.string({ message: "Must be filled" }),
+      studentId: z.string(zodCustomErrorMsg("Student id", "string")),
       attendanceType: AttendanceTypesEnum,
       description: z.string().max(300).optional(),
     }),

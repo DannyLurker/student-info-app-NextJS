@@ -84,10 +84,8 @@ export async function DELETE(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const assessmentIdParam = Number(searchParams.get("assessmentId"));
-    const teachingAssignmentIdParam = Number(
-      searchParams.get("teachingAssignmentId"),
-    );
+    const assessmentIdParam = searchParams.get("assessmentId");
+    const teachingAssignmentIdParam = searchParams.get("teachingAssignmentId");
 
     if (!assessmentIdParam || !teachingAssignmentIdParam) {
       throw badRequest("Assessment id or teaching assignment id is missing");

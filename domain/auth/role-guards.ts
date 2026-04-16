@@ -9,13 +9,12 @@ import {
   isTeacherRole,
 } from "@/lib/constants/roles";
 import { forbidden, notFound, unauthorized } from "@/lib/errors";
-import { findStudentById } from "@/repositories/user-repository";
 import {
   createTeacherSelect,
   createTeacherWhereUnique,
   findTeacher,
 } from "@/features/teacher/server/repository/teacher-repositories";
-import { Prisma } from "@prisma/client";
+import { findStudentById } from "@/features/student/repository/student-repository";
 
 export const validateLoginSession = cache(async () => {
   const session = await auth();

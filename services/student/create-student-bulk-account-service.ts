@@ -46,7 +46,7 @@ export async function createStudentBulkAccount(file: File) {
   const existingEmailSet = new Set(
     existingUsers.map((u: { email: string }) => u.email),
   );
-  const classroomMap = new Map<string, number>(
+  const classroomMap = new Map<string, string>(
     allClassrooms.map((c) => [`${c.grade}-${c.major}-${c.section}`, c.id]),
   );
 

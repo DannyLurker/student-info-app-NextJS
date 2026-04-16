@@ -3,6 +3,7 @@ import {
   AssessmentType,
   classSchema,
   ClassSectionEnum,
+  zodCustomErrorMsg,
   GradeEnum,
   MajorEnum,
   page,
@@ -32,7 +33,7 @@ const descriptionSchema = z.object({
 // CRUD Assessment Schema
 export const createStudentAssessmentSchema = z.object({
   class: classSchema,
-  subjectId: z.number({ message: "Must be filled" }),
+  subjectId: z.string(zodCustomErrorMsg("Subject id", "string")),
   subjectName: z.string({ message: "Must be filled" }),
   assessmentType: AssessmentType,
   description: descriptionSchema,
@@ -46,11 +47,7 @@ export const getStudentAssessmentSchema = z.object({
   grade: GradeEnum,
   major: MajorEnum,
   section: ClassSectionEnum,
-  subjectId: z
-    .string()
-    .min(1, { message: "Must be filled" })
-    .transform((val) => Number(val))
-    .refine((val) => !isNaN(val), { message: "Must be a valid number" }),
+  subjectId: z.string(zodCustomErrorMsg("Subject id", "string")),
   page,
 });
 
@@ -59,10 +56,10 @@ export type GetStudentAssessmentSchema = z.infer<
 >;
 
 export const updateStudentAssessmentSchema = z.object({
-  assessmentId: z.number({ message: "Assessment id must be filled" }),
-  teachingAssignmentId: z.number({
-    message: "Teaching assignment id must be filled",
-  }),
+  assessmentId: z.string(zodCustomErrorMsg("Assessment id", "string")),
+  teachingAssignmentId: z.string(
+    zodCustomErrorMsg("Teaching assignment id", "string"),
+  ),
   assessmentType: AssessmentType,
   descriptionSchema,
 });
@@ -73,9 +70,9 @@ export type UpdateStudentAssessmentSchema = z.infer<
 
 // Assessment score
 const studentAssessmentScore = z.object({
-  assessmentScoreId: z.number({
-    message: "Assessment score id must be filled",
-  }),
+  assessmentScoreId: z.string(
+    zodCustomErrorMsg("Assessment score id", "string"),
+  ),
   score: z.number({ message: "Must be number and filled" }),
 });
 
@@ -87,8 +84,8 @@ const studentMarkData = z.object({
 });
 
 export const updateAssessmentScoresSchema = z.object({
-  subjectId: z.number({ message: "Subject id field must be filled" }),
-  classId: z.number({ message: "Class id field must be filled" }),
+  subjectId: z.string(zodCustomErrorMsg("Subject id", "string")),
+  classId: z.string(zodCustomErrorMsg("Class id", "string")),
   students: z
     .array(studentMarkData)
     .nonempty({ message: "student data can't be empty" }),

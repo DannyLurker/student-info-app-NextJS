@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   classSchema,
-  customErrorMsg,
+  zodCustomErrorMsg,
   passwordSchema,
   teachingAssignmentInput,
 } from "./general";
@@ -16,7 +16,7 @@ export const teacherSignUpSchema = z.object({
 
 const updateTeachingAssignmentInput = teachingAssignmentInput.extend({
   teachingAssignmentId: z.string(
-    customErrorMsg("Teaching assignment id", "string"),
+    zodCustomErrorMsg("Teaching assignment id", "string"),
   ),
 });
 
@@ -28,10 +28,10 @@ export type TeacherSignUpSchema = z.infer<typeof teacherSignUpSchema>;
 
 export const teacherUpdateSchema = z.object({
   name: z
-    .string(customErrorMsg("Name", "string"))
+    .string(zodCustomErrorMsg("Name", "string"))
     .min(3, { message: "Must be 3 characters at minimum" }),
   email: z
-    .string(customErrorMsg("Email", "string"))
+    .string(zodCustomErrorMsg("Email", "string"))
     .email({ message: "Please input a correct format" }),
   passwordSchema: passwordSchema.optional(),
   homeroomClass: classSchema.optional(),

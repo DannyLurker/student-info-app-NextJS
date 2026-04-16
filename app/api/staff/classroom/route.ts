@@ -1,5 +1,5 @@
 import { validateManagementSession } from "@/domain/auth/role-guards";
-import { handleError } from "@/lib/errors";
+import { badRequest, handleError } from "@/lib/errors";
 import { printConsoleError } from "@/lib/utils/printError";
 import { createClassSchema, updateClassSchema } from "@/lib/zod/classroom";
 import {
@@ -74,7 +74,9 @@ export async function DELETE(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const classIdParam = Number(searchParams.get("classId"));
+    const classIdParam = searchParams.get("classId");
+
+    if (!classIdParam) throw badRequest("Class id not found");
 
     await deleteClassroom(classIdParam);
 

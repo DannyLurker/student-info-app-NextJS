@@ -4,6 +4,7 @@ import {
   DemeritCategoryEnum,
   GradeEnum,
   MajorEnum,
+  zodCustomErrorMsg,
 } from "./general";
 
 // DEMERIT POINT
@@ -26,13 +27,13 @@ export const createDemeritPointSchema = z.object({
 export type CreateDemeritPointSchema = z.infer<typeof createDemeritPointSchema>;
 
 export const updateDemeritPointSchema = z.object({
-  demeritRecordId: z.number(),
+  demeritRecordId: z.string(zodCustomErrorMsg("Demerit record id", "string")),
   demeritCategory: DemeritCategoryEnum,
   points: z
-    .number({ message: "Point field must be filled" })
+    .number(zodCustomErrorMsg("points", "number"))
     .min(5, { message: "Point field must be filled. The minimum points is 5" }),
   description: z.string().max(300),
-  date: z.string(),
+  date: z.string(zodCustomErrorMsg("Date", "string")),
 });
 
 export type UpdateDemeritPointSchema = z.infer<typeof updateDemeritPointSchema>;
