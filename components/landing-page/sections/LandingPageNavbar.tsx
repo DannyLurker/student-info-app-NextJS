@@ -42,7 +42,7 @@ const LandingPageNavbar = ({ session }: LandingPageNavbarProps) => {
                 </Button>
               ) : (
                 <Button className="bg-[#F5A623] hover:bg-[#E09512] text-white font-semibold px-6">
-                  <Link href="/sign-in">Apply Now</Link>
+                  <Link href="/sign-in">Login</Link>
                 </Button>
               )}
             </div>

@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-import { getRoleDashboard } from "../constants/roles";
 
 export const { auth: authEdge } = NextAuth({
   session: {
@@ -7,18 +6,8 @@ export const { auth: authEdge } = NextAuth({
   },
   providers: [],
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth }) {
       const isLoggedIn = !!auth?.user;
-      const isOnSignIn = nextUrl.pathname.startsWith("/sign-in");
-
-      if (isOnSignIn) {
-        if (isLoggedIn) {
-          return Response.redirect(
-            new URL(getRoleDashboard(auth.user.role), nextUrl),
-          );
-        }
-        return true;
-      }
 
       return isLoggedIn;
     },

@@ -8,8 +8,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - sign-in, sign-up (auth pages)
+     * - sign-in
+     * - landing page / app.tsx rooot
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|sign-in|forgot-password|reset-password).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.html$|sign-in|$).*)",
   ],
 };

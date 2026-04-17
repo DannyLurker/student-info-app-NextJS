@@ -1,4 +1,3 @@
-import React from "react";
 import SignIn from "../../../components/auth/SignIn";
 import { auth } from "../../../lib/auth/authNode";
 import { redirect } from "next/navigation";

@@ -123,6 +123,14 @@ const SignIn = () => {
                   Forgot password?
                 </Link>
               </div> */}
+              <div className="flex justify-start items-center text-sm">
+                <Link
+                  href="/"
+                  className="text-[#1E3A8A] hover:text-[#3B82F6] font-medium"
+                >
+                  Homepage
+                </Link>
+              </div>
 
               {/* Sign In Button */}
               <Button
