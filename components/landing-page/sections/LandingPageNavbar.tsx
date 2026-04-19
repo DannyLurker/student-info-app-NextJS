@@ -24,11 +24,9 @@ const LandingPageNavbar = ({ session }: LandingPageNavbarProps) => {
                 alt="YPAB Scholastic"
                 className="h-10 w-auto object-contain"
               />
-              <span className="font-bold text-xl tracking-tighter text-[#1D439B]">
-                Yayasan Pendidikan
-                <br className="sm:hidden" />
-                Advent Batam
-              </span>
+              <h1 className="font-bold text-xl tracking-tighter text-[#1D439B]">
+                SMK Advent Batam
+              </h1>
             </div>
 
             {/* Links */}
