@@ -55,7 +55,7 @@ export const validateManagementSession = cache(async () => {
       userId: true,
       staffRole: true,
       user: {
-        select: { name: true },
+        select: { name: true, email: true },
       },
     },
   });

@@ -23,7 +23,7 @@ const LandingPageHeroSection = () => {
                 <span className="text-[#1D439B]">To</span>
                 <br />
                 <span className="text-[#B8860B] italic font-serif">
-                  Exellence.
+                  Excellence.
                 </span>
               </h1>
 

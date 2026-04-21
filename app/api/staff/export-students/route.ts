@@ -1,32 +1,27 @@
-import { handleError } from "@/lib/errors";
-import { getStudentExport } from "@/services/student/student-service";
+import { inngest } from "@/inngest/client";
 import { getStudentExportSchema } from "@/lib/zod/student";
-import { printConsoleError } from "@/lib/utils/printError";
 import { validateManagementSession } from "@/domain/auth/role-guards";
-import { getFullClassLabel } from "@/lib/utils/labels";
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   try {
-    await validateManagementSession();
+    const session = await validateManagementSession(); // Get user info
+    const body = await req.json();
+    const data = getStudentExportSchema.parse(body);
 
-    const { searchParams } = new URL(req.url);
-
-    const rawData = Object.fromEntries(searchParams.entries());
-
-    const data = getStudentExportSchema.parse(rawData);
-
-    const response = await getStudentExport(data);
-
-    return new Response(response.studentBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=Student-${getFullClassLabel(data.grade, data.major, data.section)}.xlsx"`,
+    // Trigger the Inngest function
+    await inngest.send({
+      name: "app/students.export.requested",
+      data: {
+        payload: data,
+        userEmail: session.user.email,
+        userName: session.user.name,
       },
     });
+
+    return Response.json({
+      message: "Export started. You will receive an email shortly.",
+    });
   } catch (error) {
-    printConsoleError(error, "GET", "/api/staff/export-students");
-    return handleError(error);
+    return Response.json({ error: "Failed to start export" }, { status: 500 });
   }
 }
