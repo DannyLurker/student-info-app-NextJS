@@ -3,8 +3,6 @@ import { inngest } from "./client";
 import { getStudentExport } from "@/services/student/student-service";
 import { put } from "@vercel/blob";
 import { getFullClassLabel } from "@/lib/utils/labels";
-import path from "path";
-import fs from "fs/promises";
 import { sendEmail } from "@/emails/nodeMailer";
 import { render } from "@react-email/render";
 
@@ -30,7 +28,7 @@ export const generateStudentsExcel = inngest.createFunction(
       const blob = await put(`students-${payload.major}.xlsx`, bufferToUpload, {
         access: "public",
         addRandomSuffix: false, // Keeps the name clean
-        allowOverwrite: true, // This fixes your current error
+        allowOverwrite: true,
       });
       return blob.url;
     });
@@ -55,8 +53,6 @@ export const generateStudentsExcel = inngest.createFunction(
     //   // Return the localhost URL
     //   return `http://localhost:3000/exports/${fileName}`;
     // });
-
-    console.log(payload);
 
     const html = await render(
       ExcelDownloadEmail({

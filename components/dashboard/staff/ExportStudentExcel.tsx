@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "../../ui/button";
@@ -19,14 +19,24 @@ import {
 } from "../../../lib/utils/labels";
 import { FileSpreadsheet, Download } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils/getErrorMessage";
+import LoadingFullScreen from "@/components/ui/LoadingFullScreen";
 
 const ExportStudentExcel = () => {
   const [loading, setLoading] = useState(false);
+  const [isMount, setIsMount] = useState(false);
   const [selectedClass, setSelectedClass] = useState({
     grade: "",
     major: "",
     section: "",
   });
+
+  useEffect(() => {
+    setIsMount(true);
+  });
+
+  if (!isMount) {
+    return <LoadingFullScreen />;
+  }
 
   const isClassSelected =
     selectedClass.grade && selectedClass.major && selectedClass.section;
@@ -40,32 +50,27 @@ const ExportStudentExcel = () => {
     setLoading(true);
 
     try {
-      const response = await axios.get("/api/staff/export-students", {
-        params: {
-          grade: selectedClass.grade,
-          major: selectedClass.major,
-          section: selectedClass.section,
+      const payload = {
+        grade: selectedClass.grade,
+        major: selectedClass.major,
+        section: selectedClass.section,
+      };
+
+      const exportRequest = axios.post("/api/staff/export-students", payload);
+
+      toast.promise(exportRequest, {
+        loading: "Requesting student export...",
+        success: (response) => {
+          // Axios puts the server response in .data
+          return response.data.message;
         },
-        responseType: "blob",
+        error: async (err) => {
+          const errMsg = await getErrorMessage(err.response?.data?.message);
+
+          return errMsg || "Failed to start export";
+        },
       });
-
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-
-      // Generate filename with class info
-      const fileName = `Students-${selectedClass.grade}-${selectedClass.major}-${selectedClass.section}.xlsx`;
-      link.setAttribute("download", fileName);
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      toast.success("Excel file downloaded successfully");
     } catch (error: any) {
-      console.error("Download error:", error);
       const errorMessage = getErrorMessage(error);
       toast.error(errorMessage);
     } finally {
@@ -202,7 +207,7 @@ const ExportStudentExcel = () => {
           </Button>
           <Button
             onClick={handleDownload}
-            disabled={!isClassSelected || loading}
+            disabled={!isMount || !isClassSelected || loading}
             className="bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] hover:from-[#1E3A8A]/90 hover:to-[#3B82F6]/90"
           >
             {loading ? (

@@ -1,10 +1,12 @@
 import { inngest } from "@/inngest/client";
 import { getStudentExportSchema } from "@/lib/zod/student";
 import { validateManagementSession } from "@/domain/auth/role-guards";
+import { printConsoleError } from "@/lib/utils/printError";
+import { handleError } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
-    const session = await validateManagementSession(); // Get user info
+    const session = await validateManagementSession();
     const body = await req.json();
     const data = getStudentExportSchema.parse(body);
 
@@ -18,10 +20,14 @@ export async function POST(req: Request) {
       },
     });
 
-    return Response.json({
-      message: "Export started. You will receive an email shortly.",
-    });
+    return Response.json(
+      {
+        message: "Export started. You will receive an email shortly.",
+      },
+      { status: 200 },
+    );
   } catch (error) {
-    return Response.json({ error: "Failed to start export" }, { status: 500 });
+    printConsoleError(error, "POST", "/api/staff/export-students");
+    return handleError(error);
   }
 }
